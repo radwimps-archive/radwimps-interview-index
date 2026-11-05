@@ -3,7 +3,7 @@
 RADWIMPS とメンバーのインタビュー・対談を、年・メンバー・作品名で探せる索引サイトです。
 記事の本文は載せず、タイトル・掲載日・媒体名と、掲載元へのリンクをまとめています。
 
-- 公開サイト：https://ユーザー名.github.io/radwimps-interview-index/ （公開したら、この行を実際の URL に書き換えてください）
+- 公開サイト：https://radwimps-archive.github.io/radwimps-interview-index/
 - **運用マニュアル：[docs/manual.md](docs/manual.md)**（公開のしかた・記事の追加・リンク切れへの対応）
 - 記事データ作成ツール：公開サイトの `maker.html`
 
