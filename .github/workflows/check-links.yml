@@ -1,0 +1,55 @@
+# リンク切れチェック
+# 毎週月曜の朝（日本時間 9:17ごろ）に、記事のリンクが開けるかを確かめます。
+# 対応が必要な記事があると、「link-check」ラベルの付いた Issue を作って（または更新して）お知らせします。
+# 問題がなくなると、その Issue を自動で閉じます。
+# 手動で動かすとき：「Actions」タブ → 「リンク切れチェック」 → 「Run workflow」
+#
+# 注意：リポジトリに 60 日間変更がないと、GitHub が毎週の自動実行を止めることがあります。
+#       止まったら「Actions」タブのこのワークフローで「Enable workflow」を押すと再開します。
+
+name: リンク切れチェック
+
+on:
+  schedule:
+    - cron: "17 0 * * 1" # 毎週月曜 0:17（世界標準時）＝ 日本時間 9:17
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  issues: write
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - name: ファイルを取り出す
+        uses: actions/checkout@v7
+
+      - name: Node.js を準備する
+        uses: actions/setup-node@v7
+        with:
+          node-version: lts/*
+
+      - name: リンクを確かめる
+        id: check
+        run: node tools/check-links.mjs --report report.md
+
+      - name: 結果を Issue でお知らせする
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+          PROBLEMS: ${{ steps.check.outputs.problems }}
+        run: |
+          gh label create link-check --color D93F0B --description "リンク切れチェックの結果" --force
+          number=$(gh issue list --label link-check --state open --limit 1 --json number --jq '.[0].number // empty')
+          if [ "${PROBLEMS:-0}" -gt 0 ]; then
+            if [ -n "$number" ]; then
+              gh issue edit "$number" --body-file report.md
+              gh issue comment "$number" --body "最新のチェック結果で本文を更新しました（対応が必要な記事：${PROBLEMS} 件）。"
+            else
+              gh issue create --title "リンク切れの可能性がある記事があります" --label link-check --body-file report.md
+            fi
+          elif [ -n "$number" ]; then
+            gh issue close "$number" --comment "最新のチェックで、対応が必要な記事はなくなりました。"
+          fi

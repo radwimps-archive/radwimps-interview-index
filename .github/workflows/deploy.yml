@@ -1,0 +1,56 @@
+# サイトを公開する
+# main ブランチに変更が保存（コミット）されるたびに動きます。
+#   1. 記事データの書式をチェック（エラーがあればここで止まり、サイトは前の状態のまま）
+#   2. 問題がなければ、GitHub Pages にサイトを公開
+# 手動で動かすとき：「Actions」タブ → 「サイトを公開する」 → 「Run workflow」
+
+name: サイトを公開する
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: ファイルを取り出す
+        uses: actions/checkout@v7
+
+      - name: Node.js を準備する
+        uses: actions/setup-node@v7
+        with:
+          node-version: lts/*
+
+      - name: 記事データの書式をチェックする
+        run: node tools/validate.mjs
+
+      - name: 公開するファイルをまとめる
+        run: |
+          mkdir _site
+          cp -r index.html maker.html assets data _site/
+
+      - name: GitHub Pages の準備
+        uses: actions/configure-pages@v6
+
+      - name: ファイルをアップロードする
+        uses: actions/upload-pages-artifact@v5
+        with:
+          path: _site
+
+      - name: 公開する
+        id: deployment
+        uses: actions/deploy-pages@v5

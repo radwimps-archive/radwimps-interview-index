@@ -1,0 +1,187 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>RADWIMPS Archive</title>
+<meta name="description" content="RADWIMPS とメンバーのインタビュー・対談・ライブレポートを、カテゴリ・年・メンバー・作品名で探せる索引サイトです。">
+<meta property="og:title" content="RADWIMPS Archive">
+<meta property="og:description" content="RADWIMPS とメンバーのインタビュー・対談・ライブレポートを、カテゴリ・年・メンバー・作品名で探せる索引サイトです。">
+<meta property="og:type" content="website">
+<meta name="theme-color" content="#FFFFFF" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#111319" media="(prefers-color-scheme: dark)">
+<link rel="icon" href="assets/icon.svg" type="image/svg+xml">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=BIZ+UDPGothic:wght@400;700&family=Zen+Old+Mincho:wght@900&display=swap">
+<link rel="stylesheet" href="assets/style.css">
+<script type="module" src="assets/app.js"></script>
+</head>
+<body>
+
+<div id="sentinel" aria-hidden="true"></div>
+<!-- いちばん上の帯（画面の上に固定）。左上のボタンでメニューを開きます。 -->
+<header class="appbar" id="appbar">
+  <div class="appbar-in wrap">
+    <button id="menuBtn" class="burger" type="button" aria-expanded="false" aria-controls="menu" aria-label="メニューを開く">
+      <span class="bl"></span><span class="bl"></span><span class="bl"></span>
+    </button>
+    <a class="brand" href="#articles">RADWIMPS Archive</a>
+  </div>
+</header>
+
+<!-- メニュー（中身は assets/app.js が作ります。カテゴリの名前は assets/data.js の CATEGORIES） -->
+<div id="menuWrap" class="menuwrap" hidden>
+  <div class="menucatch" id="menuCatch"></div>
+  <nav id="menu" class="menu" aria-label="メニュー"><div class="menu-in wrap" id="menuIn"></div></nav>
+</div>
+
+<main class="wrap" id="main">
+  <!-- いま見ているページの名前（すべての記事・カテゴリ・動画・あとで読む・マイページなど） -->
+  <div class="viewhead">
+    <h1 id="top" tabindex="-1">すべての記事</h1><span class="vcount" id="vcount"></span>
+    <p class="vdesc" id="vdesc" hidden></p>
+  </div>
+
+  <!-- 記事の一覧（data/articles.csv の内容がここに表示されます） -->
+  <div id="listView">
+    <div class="tools">
+      <label class="search" for="q">
+        <svg width="18" height="18" viewBox="0 0 24 24" aria-hidden="true"><circle cx="10.5" cy="10.5" r="6.5" fill="none" stroke="currentColor" stroke-width="2"/><path d="M15.5 15.5L20 20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+        <span class="sr">記事を検索</span>
+        <input id="q" type="search" enterkeyhint="search" autocomplete="off" placeholder="題名・人名・作品名など">
+        <button id="qclear" class="qclear" type="button" aria-label="検索語を消す" hidden>×</button>
+      </label>
+      <button id="ftoggle" class="btn ftoggle" type="button" aria-haspopup="dialog" aria-expanded="false" aria-controls="filters">
+        <svg width="16" height="16" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 6h16M7 12h10M10 18h4" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+        絞り込み<span id="fbadge" class="fbadge" hidden></span>
+      </button>
+    </div>
+    <div class="listbar">
+      <div class="tabs" role="group" aria-label="表示する記事">
+        <button class="tab" type="button" data-tab="all" aria-pressed="true">すべて<span class="tn" id="tn-all"></span></button>
+        <button class="tab" type="button" data-tab="bm" aria-pressed="false">★<span class="sr">お気に入り</span><span class="tn" id="tn-bm"></span></button>
+        <button class="tab" type="button" data-tab="unread" aria-pressed="false">未読<span class="tn" id="tn-ur"></span></button>
+      </div>
+      <label class="yj" id="yjWrap" hidden><span class="sr">年へ移動</span><select id="yearjump"></select></label>
+    </div>
+    <div id="active" class="active" hidden></div>
+    <p id="count" class="count" aria-live="polite" hidden></p>
+    <p id="loading" class="loading" role="status">記事を読み込んでいます…</p>
+    <noscript><p class="loading">このサイトを見るには、ブラウザの JavaScript を有効にしてください。</p></noscript>
+    <div id="list"></div>
+    <p id="cross" class="cross"></p>
+  </div>
+
+  <!-- マイページ（お気に入り・あとで読む・既読の数と、記録のバックアップ） -->
+  <section id="page-mypage" class="page" hidden>
+    <ul class="myrows">
+      <li><button type="button" class="myrow" data-go="bm"><span class="myic bm" aria-hidden="true"></span><span class="myl">お気に入り</span><b id="my-bm">0</b></button></li>
+      <li><a class="myrow" href="#later"><span class="myic lt" aria-hidden="true"></span><span class="myl">あとで読む</span><b id="my-lt">0</b></a></li>
+      <li><div class="myrow"><span class="myic rd" aria-hidden="true"></span><span class="myl">既読</span><b id="my-rd">0</b></div></li>
+    </ul>
+    <div class="panel" id="backupPanel">
+      <h2>記録のバックアップ</h2>
+      <p class="hint">お気に入り・あとで読む・既読は、いま使っているブラウザだけに保存されています。ファイルに書き出しておけば、ブラウザのデータを消したあとや別の端末でも、読み込んで元に戻せます。読み込んでも、今ある記録は消えません。</p>
+      <div class="panelbtns">
+        <button type="button" class="btn primary" id="exportBtn">ファイルに書き出す</button>
+        <button type="button" class="btn" id="importBtn">ファイルから読み込む</button>
+        <input type="file" id="importFile" accept=".json,application/json" hidden>
+      </div>
+      <p id="backupMsg" class="msg" role="status"></p>
+    </div>
+    <div class="panel" id="adminState" hidden>
+      <p class="hint">この端末は管理者モードです。メニューに「管理画面」が出ています。</p>
+      <div class="panelbtns"><button type="button" class="btn" data-act="admin-off">管理者モードをオフにする</button></div>
+    </div>
+  </section>
+
+  <!-- 管理画面（管理者モードの端末だけ。URL の末尾に #admin を付けて開くと、管理者モードをオンにできます） -->
+  <section id="page-admin" class="page" hidden>
+    <div id="adminOffView">
+      <p>管理画面は、管理者の端末だけに出る画面です。この端末で管理者モードをオンにすると、メニューに「管理画面」が出ます（ほかの人の端末には出ません）。</p>
+      <p class="hint">管理画面では、記事の追加・編集・非表示・削除をして、GitHub に保存できます。保存には、管理者が GitHub で作る「合鍵」が必要なので、ほかの人が管理者モードをオンにしても記事は変えられません。</p>
+      <div class="panelbtns"><button type="button" class="btn primary" data-act="admin-on">この端末で管理者モードをオンにする</button></div>
+    </div>
+    <div id="adminOnView" hidden>
+      <h2>記事データの状態</h2>
+      <ul class="admstats" id="admStats"></ul>
+      <div id="admIssues"></div>
+      <h2>記事の管理</h2>
+      <div id="adminEditor" class="admeditor"><p class="hint">読み込んでいます…</p></div>
+      <h2>よく使う操作</h2>
+      <ul class="admlinks" id="admLinks"></ul>
+      <p class="hint" id="admRepoNote" hidden>GitHub Pages（○○.github.io）で公開すると、ここに GitHub の画面へのリンクが出ます。独自ドメインのときは、assets/config.js の repoUrl に GitHub の URL を書いてください。</p>
+      <div class="panelbtns"><button type="button" class="btn" data-act="admin-off">この端末の管理者モードをオフにする</button></div>
+    </div>
+  </section>
+
+  <!-- 記事を追加（訪問者は、追加のお願いを GitHub で送れます） -->
+  <section id="page-add" class="page" hidden>
+    <p class="admnote" id="addAdminNote" hidden>管理者は <a href="maker.html">記事データ作成ツール</a> で、追加する1行を作れます。</p>
+    <p>この索引に載っていないインタビューやライブレポートを見つけたら、教えてください。管理者が中身を確かめてから追加します。</p>
+    <form class="addform" id="addForm" novalidate>
+      <label for="addUrl">記事の URL（必須）<input id="addUrl" type="url" inputmode="url" autocomplete="off" placeholder="https://"></label>
+      <label for="addTitle">タイトル（わかれば）<input id="addTitle" type="text" autocomplete="off"></label>
+      <label for="addNote">ひとこと（任意）<textarea id="addNote" rows="3"></textarea></label>
+      <a id="addSend" class="btn primary" href="#" target="_blank" rel="noopener noreferrer" aria-disabled="true">GitHub で送る</a>
+      <p class="hint" id="addHint">送るには GitHub のアカウント（無料）が必要です。押すと GitHub の画面が開くので、内容を確かめて「Submit new issue」を押してください。</p>
+    </form>
+  </section>
+</main>
+
+<!-- フッター -->
+<footer class="wrap foot">
+  <p>RADWIMPS とメンバーのインタビュー・対談・ライブレポートを、年ごとにまとめた索引です。タイトルを押すと、掲載元のページが開きます。</p>
+  <p>この索引は、記事や動画のタイトル・掲載日・媒体名と、掲載元へのリンクをまとめたものです。リンク先でインタビューやライブレポートの内容が読める・見られるものを載せています（有料会員限定のものは載せていません）。本文や動画の権利は、各媒体と取材者にあります。</p>
+  <p>掲載日が「年」や「年・月」までのものは、確認できた範囲で記載しています（掲載日がわからないライブレポートは、公演の年・月にしています）。掲載元のタイトルを確認できなかった記事には、内容がわかる見出しを付けています。「雑誌・ムック」の記事は、誌面のインタビューの一部を紹介しているウェブ記事です。</p>
+  <p>リンクは定期的に確認し、開けなくなった記事は一覧から外しています。</p>
+  <p id="reportRow" hidden>記事の誤りやリンク切れに気づいたら、<a id="report" href="#" target="_blank" rel="noopener noreferrer">こちらから知らせてください</a>（GitHub のアカウントが必要です）。</p>
+  <p>主な出典：RADWIMPS 公式サイトの MEDIA 欄（WEB）、各媒体の記事ページ。<span id="updated"></span></p>
+</footer>
+
+<!-- 絞り込み（「絞り込み」ボタンを押すと、画面の下から出てきます） -->
+<div id="filters" class="sheet" hidden>
+  <div class="sheet-back" id="fBack"></div>
+  <div class="sheet-in" role="dialog" aria-modal="true" aria-labelledby="fTitle">
+    <div class="sheet-head">
+      <h2 id="fTitle">絞り込み・並び順</h2>
+      <button type="button" class="btn plain" id="fClose">閉じる</button>
+    </div>
+    <div id="fgroups" class="fgroups"></div>
+    <div class="sheet-foot">
+      <button type="button" class="btn plain" id="fReset">条件をすべて解除</button>
+      <button type="button" class="btn primary" id="fDone">表示する</button>
+    </div>
+  </div>
+</div>
+
+<!-- 管理画面：記事の編集（中身は assets/admin.js が作ります） -->
+<div id="editSheet" class="sheet" hidden>
+  <div class="sheet-back" data-edit="cancel"></div>
+  <div class="sheet-in" role="dialog" aria-modal="true" aria-labelledby="editTitle">
+    <div class="sheet-head">
+      <h2 id="editTitle">記事を編集</h2>
+      <button type="button" class="btn plain" data-edit="cancel">閉じる</button>
+    </div>
+    <form id="editForm" class="fgroups editform" novalidate></form>
+    <div class="sheet-foot" id="editFoot"></div>
+  </div>
+</div>
+
+<!-- 長い一覧の途中から、いちばん上へ戻るボタン -->
+<button id="toTop" class="totop" type="button" hidden>
+  <svg width="16" height="16" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 19V6M6 11l6-6 6 6" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+  上へ戻る
+</button>
+
+<div id="toast" class="toast" role="status" aria-live="polite"></div>
+
+<script>
+  // パソコンでこのファイルを直接開いたときの案内（ブラウザの制限で、このときは記事を表示できません）
+  if (location.protocol === "file:") {
+    document.getElementById("loading").textContent = "このファイルをパソコンで直接開いても、記事は表示されません。公開したサイトの URL で開くか、運用マニュアルの「付録D」の方法で確かめてください。";
+  }
+</script>
+</body>
+</html>
