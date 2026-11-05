@@ -690,11 +690,13 @@ $("#grid").addEventListener("auxclick", (e) => {
 });
 
 // ランダムに読む：いまの条件に合う記事から1つを、新しいタブで開いて既読にする
-function openRandom() {
+// （ボタンは本物のリンク。押した瞬間に行き先を差し替えるので、ポップアップを止める設定のブラウザでも開けます）
+function openRandom(e, link) {
   const list = filtered();
-  if (!list.length) { toast("いまの条件に合う記事がありません"); return; }
+  if (!list.length) { e.preventDefault(); toast("いまの条件に合う記事がありません"); return; }
   const it = list[Math.floor(Math.random() * list.length)];
-  window.open(it.url, "_blank", "noopener,noreferrer");
+  link.href = it.url;
+  setTimeout(() => link.setAttribute("href", "#"), 0);
   setMark("rd", it.id, true);
   toast(`開きました：${it.title.length > 28 ? it.title.slice(0, 27) + "…" : it.title}`);
 }
@@ -890,7 +892,7 @@ document.addEventListener("click", (e) => {
   if (!b || b.closest("#grid")) return;
   const act = b.dataset.act;
   if (act === "reset") { resetFilters(); render(); scrollToList(); }
-  else if (act === "random") openRandom();
+  else if (act === "random") openRandom(e, b);
   else if (act === "backup") { setMenuOpen(false, { focusBack: false }); showBackup(); }
   else if (act === "about") showAbout();
   else if (act === "add") { setMenuOpen(false, { focusBack: false }); showAdd(); }

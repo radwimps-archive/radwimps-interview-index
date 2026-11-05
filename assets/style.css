@@ -82,7 +82,9 @@ button { cursor: pointer; }
 .eyebrow { margin: 0 0 8px; font-family: var(--f-mono); font-size: 8px; line-height: 1.8; letter-spacing: .1em; text-transform: uppercase; }
 
 /* ---------- いちばん上の帯（画面の上に固定）と、左上のメニューボタン ---------- */
-.header { position: sticky; top: 0; z-index: 20; background: var(--white); border-bottom: 1px solid var(--rule); }
+/* iPhone をホーム画面アプリとして開いたときなど、画面のいちばん上（時刻や電池の表示の裏）にも帯の色を敷いて、帯はその下に止める */
+body::before { content: ""; position: fixed; inset: 0 0 auto; height: env(safe-area-inset-top, 0px); z-index: 25; background: var(--white); pointer-events: none; }
+.header { position: sticky; top: env(safe-area-inset-top, 0px); z-index: 20; background: var(--white); border-bottom: 1px solid var(--rule); }
 .header-inner { position: relative; display: flex; align-items: center; gap: 11px; max-width: 1200px; height: 44px; margin-inline: auto; padding: 0 21px 0 0; background: var(--white); }
 
 /* 3本線のボタン：開くと「×」になる（上下の線が 8px 中央へ寄って ±45° 回転、真ん中の線は消える）。開いている間は朱色 */
@@ -168,7 +170,7 @@ button { cursor: pointer; }
 .search-box kbd { display: none; padding: 3px 6px; border: 1px solid var(--rule); border-radius: 3px; font-family: var(--f-mono); font-size: 11px; line-height: 1; color: #8A8F80; }
 .qclear { flex: none; width: 32px; height: 32px; padding: 0; border: 0; border-radius: 50%; background: transparent; color: var(--muted); font-size: 18px; line-height: 1; }
 .qclear:hover { background: var(--paper); color: var(--ink); }
-.random-button { flex: none; display: flex; align-items: center; justify-content: space-evenly; gap: 8px; width: 44px; height: 50px; padding: 1px 6px; border: 1px solid var(--line-input); border-radius: 5px; background: transparent; color: var(--ink); font-size: 21px; }
+.random-button { flex: none; display: flex; align-items: center; justify-content: space-evenly; gap: 8px; width: 44px; height: 50px; padding: 1px 6px; border: 1px solid var(--line-input); border-radius: 5px; background: transparent; color: var(--ink); font-size: 21px; text-decoration: none; }
 .random-button .random-label { font-size: 12px; }
 .random-button:hover { background: var(--card); }
 .random-label { display: none; }
@@ -506,7 +508,7 @@ dialog.modal::backdrop { background: rgba(23, 32, 24, .5); -webkit-backdrop-filt
   /* 左に絞り込み（176px）、右に一覧 */
   .archive-layout { display: grid; grid-template-columns: 176px minmax(0, 1fr); gap: 26px; align-items: start; }
   .filters { margin-bottom: 0; padding-right: 18px; border-right: 1px solid var(--rule); align-self: stretch; }
-  .filters details { position: sticky; top: 72px; max-height: calc(100vh - 88px); overflow-y: auto; border: 0; background: none; scrollbar-width: thin; }
+  .filters details { position: sticky; top: calc(72px + env(safe-area-inset-top, 0px)); max-height: calc(100vh - 88px - env(safe-area-inset-top, 0px)); overflow-y: auto; border: 0; background: none; scrollbar-width: thin; }
   .filters summary { display: block; min-height: 0; margin-bottom: 12px; padding: 12px 0 0; pointer-events: none; }
   .chevron { display: none; }
   .filter-number:not(:empty) { margin-left: 6px; }
