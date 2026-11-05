@@ -27,7 +27,7 @@
   .mem label { display: inline-flex; align-items: center; gap: 6px; font-size: 14px; color: var(--ink); min-height: 36px; }
   .mem input { width: 18px; height: 18px; accent-color: var(--accent); }
   .out { display: grid; gap: 8px; padding: 14px; border: 1px solid var(--rule); border-radius: 12px; background: var(--surface); }
-  .out h2 { margin: 0; font-family: var(--f-display); font-size: 20px; }
+  .out h2 { margin: 0; font-size: 18px; }
   .issues { margin: 0; padding-left: 1.2em; font-size: 13px; }
   .issues .e { color: var(--danger); }
   .issues .w { color: var(--ink-2); }
@@ -84,7 +84,8 @@
     const cats = [...document.querySelectorAll("#cats input:checked")].map((b) => b.value).join("、");
     const tags = $("#tags").value.trim();
     const cells = [$("#state").value, y, $("#m").value, $("#d").disabled ? "" : $("#d").value, $("#media").value.trim(), $("#kind").value, cats,
-      $("#title").value.trim(), $("#url").value.trim(), members, $("#guests").value.trim(), tags, $("#lang").value, $("#note").value.trim(), $("#id").value.trim()];
+      $("#title").value.trim(), $("#url").value.trim(), members, $("#guests").value.trim(), tags, $("#lang").value, $("#note").value.trim(),
+      $("#summary").value.replace(/\s*\n\s*/g, " ").trim(), $("#eventDate").value.trim(), $("#eventName").value.trim(), $("#venue").value.trim(), $("#id").value.trim()];
     const line = toCSVLine(cells);
     $("#line").value = line;
     // サイトと同じルールでチェックする
@@ -162,7 +163,16 @@
     </fieldset>
     <label for="guests">対談相手・関連する人（「、」で区切る）<input id="guests" type="text" autocomplete="off" placeholder="例：藤井道人、n-buna（ヨルシカ）"></label>
     <label for="tags">タグ（1つずつ # を付ける）<input id="tags" type="text" autocomplete="off" placeholder="例：#汝、星のごとく #夕星 #映画"></label>
-    <label for="note">メモ（任意）<input id="note" type="text" autocomplete="off" placeholder="例：インタビュー：〇〇"></label>
+    <label for="summary">説明（任意。「説明を開く」で出る紹介文。本文の書き写しではなく、自分の言葉で）<textarea id="summary" rows="3" style="font-family: var(--f-body); font-size: 16px; min-height: 88px;"></textarea></label>
+    <label for="note">メモ（任意）<input id="note" type="text" autocomplete="off" placeholder="例：日付は公式サイトMEDIA欄の掲載日"></label>
+    <fieldset>
+      <legend>ライブの情報（ライブレポートのとき。同じ公演の記事が、まとめて表示されます）</legend>
+      <div class="grid2">
+        <label for="eventDate">公演日<input id="eventDate" type="text" inputmode="numeric" autocomplete="off" placeholder="例：2025-12-27"></label>
+        <label for="eventName">ライブ名（ツアー・イベント）<input id="eventName" type="text" autocomplete="off" placeholder="例：20th ANNIVERSARY LIVE TOUR"></label>
+        <label for="venue">会場<input id="venue" type="text" autocomplete="off" placeholder="例：有明アリーナ"></label>
+      </div>
+    </fieldset>
     <div class="grid2">
       <label for="state">状態<select id="state"></select></label>
       <label for="id">id（空欄なら URL から自動で作ります）<input id="id" type="text" autocomplete="off" placeholder="例：2026-natalie-noda"></label>

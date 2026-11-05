@@ -17,8 +17,8 @@ const PAGE = 40; // 一覧に一度に出す件数
 // 持ち主（Resource owner：リポジトリの持ち主。Organization ならその Organization）を入れた状態で開く
 function tokenUrl() {
   const q = {
-    name: "RADWIMPS Archive 管理画面",
-    description: "RADWIMPS Archive の管理画面から、記事データ（data/articles.csv）を保存するための合鍵",
+    name: "RADWIMPS Archive 運営管理",
+    description: "RADWIMPS Archive の運営管理から、記事データ（data/articles.csv）を保存するための合鍵",
     expires_in: "90",
     contents: "write"
   };
@@ -220,7 +220,7 @@ async function save() {
   }
   A.saving = true;
   render();
-  const message = `記事データを更新（管理画面から：追加 ${sum.added}・修正 ${sum.edited}・削除 ${sum.deleted}）`;
+  const message = `記事データを更新（運営管理から：追加 ${sum.added}・修正 ${sum.edited}・削除 ${sum.deleted}）`;
   const put = () => gh(`/repos/${A.repo}/contents/${FILE}`, {
     method: "PUT", headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ message, content: encodeBase64Utf8(serialize()), sha: A.sha, branch: A.branch })
@@ -395,7 +395,7 @@ function rowIssues() {
 function toolbar() {
   const add = h("button", { type: "button", class: "btn primary", text: "＋ 記事を追加" });
   add.addEventListener("click", () => openEditor(null));
-  const q = h("input", { type: "search", class: "admq", placeholder: "タイトル・媒体・URL で探す", value: A.q, "aria-label": "管理画面の記事を探す" });
+  const q = h("input", { type: "search", class: "admq", placeholder: "タイトル・媒体・URL で探す", value: A.q, "aria-label": "運営管理の記事を探す" });
   q.addEventListener("input", () => { A.q = q.value; A.limit = PAGE; renderList(); });
   const issues = rowIssues();
   const counts = { all: A.rows.length, issues: issues.filter((x) => x.e.length || x.w.length).length };
@@ -424,7 +424,7 @@ function renderList() {
   A.rows.forEach((r, i) => {
     const st = nf(cell(r, "状態")) || "公開";
     if (A.filter === "issues" ? !(issues[i].e.length || issues[i].w.length) : A.filter !== "all" && st !== A.filter) return;
-    const hay = [cell(r, "タイトル"), cell(r, "媒体"), cell(r, "URL"), keyOf(r), cell(r, "メモ")].join(" ").normalize("NFKC").toLowerCase();
+    const hay = [cell(r, "タイトル"), cell(r, "媒体"), cell(r, "URL"), keyOf(r), cell(r, "メモ"), cell(r, "説明"), cell(r, "ライブ名")].join(" ").normalize("NFKC").toLowerCase();
     if (terms.some((t) => !hay.includes(t))) return;
     shown.push(i);
   });
@@ -506,6 +506,11 @@ function setupSheet() {
   F.tags = h("input", { type: "text", autocomplete: "off", placeholder: "例：#汝、星のごとく #映画" });
   F.lang = h("select", null, ...Object.keys(LANGS).map((l) => opt(l)));
   F.note = h("textarea", { rows: "2" });
+  F.summary = h("textarea", { rows: "3" });
+  F.eventDate = h("input", { type: "text", inputmode: "numeric", autocomplete: "off", placeholder: "例：2025-12-27" });
+  F.eventName = h("input", { type: "text", autocomplete: "off", list: "eventList", placeholder: "例：20th ANNIVERSARY LIVE TOUR" });
+  F.eventList = h("datalist", { id: "eventList" });
+  F.venue = h("input", { type: "text", autocomplete: "off", placeholder: "例：有明アリーナ" });
   F.id = h("input", { type: "text", autocomplete: "off", spellcheck: "false" });
   F.issues = h("div", { class: "editissues", "aria-live": "polite" });
 
@@ -522,8 +527,14 @@ function setupSheet() {
     field("対談相手・話し手（「、」で区切る）", F.guests),
     field("タグ（1つずつ # を付ける）", F.tags),
     field("言語", F.lang),
-    field("メモ", F.note),
-    field("id", F.id, "空欄なら URL から自動で作ります。お気に入りなどの目印なので、今ある記事の id は変えないでください。"),
+    field("説明（「説明を開く」で出る紹介文。本文の書き写しではなく、自分の言葉で）", F.summary),
+    field("メモ", F.note, "日付の根拠や、閲覧の条件など。「説明を開く」の中に小さく出ます。"),
+    h("div", { class: "fgroup" }, h("h3", { text: "ライブの情報（ライブレポートのとき）" }),
+      h("div", { class: "admtools" },
+        field("公演日", F.eventDate, "年-月-日で書きます。同じ公演日・ライブ名・会場の記事は、まとめて表示されます。"),
+        field("ライブ名（ツアー・イベント）", F.eventName), F.eventList,
+        field("会場", F.venue))),
+    field("id", F.id, "空欄なら URL から自動で作ります。あとで読む・既読の目印なので、今ある記事の id は変えないでください。"),
     F.issues);
 
   form.addEventListener("input", onFormInput);
@@ -547,7 +558,7 @@ function setState(s) { for (const r of F.state.querySelectorAll("input")) r.chec
 function checked(group) { return [...$s("#editForm").querySelectorAll(`input[data-g="${group}"]:checked`)].map((x) => x.value); }
 
 function emptyDraft() {
-  return { state: "公開", y: String(new Date().getFullYear()), m: "", d: "", media: "", kind: "インタビュー", cats: [], title: "", url: "", members: [], guests: "", tags: "", lang: "日本語", note: "", id: "" };
+  return { state: "公開", y: String(new Date().getFullYear()), m: "", d: "", media: "", kind: "インタビュー", cats: [], title: "", url: "", members: [], guests: "", tags: "", lang: "日本語", note: "", summary: "", eventDate: "", eventName: "", venue: "", id: "" };
 }
 // CSV の1行を、編集画面の値にする（書き方の揺れは、サイトと同じ読み方でそろえる）
 function rowToDraft(r) {
@@ -564,7 +575,8 @@ function rowToDraft(r) {
     guests: cell(r, "対談相手"),
     tags: it ? it.tags.map((t) => "#" + t).join(" ") : cell(r, "タグ"),
     lang: it ? Object.keys(LANGS).find((k) => LANGS[k] === it.lang) || cell(r, "言語") || "日本語" : cell(r, "言語") || "日本語",
-    note: cell(r, "メモ"), id: cell(r, "id")
+    note: cell(r, "メモ"), summary: cell(r, "説明"), eventDate: it ? it.eventDate : cell(r, "公演日"), eventName: cell(r, "ライブ名"), venue: cell(r, "会場"),
+    id: cell(r, "id")
   };
 }
 function readForm() {
@@ -572,13 +584,16 @@ function readForm() {
   return {
     state: st ? st.value : "公開", y: nf(F.y.value), m: F.m.value, d: F.d.value, media: F.media.value.trim(), kind: F.kind.value,
     cats: checked("cats"), title: F.title.value.replace(/\s*\n\s*/g, " ").trim(), url: F.url.value.trim(), members: checked("members"),
-    guests: F.guests.value.trim(), tags: F.tags.value.trim(), lang: F.lang.value, note: F.note.value.trim(), id: F.id.value.trim()
+    guests: F.guests.value.trim(), tags: F.tags.value.trim(), lang: F.lang.value, note: F.note.value.trim(),
+    summary: F.summary.value.replace(/\s*\n\s*/g, " ").trim(), eventDate: nf(F.eventDate.value), eventName: F.eventName.value.trim(), venue: F.venue.value.trim(),
+    id: F.id.value.trim()
   };
 }
 function draftToCells(d, base) {
   const map = {
     "状態": d.state, "年": d.y, "月": d.m, "日": d.d, "媒体": d.media, "種類": d.kind, "カテゴリ": d.cats.join("、"), "タイトル": d.title, "URL": d.url,
-    "メンバー": d.members.map((k) => MEMBERS[k].name).join("、"), "対談相手": d.guests, "タグ": d.tags, "言語": d.lang, "メモ": d.note, "id": d.id, "ID": d.id
+    "メンバー": d.members.map((k) => MEMBERS[k].name).join("、"), "対談相手": d.guests, "タグ": d.tags, "言語": d.lang, "メモ": d.note,
+    "説明": d.summary, "公演日": d.eventDate, "ライブ名": d.eventName, "会場": d.venue, "id": d.id, "ID": d.id
   };
   return A.header.map((col, i) => (col in map ? String(map[col] ?? "") : base ? base[i] ?? "" : ""));
 }
@@ -598,6 +613,8 @@ function openEditor(index) {
   for (const x of $s("#editForm").querySelectorAll('input[data-g="cats"]')) x.checked = d.cats.includes(x.value);
   for (const x of $s("#editForm").querySelectorAll('input[data-g="members"]')) x.checked = d.members.includes(x.value);
   F.guests.value = d.guests; F.tags.value = d.tags; F.lang.value = d.lang; F.note.value = d.note; F.id.value = d.id;
+  F.summary.value = d.summary; F.eventDate.value = d.eventDate; F.eventName.value = d.eventName; F.venue.value = d.venue;
+  F.eventList.replaceChildren(...[...new Set(A.rows.map((x) => cell(x, "ライブ名")).filter(Boolean))].sort().map((n) => h("option", { value: n })));
   F.id.readOnly = !isNew && !!d.id;
   $s("#editTitle").textContent = isNew ? "記事を追加" : "記事を編集";
   renderFoot();

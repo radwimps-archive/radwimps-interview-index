@@ -1,21 +1,28 @@
 // assets/app.js
 // 画面の動きを担当するプログラムです。
-//   1. data/articles.csv と data/releases.csv を読み込む
-//   2. メニュー（カテゴリ・あとで読む・記事を追加・マイページ・管理画面）を作り、ページを切り替える
-//   3. 検索・絞り込み・並び替えをして一覧を表示する
-//   4. お気に入り（★）・あとで読む・既読を、このブラウザに保存する（バックアップの書き出し・読み込みも）
+//   1. data/articles.csv（記事）と data/releases.csv（年ごとの主なリリース）を読み込む
+//   2. 探す入口（人・曲や作品・年代・ライブ）、検索、種類のタブ、「さらに絞り込む」で記事一覧を絞り込む
+//   3. 記事をカードで表示する（12件ずつ。「続きを表示」で12件ずつ増やす）
+//   4. 「あとで読む」と「既読」を、このブラウザに保存する（「保存データの管理」でファイルへの書き出し・読み込みも）
+//   5. 運営管理（URL の末尾に #admin）：記事の追加・修正を GitHub に保存する（中身は assets/admin.js）
 // 記事を増やしたり直したりするときは、このファイルではなく data/articles.csv を編集します。
+// 絞り込みの状態は URL（例：?person=野田洋次郎&format=all）に入るので、そのままブックマークや共有ができます。
 
 import config from "./config.js";
-import { parseArticles, parseReleases, KIND_ORDER, MEMBERS, MEMBER_ORDER, LANG_NAME, CATEGORIES, youtubeId } from "./data.js";
+import {
+  parseArticles, parseReleases, KIND_ORDER, MEMBERS, MEMBER_ORDER, CATEGORIES, SUPPORT_MEMBERS, WORKS, QUICK_WORKS,
+  VIDEO_KIND, LIVE_KIND, LANG_BADGE, youtubeId
+} from "./data.js";
 
 /* ---------- 共通の道具 ---------- */
 
-const STORE_MARKS = "radwimps-interview-index:marks"; // お気に入り・あとで読む・既読の保存場所の名前
-const STORE_UI = "radwimps-interview-index:ui";       // 表示の状態（タブ・並び順・絞り込み）の保存場所の名前
+const STORE_MARKS = "radwimps-interview-index:marks"; // あとで読む・既読の保存場所の名前（以前の「お気に入り」もここ）
 const STORE_ADMIN = "radwimps-interview-index:admin"; // 管理者モード（この端末だけの設定）
+const PAGE_SIZE = 12;                                 // 一覧に一度に出す件数
 
 const $ = (s) => document.querySelector(s);
+const $$ = (s) => [...document.querySelectorAll(s)];
+const isWide = () => matchMedia("(min-width: 701px)").matches;
 const reduceMotion = () => matchMedia("(prefers-reduced-motion: reduce)").matches;
 
 // 画面の部品を作る小さな関数：h("p", { class: "note", text: "本文" })
@@ -30,6 +37,8 @@ function h(tag, attrs, ...kids) {
   for (const kid of kids) if (kid !== null && kid !== undefined && kid !== false) el.append(kid);
   return el;
 }
+// HTML に文字を入れるときの安全な書き方（< や " をそのまま入れない）
+const esc = (s) => String(s ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
 
 function load(key) { try { return JSON.parse(localStorage.getItem(key)); } catch { return null; } }
 function save(key, value) { try { localStorage.setItem(key, JSON.stringify(value)); } catch { /* 保存できない環境では何もしない */ } }
@@ -41,94 +50,108 @@ function norm(s) {
     .replace(/[ぁ-ゖ]/g, (c) => String.fromCharCode(c.charCodeAt(0) + 0x60))
     .replace(STRIP, "");
 }
-const memberLabel = (key) => MEMBERS[key].filterLabel || MEMBERS[key].name;
-// 一覧の左の列に出す日付（年は見出しにあるので、月と日だけ）：「10.09」「10月」、年までしかわからないときは「—」
-function railDate(d) {
-  const [, m, day] = (d || "").split("-");
-  if (day) return m + "." + day;
-  if (m) return +m + "月";
-  return "";
-}
-function fullDate(d) {
-  const [y, m, day] = (d || "").split("-");
-  if (!y) return "日付不明";
-  return y + "年" + (m ? +m + "月" : "") + (day ? +day + "日" : "");
-}
+// 日付を「2026.10.24」「2026.10」「2026」の形にする
+const dotDate = (d) => (d ? d.replaceAll("-", ".") : "");
 
 /* ---------- 状態 ---------- */
 
-const savedUI = load(STORE_UI) || {};
-const arr = (v) => (Array.isArray(v) ? v.filter((x) => typeof x === "string").slice(0, 80) : []);
+// 絞り込みの条件（空欄は「条件なし」）。この名前のまま URL に入ります。
+const F_DEFAULT = {
+  entry: "",    // 開いている入口：people / works / years / live
+  person: "",   // 人の名前
+  scope: "",    // 人の記事の範囲：""＝本人が語る記事　any＝本人の取材とその人についての話　about＝ほかの人がこの人について語った記事
+  work: "",     // 曲・作品の名前
+  year: "",     // 記事が公開された年
+  tour: "",     // ライブ名（ツアー・イベント）
+  q: "",        // キーワード
+  format: "text", // 種類のタブ：text＝記事・資料　video＝動画インタビュー　release＝リリース情報　all＝すべて
+  cat: "",      // 内容（カテゴリ）
+  media: "",    // 掲載メディア
+  lang: "",     // 言語（ja / en / es / other）
+  kind: "",     // 資料の種類（「種類」列の値）
+  status: "",   // 読書の状態：later＝あとで読む　unread＝未読　read＝既読
+  sort: "new"   // 並び順：new / old / media
+};
+const F = { ...F_DEFAULT };
 
 const S = {
   items: [],      // 表示する記事（状態が「公開」のもの）
-  parsed: null,   // 記事データを読んだ結果（管理画面で、非表示の行や書式の問題を数えるため）
+  parsed: null,   // 記事データを読んだ結果（運営管理で、非表示の行や書式の問題を数えるため）
   releases: {},   // 年ごとの主なリリース
-  cats: [],       // メニューに出すカテゴリ（CATEGORIES と、データにだけある新しいカテゴリ）
-  view: null,     // いま見ているページ（URL の末尾の #○○ から決まる）
-  q: "",
-  tab: ["all", "bm", "unread"].includes(savedUI.tab) ? savedUI.tab : "all",
-  sort: savedUI.sort === "asc" ? "asc" : "desc",
-  f: {
-    w: new Set(arr(savedUI.w).filter((x) => MEMBERS[x])),
-    k: new Set(arr(savedUI.k)),
-    lang: ["ja", "intl"].includes(savedUI.lang) ? savedUI.lang : "",
-    y: new Set(arr(savedUI.y)),
-    tag: new Set(arr(savedUI.tag))
-  },
+  works: [],      // 「曲・作品から探す」に出す作品（記事があるものだけ）
+  people: { members: [], support: [], former: [], others: [] },
+  page: "list",   // list：記事一覧　admin：運営管理
+  limit: PAGE_SIZE,
   marks: cleanMarks(load(STORE_MARKS)),
   admin: load(STORE_ADMIN) === 1,
-  loaded: false   // 記事データを読み込み終わったか
+  loaded: false,
+  updated: ""     // 記事データの最終更新日
 };
 
 function cleanMarks(m) {
-  const out = { bm: {}, lt: {}, rd: {} }; // bm：お気に入り　lt：あとで読む　rd：既読
+  const out = { bm: {}, lt: {}, rd: {} }; // lt：あとで読む　rd：既読　bm：以前の「お気に入り（★）」
   for (const key of ["bm", "lt", "rd"]) {
     const src = m && m[key];
     if (src && typeof src === "object") for (const id of Object.keys(src)) if (src[id] && id.length < 160) out[key][id] = 1;
   }
+  // 以前の「お気に入り（★）」は、デザインの変更で「あとで読む」にまとめました
+  for (const id of Object.keys(out.bm)) out.lt[id] = 1;
+  out.bm = {};
   return out;
 }
 const saveMarks = () => save(STORE_MARKS, S.marks);
-const saveUI = () => save(STORE_UI, { tab: S.tab, sort: S.sort, w: [...S.f.w], k: [...S.f.k], lang: S.f.lang, y: [...S.f.y], tag: [...S.f.tag] });
 
-/* ---------- ページ（URL の末尾の #○○） ---------- */
-// #articles：すべての記事　#c-○○：カテゴリ　#videos：動画　#later：あとで読む
-// #mypage：マイページ　#admin：管理画面（#admin-add：管理画面で記事を追加）　#add：記事の追加をお願いする
+/* ---------- URL と絞り込みの条件 ---------- */
 
-function catBySlug(slug) { return S.cats.find((c) => c.slug === slug); }
-
-function viewFromHash() {
-  const key = location.hash.replace(/^#/, "");
-  if (key === "videos") return { page: "list", cat: "video", key, title: "動画" };
-  if (key === "later") return { page: "list", cat: "later", key, title: "あとで読む", desc: "あとで読む印を付けた記事と動画です" };
-  if (key.startsWith("c-")) {
-    const c = catBySlug(key.slice(2));
-    if (c) return { page: "list", cat: "article", group: c.name, key, title: c.name, desc: c.desc };
+const VALID = {
+  entry: ["", "people", "works", "years", "live"], scope: ["", "any", "about"], format: ["text", "video", "release", "all"],
+  status: ["", "later", "unread", "read"], sort: ["new", "old", "media"]
+};
+function readURL() {
+  const p = new URLSearchParams(location.search);
+  for (const k of Object.keys(F_DEFAULT)) {
+    let v = p.has(k) ? String(p.get(k)).slice(0, 200) : F_DEFAULT[k];
+    if (VALID[k] && !VALID[k].includes(v)) v = F_DEFAULT[k];
+    F[k] = v;
   }
-  if (key === "mypage") return { page: "mypage", key, title: "マイページ", desc: "この端末に保存している記録です" };
-  if (key === "admin") return { page: "admin", key, title: "管理画面" };
-  if (key === "admin-add") return { page: "admin", key, title: "管理画面", openNew: true }; // 管理者の「記事を追加」
-  if (key === "add") return { page: "add", key, title: "記事の追加をお願いする" };
-  return { page: "list", cat: "article", key: "articles", title: "すべての記事" };
 }
+function writeURL() {
+  const p = new URLSearchParams();
+  for (const [k, v] of Object.entries(F)) if (v && v !== F_DEFAULT[k]) p.set(k, v);
+  const qs = p.toString();
+  const hash = S.page === "admin" ? location.hash : "";
+  try { history.replaceState(null, "", location.pathname + (qs ? "?" + qs : "") + hash); } catch { /* 変えられない環境 */ }
+}
+function resetFilters() { Object.assign(F, F_DEFAULT); S.limit = PAGE_SIZE; }
 
-// データにだけある新しいカテゴリにも、メニュー用の名前（#c-x1 など）を付ける
-function buildCats() {
-  const known = new Set(CATEGORIES.map((c) => c.name));
-  const extra = [];
-  for (const it of S.items) for (const c of it.categories) if (!known.has(c) && !extra.includes(c)) extra.push(c);
-  S.cats = [...CATEGORIES, ...extra.map((name, i) => ({ name, slug: "x" + (i + 1), desc: "" }))];
+// 以前のサイトの URL（#later・#videos・#c-○○ など）も、そのまま使えるようにする
+function readHash() {
+  const key = decodeURIComponent(location.hash.replace(/^#/, ""));
+  if (key === "admin" || key === "admin-add") return { page: "admin", openNew: key === "admin-add" };
+  if (key === "later") { resetFilters(); F.status = "later"; F.format = "all"; }
+  else if (key === "videos") { resetFilters(); F.format = "video"; }
+  else if (key.startsWith("c-")) {
+    const c = CATEGORIES.find((x) => x.slug === key.slice(2));
+    if (c) { resetFilters(); F.cat = c.name; }
+  } else if (key === "add") return { page: "list", dialog: "add" };
+  else if (key === "mypage") return { page: "list", dialog: "backup" };
+  return { page: "list", clear: ["later", "videos", "articles"].includes(key) || key.startsWith("c-") };
 }
 
 /* ---------- データの読み込み ---------- */
 
+const MEMBER_NAME = Object.fromEntries(MEMBER_ORDER.map((k) => [MEMBERS[k].name, k]));
+
 function prep(it, i) {
   it._i = i;
-  it._y = it.date ? it.date.slice(0, 4) : "----";
+  it._y = it.date ? it.date.slice(0, 4) : "";
   it._k = it.date ? (it.date + "-00-00").slice(0, 10) : "0000-00-00";
+  it._ek = it.eventDate ? (it.eventDate + "-00-00").slice(0, 10) : "";
   const names = it.members.map((k) => [MEMBERS[k].name, MEMBERS[k].romaji, MEMBERS[k].kana].join(" ")).join(" ");
-  it._h = norm(["radwimps らっどうぃんぷす", it.title, it.media, names, it.guests.join(" "), it.tags.join(" "), it.categories.join(" "), it.note, it.kind, it.date].join(" "));
+  it._h = norm(["radwimps らっどうぃんぷす", it.title, it.media, names, it.guests.join(" "), it.tags.join(" "), it.categories.join(" "),
+    it.note, it.summary, it.kind, it.date, it.eventName, it.venue].join(" "));
+  it._w = norm([it.title, it.summary, it.tags.join(" "), it.eventName].join(" "));
+  it._tags = new Set(it.tags.map(norm));
   return it;
 }
 
@@ -138,8 +161,7 @@ function ingest(text) {
   if (parsed.errors.length) console.warn("記事データに書式の問題がある行があります（その行は表示していません）", parsed.errors);
   S.parsed = parsed;
   S.items = parsed.items.filter((it) => it.state === "公開").map(prep);
-  buildCats();
-  S.view = viewFromHash();
+  buildChoices();
 }
 
 async function loadData() {
@@ -153,7 +175,8 @@ async function loadData() {
     if (rRes && rRes.ok) S.releases = parseReleases(await rRes.text()).byYear;
     const lm = aRes.headers.get("Last-Modified");
     const dt = lm ? new Date(lm) : null;
-    if (dt && !isNaN(dt)) $("#updated").textContent = `最終更新：${dt.getFullYear()}年${dt.getMonth() + 1}月${dt.getDate()}日`;
+    if (dt && !isNaN(dt)) S.updated = `${dt.getFullYear()}.${String(dt.getMonth() + 1).padStart(2, "0")}.${String(dt.getDate()).padStart(2, "0")}`;
+    $("#updated").textContent = S.updated ? `最終更新 ${S.updated} / 手動更新` : "";
     S.loaded = true;
     $("#loading").hidden = true;
     render();
@@ -163,314 +186,636 @@ async function loadData() {
   }
 }
 
+/* ---------- 選択肢（入口と「さらに絞り込む」） ---------- */
+
+const ja = (a, b) => a.localeCompare(b, "ja");
+function buildChoices() {
+  // 人：メンバー・サポートメンバー・脱退したメンバー・そのほか（共演者・監督・音楽仲間など）
+  const has = (name) => S.items.some((it) => personMatch(it, name, "any"));
+  const guests = new Set();
+  for (const it of S.items) for (const g of it.guests) guests.add(g);
+  S.people.members = MEMBER_ORDER.filter((k) => MEMBERS[k].group === "member").map((k) => MEMBERS[k].name).filter(has);
+  S.people.former = MEMBER_ORDER.filter((k) => MEMBERS[k].group === "former").map((k) => MEMBERS[k].name).filter(has);
+  S.people.support = SUPPORT_MEMBERS.filter((n) => guests.has(n));
+  S.people.others = [...guests].filter((n) => !SUPPORT_MEMBERS.includes(n) && !MEMBER_NAME[n]).sort(ja);
+  // 曲・作品：記事が1つ以上あるものだけ
+  const seen = new Set();
+  S.works = WORKS.filter((w) => {
+    if (seen.has(w.name)) return false;
+    seen.add(w.name);
+    return S.items.some((it) => workMatch(it, w.name));
+  });
+}
+
+function fillSelect(sel, first, options, value) {
+  sel.replaceChildren(h("option", { value: "", text: first }), ...options.map(([v, label]) => h("option", { value: v, text: label })));
+  sel.value = options.some(([v]) => v === value) ? value : "";
+}
+
+const LANG_LABEL = { ja: "日本語", en: "英語", es: "スペイン語", other: "その他の言語" };
+const STATUS_LABEL = { later: "あとで読む", unread: "未読", read: "既読" };
+function renderSelects() {
+  const present = (fn) => [...new Set(S.items.map(fn).flat().filter(Boolean))];
+  const cats = present((it) => it.categories);
+  fillSelect($("#fCat"), "すべての記事", [...CATEGORIES.map((c) => c.name).filter((n) => cats.includes(n)), ...cats.filter((n) => !CATEGORIES.some((c) => c.name === n))].map((n) => [n, n]), F.cat);
+  const people = ["RADWIMPS", ...S.people.members, ...S.people.support, ...S.people.former, ...S.people.others];
+  fillSelect($("#fPerson"), "すべての人物", people.map((n) => [n, n]), F.person);
+  fillSelect($("#fYear"), "すべての年", present((it) => it._y).sort().reverse().map((y) => [y, y + "年"]), F.year);
+  fillSelect($("#fMedia"), "すべてのメディア", present((it) => it.media).sort(ja).map((m) => [m, m]), F.media);
+  const langs = present((it) => it.lang);
+  fillSelect($("#fLang"), "すべての言語", ["ja", "en", "es", "other"].filter((l) => langs.includes(l)).map((l) => [l, LANG_LABEL[l]]), F.lang);
+  const kinds = present((it) => it.kind);
+  fillSelect($("#fKind"), "すべての種類", [...KIND_ORDER.filter((k) => kinds.includes(k)), ...kinds.filter((k) => !KIND_ORDER.includes(k))].map((k) => [k, k]), F.kind);
+  fillSelect($("#fStatus"), "すべて", Object.entries(STATUS_LABEL), F.status);
+  $("#sort").value = F.sort;
+}
+
 /* ---------- 絞り込み ---------- */
 
-const terms = () => S.q.split(/[\s　]+/).map(norm).filter(Boolean);
-const isIntl = (it) => it.lang !== "ja";
-// いま見ているページの記事
-function inView() {
-  const v = S.view;
-  if (v.cat === "later") return S.items.filter((it) => S.marks.lt[it.id]);
-  return S.items.filter((it) => it.cat === v.cat && (!v.group || it.categories.includes(v.group)));
+// 人の記事か：本人が語る（メンバー列・対談相手列にいる）／ほかの人がこの人について語る
+function personMatch(it, name, scope) {
+  const key = MEMBER_NAME[name];
+  const self = key ? it.members.includes(key) : it.guests.includes(name);
+  if (scope === "" || !scope) return self;
+  const mentioned = it._tags.has(norm(name)) || it._h.includes(norm(name)) || (key && it._h.includes(norm(MEMBERS[key].kana)));
+  const about = !self && (key ? it.kind === "ほかの人が語る" && mentioned : mentioned);
+  return scope === "about" ? about : self || about;
 }
-const kindApplies = () => S.view.cat !== "video"; // 「種類」の絞り込みは、動画のページでは使わない
 
-function passes(it, ts, skip) {
-  if (S.tab === "bm" && !S.marks.bm[it.id]) return false;
-  if (S.tab === "unread" && S.marks.rd[it.id]) return false;
+// 曲・作品の記事か：タグにその名前がある、タイトルや説明に「」『』付きで出てくる、または長めの名前がそのまま出てくる
+const reEsc = (s) => s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+function workMatch(it, name) {
+  const n = norm(name);
+  if (!n) return false;
+  if (it._tags.has(n)) return true;
+  const quoted = new RegExp(`[「『“"]${reEsc(name)}[」』”"]`);
+  if (quoted.test(it.title) || quoted.test(it.summary)) return true;
+  return [...n].length >= 4 && it._w.includes(n);
+}
+
+const terms = () => F.q.split(/[\s　]+/).map(norm).filter(Boolean);
+const isLiveView = () => F.entry === "live" || !!F.tour || F.kind === LIVE_KIND;
+
+function passes(it, ts) {
+  if (F.format !== "all" && it.format !== F.format && !isLiveView()) return false;
+  if (isLiveView() && it.kind !== LIVE_KIND) return false;
+  if (F.status === "later" && !S.marks.lt[it.id]) return false;
+  if (F.status === "unread" && S.marks.rd[it.id]) return false;
+  if (F.status === "read" && !S.marks.rd[it.id]) return false;
+  if (F.person && !personMatch(it, F.person, F.scope)) return false;
+  if (F.work && !workMatch(it, F.work)) return false;
+  if (F.year && it._y !== F.year) return false;
+  if (F.tour && it.eventName !== F.tour) return false;
+  if (F.cat && !it.categories.includes(F.cat)) return false;
+  if (F.media && it.media !== F.media) return false;
+  if (F.lang && it.lang !== F.lang) return false;
+  if (F.kind && it.kind !== F.kind) return false;
   for (const t of ts) if (!it._h.includes(t)) return false;
-  const f = S.f;
-  if (skip !== "w" && f.w.size && !it.members.some((x) => f.w.has(x))) return false;
-  if (skip !== "k" && kindApplies() && f.k.size && !f.k.has(it.kind)) return false;
-  if (skip !== "lang" && f.lang === "ja" && isIntl(it)) return false;
-  if (skip !== "lang" && f.lang === "intl" && !isIntl(it)) return false;
-  if (skip !== "y" && f.y.size && !f.y.has(it._y)) return false;
-  if (skip !== "tag" && f.tag.size && !it.tags.some((x) => f.tag.has(x))) return false;
   return true;
 }
-function sortItems(list) {
-  const dir = S.sort === "asc" ? 1 : -1;
-  return list.slice().sort((a, b) => (a._k < b._k ? -1 : a._k > b._k ? 1 : 0) * dir || a._i - b._i);
+
+function filtered() {
+  const ts = terms();
+  const list = S.items.filter((it) => passes(it, ts));
+  const dir = F.sort === "old" ? 1 : -1;
+  const byDate = (a, b) => (a._k < b._k ? -1 : a._k > b._k ? 1 : 0) * dir || a._i - b._i;
+  if (F.sort === "media") return list.sort((a, b) => ja(a.media, b.media) || (a._k < b._k ? 1 : a._k > b._k ? -1 : 0) || a._i - b._i);
+  if (isLiveView()) {
+    // ライブは公演日の順（公演日がわからない記事は最後に、記事の公開日順）
+    return list.sort((a, b) => {
+      if (!a._ek !== !b._ek) return a._ek ? -1 : 1;
+      if (a._ek !== b._ek) return (a._ek < b._ek ? -1 : 1) * dir;
+      return byDate(a, b);
+    });
+  }
+  return list.sort(byDate);
 }
-const filterCount = () => S.f.w.size + (kindApplies() ? S.f.k.size : 0) + (S.f.lang ? 1 : 0) + S.f.y.size + S.f.tag.size;
 
-/* ---------- 描画 ---------- */
+/* ---------- 描画：入口のパネル ---------- */
 
-const STAR = '<svg width="22" height="22" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3.3l2.6 5.5 6 .8-4.4 4.2 1.1 6-5.3-2.9-5.3 2.9 1.1-6-4.4-4.2 6-.8z" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/></svg>';
-const CLOCK = '<svg width="22" height="22" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="8.4" fill="none" stroke="currentColor" stroke-width="1.6"/><path d="M12 7.6V12l3 2" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>';
-const CHECK = '<svg width="22" height="22" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="8.4" fill="none" stroke="currentColor" stroke-width="1.6"/><path d="M8.3 12.3l2.5 2.5 4.9-5.1" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+const ENTRY_NOTES = {
+  works: "曲の話、制作の裏側、共演者の言葉をまとめて探せます。",
+  years: "記事が公開された年で探します。ライブレポートは「ライブから探す」で公演日ごとに読めます。",
+  live: "公演日ごとにレポートをまとめています。並び順と「さらに絞り込む」でも絞り込めます。"
+};
+function chip(attr, value, label, on) {
+  return `<button type="button" class="person-chip" ${attr}="${esc(value)}" aria-pressed="${on}">${esc(label ?? value)}</button>`;
+}
+function renderEntry() {
+  for (const b of $$("#entryTabs [data-entry]")) b.setAttribute("aria-expanded", String(F.entry === b.dataset.entry));
+  const panel = $("#entryPanel");
+  panel.hidden = !F.entry;
+  if (!F.entry) { panel.replaceChildren(); return; }
+  const keepSearch = panel.querySelector("#personSearch")?.value || "";
+  let html = "";
+  if (F.entry === "people") {
+    const group = (title, names) => names.length ? `<section><h3>${title}</h3><div class="person-chips">${names.map((n) => chip("data-pick-person", n, n, F.person === n)).join("")}</div></section>` : "";
+    html = `<label class="panel-label">名前を探す<input type="search" id="personSearch" autocomplete="off" placeholder="例：十明、新海誠、北村匠海" value="${esc(keepSearch)}"></label>`
+      + `<div class="person-chips">${chip("data-pick-person", "RADWIMPS", "RADWIMPS", F.person === "RADWIMPS")}</div>`
+      + `<div class="person-groups">${group("メンバー", S.people.members)}${group("サポートメンバー", S.people.support)}${group("脱退したメンバー", S.people.former)}`
+      + (S.people.others.length ? `<section><details id="otherPeople"${keepSearch || S.people.others.includes(F.person) ? " open" : ""}><summary>共演者・監督・音楽仲間などから選ぶ</summary><div class="person-chips">${S.people.others.map((n) => chip("data-pick-person", n, n, F.person === n)).join("")}</div></details></section>` : "")
+      + `</div><p class="panel-empty" id="personNone" hidden>その名前の人は、まだ見つかりません。</p>`
+      + (F.person ? `<label class="panel-label">読みたい内容<select id="personScope"><option value="any"${F.scope === "any" ? " selected" : ""}>本人の取材と、その人についての話</option><option value=""${F.scope === "" ? " selected" : ""}>本人が語っている記事</option><option value="about"${F.scope === "about" ? " selected" : ""}>ほかの人がこの人について語った記事</option></select></label>` : "");
+  } else if (F.entry === "works") {
+    const groups = [...new Set(S.works.map((w) => w.group))];
+    const quick = QUICK_WORKS.filter((n) => S.works.some((w) => w.name === n));
+    html = `<label class="panel-label">曲・アルバム・映画を選ぶ<select id="workChoice"><option value="">作品を選んでください</option>${groups.map((g) => `<optgroup label="${esc(g)}">${S.works.filter((w) => w.group === g).map((w) => `<option${F.work === w.name ? " selected" : ""}>${esc(w.name)}</option>`).join("")}</optgroup>`).join("")}</select></label>`
+      + `<p class="browse-note">${ENTRY_NOTES.works}</p><div class="person-chips">${quick.map((n) => chip("data-pick-work", n, n, F.work === n)).join("")}</div>`;
+  } else if (F.entry === "years") {
+    const years = [...new Set(S.items.map((it) => it._y).filter(Boolean))].sort().reverse();
+    const rel = F.year && S.releases[F.year] ? S.releases[F.year] : [];
+    html = `<label class="panel-label">記事が公開された年<select id="yearChoice"><option value="">すべての年</option>${years.map((y) => `<option value="${y}"${F.year === y ? " selected" : ""}>${y}年</option>`).join("")}</select></label>`
+      + `<div class="person-chips panel-chips">${years.map((y) => chip("data-pick-year", y, y, F.year === y)).join("")}</div>`
+      + (rel.length ? `<p class="browse-note">${esc(F.year)}年の主なリリース：${rel.map((r) => esc((r.label ? r.label + " " : "") + r.name)).join(" ／ ")}</p>` : "")
+      + `<p class="browse-note">${ENTRY_NOTES.years}</p>`;
+  } else if (F.entry === "live") {
+    const tours = new Map();
+    for (const it of S.items) if (it.kind === LIVE_KIND && it.eventName) {
+      const last = tours.get(it.eventName) || "";
+      if (it._ek > last) tours.set(it.eventName, it._ek);
+    }
+    const list = [...tours.entries()].sort((a, b) => (a[1] < b[1] ? 1 : a[1] > b[1] ? -1 : ja(a[0], b[0])));
+    html = `<label class="panel-label">ツアー・イベントを選ぶ<select id="tourChoice"><option value="">すべてのツアー・イベント</option>${list.map(([n]) => `<option${F.tour === n ? " selected" : ""}>${esc(n)}</option>`).join("")}</select></label>`
+      + `<p class="browse-note">${ENTRY_NOTES.live}</p>`;
+  }
+  panel.innerHTML = html;
+  if (keepSearch) filterPeople(keepSearch);
+}
+function filterPeople(text) {
+  const n = norm(text);
+  let any = false;
+  for (const b of $$("#entryPanel [data-pick-person]")) {
+    const show = !n || norm(b.dataset.pickPerson).includes(n);
+    b.hidden = !show;
+    if (show) any = true;
+  }
+  for (const sec of $$("#entryPanel .person-groups section")) sec.hidden = !!n && !sec.querySelector("[data-pick-person]:not([hidden])");
+  const other = $("#otherPeople");
+  if (other && n) other.open = true;
+  $("#personNone").hidden = any;
+}
+
+/* ---------- 描画：記事カード ---------- */
+
+const BOOKMARK = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6.5 3.8h11v16.4L12 16.1l-5.5 4.1z" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/></svg>';
+const WORK_NAMES = new Set(WORKS.map((w) => w.name));
+const GENERIC_TAGS = new Set(["MV出演者", "PR", "インタビュー", "対談", "映画", "タイアップ", "対バン", "ワールドツアー", "フェス・イベント", "劇伴", "ライブ", "ラジオ", "テレビ", "RADWIMPS", "ソロ", "ドラマ", "CM"]);
+
+// カードの左の四角に出す短い言葉（作品名・タグ・ライブ名・人の名前の順に、合うものを選ぶ）
+function thumbLabel(it) {
+  const memberNames = new Set(Object.keys(MEMBER_NAME));
+  return it.tags.find((t) => WORK_NAMES.has(t))
+    || it.tags.find((t) => [...t].length <= 12 && !GENERIC_TAGS.has(t) && !/周年$/.test(t) && !memberNames.has(t))
+    || it.guests[0]
+    || (it.members[0] ? MEMBERS[it.members[0]].name : "")
+    || it.media;
+}
+function thumbnail(it) {
+  const yt = youtubeId(it.url);
+  const label = thumbLabel(it);
+  const long = [...label].length > 9 ? " long" : "";
+  const img = yt ? `<img src="https://i.ytimg.com/vi/${encodeURIComponent(yt)}/mqdefault.jpg" alt="" loading="lazy" decoding="async" referrerpolicy="no-referrer" data-thumb>` : "";
+  return `<div class="card-thumbnail" aria-hidden="true"><div class="thumbnail-fallback${long}"><strong>${esc(label)}</strong></div>${img}</div>`;
+}
+function linkify(text) {
+  return esc(text).replace(/https?:\/\/[^\s<>"']+/g, (u) => `<a href="${u}" target="_blank" rel="noopener noreferrer">${u.length > 48 ? u.slice(0, 46) + "…" : u}</a>`);
+}
+function whoLine(it) {
+  const names = (list) => esc(list.join("・"));
+  if (it.kind === "ほかの人が語る" && it.guests.length) return `<p class="mention-context"><span>語り手</span>${names(it.guests)}</p>`;
+  if (it.kind === "対談・鼎談" && it.guests.length) return `<p class="mention-context"><span>対談</span>${names([...it.members.filter((k) => k !== "band").map((k) => MEMBERS[k].name), ...it.guests])}</p>`;
+  if (it.kind === LIVE_KIND && it.guests.length) return `<p class="mention-context"><span>共演</span>${names(it.guests)}</p>`;
+  return "";
+}
+function card(it) {
+  const saved = !!S.marks.lt[it.id], read = !!S.marks.rd[it.id];
+  const isVideo = it.kind === VIDEO_KIND, isLive = it.kind === LIVE_KIND;
+  const category = [isVideo ? "▶ 動画" : "", it.categories.join("・"), it.kind !== "インタビュー" && !isVideo ? it.kind : ""].filter(Boolean).join(" · ");
+  const date = it.date ? dotDate(it.date) : "日付不明";
+  const hasMore = it.summary || it.note || it.tags.length;
+  const isReference = /^参考資料/.test(it.note);
+  const report = REPO ? `<a class="card-report" href="${esc(issueUrl("記事の誤り・リンク切れ：" + it.title, `記事：${it.title}\nURL：${it.url}\nid：${it.id}\n\n気づいたこと：\n`))}" target="_blank" rel="noopener noreferrer">この記事の誤り・リンク切れを知らせる ↗</a>` : "";
+  return `<article class="article-card${isVideo ? " is-video" : ""}${read ? " is-read" : ""}" data-id="${esc(it.id)}" aria-label="${esc(it.title)}">`
+    + (read ? '<span class="read-label">✓ 既読</span>' : "")
+    + `<div class="card-top"><time class="card-date"${it.date ? ` datetime="${esc(it.date)}"` : ""}>${isLive && it.date ? "記事公開：" : ""}${esc(date)}</time>`
+    + `<div class="card-actions"><button type="button" class="save-button" data-act="later" aria-pressed="${saved}" aria-label="${esc(it.title)}を${saved ? "あとで読むから外す" : "あとで読むに保存"}">${BOOKMARK}</button></div></div>`
+    + `<div class="card-main">${thumbnail(it)}<div class="card-copy">`
+    + (category ? `<p class="card-category">${esc(category)}</p>` : "")
+    + `<h3 class="card-title"><a href="${esc(it.url)}" target="_blank" rel="noopener noreferrer" data-open>${esc(it.title)}<span class="sr">（新しいタブで開きます）</span></a></h3>`
+    + whoLine(it) + `</div></div>`
+    + (it.eventDate ? `<p class="event-meta">公演 ${esc(dotDate(it.eventDate))}${it.venue ? " · " + esc(it.venue) : ""}</p>` : "")
+    + (hasMore ? `<details class="card-description"><summary><span class="description-toggle"><span class="when-closed">説明を開く</span><span class="when-open">説明を閉じる</span><span class="chev" aria-hidden="true">⌄</span></span></summary><div class="card-description-body">`
+      + (it.summary ? `<p class="card-summary">${esc(it.summary)}</p>` : "")
+      + (it.note ? `<p class="${isReference ? "reference-note" : "card-note"}">${linkify(it.note)}</p>` : "")
+      + (it.tags.length ? `<ul class="card-tags" aria-label="タグ">${it.tags.map((t) => `<li><button type="button" data-tag="${esc(t)}">#${esc(t)}</button></li>`).join("")}</ul>` : "")
+      + report + `</div></details>` : "")
+    + `<div class="card-bottom"><button type="button" class="read-button" data-act="read" aria-pressed="${read}"><span aria-hidden="true">${read ? "✓" : "○"}</span>${read ? "既読" : "既読にする"}</button>`
+    + `<a class="source-link" href="${esc(it.url)}" target="_blank" rel="noopener noreferrer" data-open aria-label="${esc(it.media)}で読む（新しいタブで開きます）"><span class="source-name">${esc(it.media)}</span>${LANG_BADGE[it.lang] ? `<span class="lang-tag">${LANG_BADGE[it.lang]}</span>` : ""}<span class="arrow" aria-hidden="true">↗</span></a></div>`
+    + `</article>`;
+}
+
+/* ---------- 描画：一覧 ---------- */
+
+function liveGroups(list) {
+  const groups = [];
+  const byKey = new Map();
+  for (const it of list) {
+    const key = it.eventDate ? [it.eventDate, it.eventName, it.venue].join("|") : "?";
+    if (!byKey.has(key)) { const g = { key, items: [] }; byKey.set(key, g); groups.push(g); }
+    byKey.get(key).items.push(it);
+  }
+  return groups;
+}
+function groupHtml(g) {
+  const a = g.items[0];
+  const head = g.key === "?"
+    ? `<time>公演日を確認中</time><div><h3>公演情報がまだない記事</h3><p>公演日・会場がわかったら、記事データに書き足します（記事の公開日順）。</p></div>`
+    : `<time datetime="${esc(a.eventDate)}">${esc(dotDate(a.eventDate))}</time><div><h3>${esc(a.eventName || "ライブ名を確認中")}</h3><p>${esc(a.venue || "")}${a.guests.length ? " ／ 共演：" + esc(a.guests.join("・")) : ""}</p></div>`;
+  return `<section class="live-event" aria-label="${esc((a.eventDate ? dotDate(a.eventDate) + " " : "") + (a.eventName || "公演情報がまだない記事"))}"><div class="live-event-heading">${head}</div><div class="article-grid">${g.items.map(card).join("")}</div></section>`;
+}
+
+function headingText() {
+  if (F.status === "later") return "あとで読む";
+  if (isLiveView()) return F.tour || "ライブレポート";
+  if (F.person) return `${F.person}の記事`;
+  if (F.work) return `「${F.work}」の記事`;
+  if (F.year) return `${F.year}年の記事`;
+  if (F.cat) return F.cat;
+  if (F.format === "video") return "動画インタビュー";
+  if (F.format === "release") return "リリース情報";
+  return "新しく掲載された記事";
+}
+function viewNote() {
+  if (F.status === "later") return "「あとで読む」に保存した記事です。このブラウザに保存しています。";
+  if (F.cat) return CATEGORIES.find((c) => c.name === F.cat)?.desc || "";
+  if (F.format === "video" && !isLiveView()) return "インタビュー・対談の映像です。リンクから YouTube などを新しいタブで開きます。";
+  if (F.format === "release" && !isLiveView()) return "発売・公開のお知らせや、雑誌の掲載号の案内です。インタビュー本文ではありません。";
+  return "";
+}
+
+function activeChips() {
+  const out = [];
+  const add = (key, label) => out.push(`<button type="button" data-clear="${key}" aria-label="${esc(label)}の条件を外す">${esc(label)} ×</button>`);
+  if (F.q) add("q", `“${F.q}”`);
+  if (F.person) add("person", F.person + (F.scope === "about" ? "（ほかの人が語る）" : F.scope === "any" ? "（について語る話も）" : ""));
+  if (F.work) add("work", F.work);
+  if (F.year) add("year", F.year + "年");
+  if (F.tour) add("tour", F.tour);
+  if (F.cat) add("cat", F.cat);
+  if (F.media) add("media", F.media);
+  if (F.lang) add("lang", LANG_LABEL[F.lang] || F.lang);
+  if (F.kind) add("kind", F.kind);
+  if (F.status) add("status", STATUS_LABEL[F.status]);
+  return out.join("");
+}
 
 function render() {
-  if (!S.view) S.view = viewFromHash();
+  const listMode = S.page === "list";
+  $("#listView").hidden = !listMode;
+  $("#page-admin").hidden = listMode;
   renderMenu();
-  renderHead();
-  const page = S.view.page;
-  $("#listView").hidden = page !== "list";
-  for (const p of ["mypage", "admin", "add"]) $("#page-" + p).hidden = page !== p;
-  if (page === "list") {
-    renderStats();
-    renderTabs();
-    renderFilters();
-    renderActive();
-    renderList();
-    renderCross();
-  } else if (page === "mypage") renderMypage();
-  else if (page === "admin") renderAdmin();
-  else if (page === "add") renderAdd();
-  $("#qclear").hidden = !S.q;
-}
+  if (!listMode) { renderAdmin(); writeURL(); return; }
 
-// ページの見出し（いま見ているページの名前と件数、短い説明）
-function renderHead() {
-  const v = S.view;
-  $("#top").textContent = v.title;
-  const n = v.page === "list" && S.loaded ? inView().length : null;
-  $("#vcount").textContent = n === null ? "" : `${n} 件`;
-  $("#vdesc").textContent = v.desc || "";
-  $("#vdesc").hidden = !v.desc;
-  $("#q").placeholder = v.cat === "video" ? "動画の題名・人名など" : "題名・人名・作品名など";
-  document.title = v.key === "articles" ? "RADWIMPS Archive" : `${v.title}｜RADWIMPS Archive`;
-}
+  // 上の部品の状態を、条件に合わせる
+  for (const b of $$("#formatTabs [data-format]")) b.setAttribute("aria-pressed", String(!isLiveView() && F.format === b.dataset.format));
+  if ($("#q").value !== F.q) $("#q").value = F.q;
+  $("#qclear").hidden = !F.q;
+  if (!S.loaded) return;
+  renderEntry();
+  renderSelects();
+  const n = ["cat", "person", "year", "media", "lang", "kind", "status"].filter((k) => F[k]).length;
+  $("#filterNumber").textContent = n ? String(n) : "";
+  $("#archiveTitle").textContent = headingText();
+  const note = viewNote();
+  $("#viewNote").textContent = note;
+  $("#viewNote").hidden = !note;
+  $("#activeFilters").innerHTML = activeChips();
+  $("#liveControls").hidden = !isLiveView();
 
-// メニューの中身：カテゴリ（件数つき）、動画、あとで読む、記事を追加、管理画面（管理者だけ）、マイページ
-function renderMenu() {
-  const box = $("#menuIn");
-  const cur = S.view.key;
-  const articles = S.items.filter((it) => it.cat === "article");
-  const count = (name) => articles.filter((it) => it.categories.includes(name)).length;
-  const item = (href, label, n, key, extraClass) => h("a", { class: "mi" + (extraClass ? " " + extraClass : ""), href, "aria-current": key === cur ? "page" : null },
-    h("span", { class: "ml", text: label }), n === null || n === undefined ? null : h("span", { class: "mn", text: n }));
-  const cats = S.cats.map((c) => [c, count(c.name)]).filter(([, n]) => n > 0);
-  box.replaceChildren(
-    h("p", { class: "mh", text: "記事のカテゴリ" }),
-    h("div", { class: "mgroup" },
-      item("#articles", "すべての記事", S.loaded ? articles.length : null, "articles"),
-      ...cats.map(([c, n]) => item("#c-" + c.slug, c.name, n, "c-" + c.slug))),
-    h("div", { class: "mgroup msep" }, item("#videos", "動画", S.loaded ? S.items.filter((it) => it.cat === "video").length : null, "videos")),
-    h("div", { class: "mgroup mtools" },
-      item("#later", "あとで読む", Object.keys(S.marks.lt).filter((id) => S.items.some((it) => it.id === id)).length, "later", "ic-later"),
-      S.admin ? item("#admin-add", "記事を追加", null, "admin-add", "ic-add") : item("#add", "記事を追加", null, "add", "ic-add"),
-      S.admin ? item("#admin", "管理画面", null, "admin", "ic-admin") : null,
-      item("#mypage", "マイページ", null, "mypage", "ic-my"))
-  );
-}
-
-function renderStats() {
-  let here = 0, hereBm = 0, hereRd = 0;
-  for (const it of inView()) { here++; if (S.marks.bm[it.id]) hereBm++; if (S.marks.rd[it.id]) hereRd++; }
-  $("#tn-all").textContent = here;       // タブの数字は、いま表示しているページの分
-  $("#tn-bm").textContent = hereBm;
-  $("#tn-ur").textContent = here - hereRd;
-}
-
-// 一覧の最後に、もう一方のページへのリンクを出す
-function renderCross() {
-  const v = S.view;
-  let link = null;
-  if (v.cat === "article" && !v.group) {
-    const n = S.items.filter((it) => it.cat === "video").length;
-    if (n) link = h("a", { href: "#videos", text: `動画も見る（${n} 件）` });
-  } else if (v.cat === "article" && v.group) {
-    link = h("a", { href: "#articles", text: "すべての記事を見る" });
-  } else if (v.cat === "video") {
-    link = h("a", { href: "#articles", text: "記事を見る" });
-  }
-  $("#cross").replaceChildren(...(link ? [link] : []));
-}
-
-function renderTabs() {
-  document.querySelectorAll(".tab").forEach((b) => b.setAttribute("aria-pressed", String(b.dataset.tab === S.tab)));
-  const n = filterCount();
-  $("#fbadge").hidden = !n;
-  $("#fbadge").textContent = n;
-}
-
-// 絞り込みの選択肢（n は件数。並び順のように件数を出さないものは null）
-function chip(g, v, label, on, n) {
-  return h("button", {
-    type: "button", class: "chip", "aria-pressed": String(on), "data-g": g, "data-v": v, "data-key": g + ":" + v,
-    disabled: !on && n === 0
-  }, label, n === null ? null : h("span", { class: "n", text: n }));
-}
-function group(title, chips) {
-  return h("div", { class: "fgroup" }, h("h3", { text: title }), h("div", { class: "chips" }, ...chips));
-}
-
-function renderFilters() {
-  const box = $("#fgroups");
-  const active = document.activeElement;
-  const focusKey = active && box.contains(active) ? active.dataset.key : null;
-  const ts = terms();
-  const all = inView();
-  const count = (g, pred) => { let n = 0; for (const it of all) if (passes(it, ts, g) && pred(it)) n++; return n; };
-
-  const kinds = !kindApplies() ? [] : [...KIND_ORDER.filter((k) => all.some((it) => it.kind === k)), ...new Set(all.map((it) => it.kind).filter((k) => !KIND_ORDER.includes(k)))];
-  const years = [...new Set(all.map((it) => it._y))].sort().reverse();
-  const tagCount = new Map();
-  for (const it of all) for (const t of it.tags) tagCount.set(t, (tagCount.get(t) || 0) + 1);
-  const topTags = [...tagCount.entries()]
-    .filter(([t, n]) => n >= 2 || S.f.tag.has(t))
-    .sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0], "ja"))
-    .slice(0, 28).map(([t]) => t);
-
-  box.replaceChildren(...[
-    group("並び順", [["desc", "新しい順"], ["asc", "古い順"]].map(([v, l]) => chip("sort", v, l, S.sort === v, null))),
-    group("メンバー", MEMBER_ORDER.map((m) => chip("w", m, memberLabel(m), S.f.w.has(m), count("w", (it) => it.members.includes(m))))),
-    kinds.length ? group("種類", kinds.map((k) => chip("k", k, k, S.f.k.has(k), count("k", (it) => it.kind === k)))) : null,
-    group("言語", [["ja", "日本語"], ["intl", "海外メディア"]].map(([v, l]) => chip("lang", v, l, S.f.lang === v, count("lang", (it) => (v === "ja" ? !isIntl(it) : isIntl(it)))))),
-    group("年", years.map((y) => chip("y", y, y === "----" ? "日付不明" : y, S.f.y.has(y), count("y", (it) => it._y === y)))),
-    topTags.length ? group("作品・トピック", topTags.map((t) => chip("tag", t, t, S.f.tag.has(t), count("tag", (it) => it.tags.includes(t))))) : null
-  ].filter(Boolean));
-  if (focusKey) {
-    const el = [...box.querySelectorAll("[data-key]")].find((x) => x.dataset.key === focusKey);
-    if (el) el.focus();
-  }
-}
-
-function renderActive() {
-  const box = $("#active");
-  const list = [];
-  if (S.q.trim()) list.push(["q", "", "「" + S.q.trim() + "」"]);
-  for (const m of S.f.w) list.push(["w", m, memberLabel(m)]);
-  if (kindApplies()) for (const k of S.f.k) list.push(["k", k, k]);
-  if (S.f.lang) list.push(["lang", S.f.lang, S.f.lang === "ja" ? "日本語" : "海外メディア"]);
-  for (const y of S.f.y) list.push(["y", y, y === "----" ? "日付不明" : y + "年"]);
-  for (const t of S.f.tag) list.push(["tag", t, "#" + t]);
-  if (S.sort === "asc") list.push(["sort", "asc", "古い順"]);
-  box.hidden = !list.length;
-  box.replaceChildren(...list.map(([g, v, l]) =>
-    h("button", { type: "button", class: "achip", "data-g": g, "data-v": v, "aria-label": l + " の条件を外す" }, l, h("span", { "aria-hidden": "true", text: "×" }))));
-  if (list.length > 1) box.append(h("button", { type: "button", class: "aclear", "data-g": "all", text: "すべて解除" }));
-}
-
-function whoLine(it) {
-  const ms = it.members.map((k) => MEMBERS[k].name);
-  if (!ms.length && !it.guests.length) return null;
-  const s = !ms.length
-    ? (it.kind === "ほかの人が語る" ? "話し手：" : "") + it.guests.join("・")
-    : ms.join("・") + (it.guests.length ? " × " + it.guests.join("・") : "");
-  return h("span", { class: "who", text: s });
-}
-
-function markButton(act, on, svg, label) {
-  const b = h("button", { type: "button", class: "ib " + act, "data-act": act, "aria-pressed": String(on), "aria-label": label, title: label });
-  b.innerHTML = svg;
-  return b;
-}
-
-// 記事1件の表示：左の列に日付、右の列にタイトル（2行まで）と、媒体・種類・人の1行、★・あとで読む・既読のボタン
-function itemRow(it) {
-  const bm = !!S.marks.bm[it.id], lt = !!S.marks.lt[it.id], rd = !!S.marks.rd[it.id];
-  const vid = it.cat === "video" ? youtubeId(it.url) : null;
-  const li = h("li", { class: "item" + (vid ? " has-thumb" : "") + (bm ? " is-bm" : "") + (lt ? " is-lt" : "") + (rd ? " is-read" : ""), "data-id": it.id });
-
-  const rail = railDate(it.date);
-  const date = rail
-    ? h("time", { class: "date", datetime: it.date, title: fullDate(it.date), text: rail })
-    : h("span", { class: "date", title: fullDate(it.date) }, h("span", { "aria-hidden": "true", text: "—" }), h("span", { class: "sr", text: it.date ? "日付は年まで" : "日付不明" }));
-
-  const body = h("div", { class: "body" });
-  if (vid) { // YouTube の動画は、サムネイル（縮小画像）を付ける
-    const img = h("img", { src: `https://i.ytimg.com/vi/${encodeURIComponent(vid)}/mqdefault.jpg`, alt: "", loading: "lazy", width: "320", height: "180" });
-    const thumb = h("a", { class: "thumb", href: it.url, target: "_blank", rel: "noopener noreferrer", tabindex: "-1", "aria-hidden": "true" }, img);
-    img.addEventListener("error", () => thumb.classList.add("noimg"));
-    body.append(thumb);
-  }
-  // タイトルは2行まで（長いものは「…」で省略。全文は長押し・マウスを重ねると出る／記事を開けば読める）
-  const link = h("a", { class: "title", href: it.url, target: "_blank", rel: "noopener noreferrer", title: it.title, text: it.title });
-  // 媒体・種類・言語・人を1行に（動画は「動画」と書かない）
-  const meta = h("p", { class: "meta" },
-    h("span", { class: "media", text: it.media }),
-    it.cat === "video" ? null : h("span", { class: "kind", text: it.kind }),
-    isIntl(it) ? h("span", { class: "lang", text: (LANG_NAME[it.lang] || "日本語以外の記事").replace(/の記事$/, "") }) : null,
-    whoLine(it));
-  // メモとタグは、ふだんは畳んでおき、「メモ・タグ」を押すと開く（一覧の文字を減らすため）
-  const tags = it.tags.length
-    ? h("div", { class: "tags" }, ...it.tags.map((t) => h("button", { type: "button", class: "tag", "data-tag": t, "aria-label": t + " で絞り込む", text: "#" + t })))
-    : null;
-  const note = it.note ? h("p", { class: "note", text: it.note }) : null;
-  const more = note || tags
-    ? h("details", { class: "more" }, h("summary", { text: note && tags ? "メモ・タグ" : note ? "メモ" : "タグ" }), note, tags)
-    : null;
-  const foot = h("div", { class: "irow" }, ...[more, h("div", { class: "acts" },
-    markButton("bm", bm, STAR, "お気に入り"),
-    markButton("lt", lt, CLOCK, "あとで読む"),
-    markButton("rd", rd, CHECK, "既読"))].filter(Boolean));
-  body.append(link, meta, foot);
-
-  li.append(date, body);
-  return li;
-}
-
-function emptyState() {
-  const box = h("div", { class: "empty" });
-  const v = S.view;
-  const what = v.cat === "video" ? "動画" : "記事";
-  const here = inView();
-  if (v.cat === "later" && !here.length) {
-    box.append(h("p", { text: "あとで読む記事はまだありません。記事の日付の下にある時計のボタンを押すと、ここに集まります。" }), h("a", { class: "btn", href: "#articles", text: "すべての記事を見る" }));
-  } else if (!here.length) {
-    box.append(h("p", { text: `まだ${what}がありません。` }));
-  } else if (S.tab === "bm" && !here.some((it) => S.marks.bm[it.id])) {
-    box.append(h("p", { text: `★を付けた${what}はまだありません。${what}の日付の下にある ☆ を押すと、ここに集まります。` }));
-  } else if (S.tab === "unread" && !S.q && !filterCount()) {
-    box.append(h("p", { text: `すべての${what}が既読です。` }));
-  } else {
-    box.append(h("p", { text: "条件に合う記事がありません。" }), h("button", { type: "button", class: "btn", "data-act": "reset", text: "検索と絞り込みを解除" }));
-  }
-  return box;
-}
-
-function renderList() {
-  const ts = terms();
-  const here = inView();
-  const shown = sortItems(here.filter((it) => passes(it, ts)));
-  // 件数は、検索や絞り込みをしているときだけ出す（ふだんは見出しとタブの数字でわかるため）
-  const narrowed = !!(ts.length || filterCount());
-  $("#count").textContent = narrowed ? `${shown.length} 件が見つかりました（全 ${here.length} 件）` : "";
-  $("#count").hidden = !narrowed || !S.loaded;
-  $("#fDone").textContent = shown.length ? `${shown.length} 件を表示` : "条件に合う記事がありません";
-  const list = $("#list"), jump = $("#yearjump");
-  list.replaceChildren();
-  jump.replaceChildren(h("option", { value: "", text: "年へ移動" }));
-  $("#yjWrap").hidden = true;
-  if (!S.loaded) { $("#count").textContent = ""; return; } // 読み込み中は「読み込んでいます…」だけを出す
-  if (!shown.length) { list.append(emptyState()); return; }
-
-  const groups = new Map();
-  for (const it of shown) {
-    if (!groups.has(it._y)) groups.set(it._y, []);
-    groups.get(it._y).push(it);
-  }
-  for (const [y, items] of groups) {
-    const label = y === "----" ? "日付不明" : y;
-    const sec = h("section", { class: "year", id: "y-" + y, "aria-labelledby": "yh-" + y },
-      h("div", { class: "yhead" }, h("h2", { id: "yh-" + y, text: label }), h("span", { class: "ycount", text: items.length + " 件" })));
-    const rel = S.releases[y];
-    if (rel && rel.length && S.view.cat !== "later") { // その年の主なリリース（data/releases.csv）
-      sec.append(h("ul", { class: "yrel", "aria-label": "この年の主なリリース" },
-        h("li", { class: "rl", "aria-hidden": "true", text: "リリース" }),
-        ...rel.map((r) => h("li", null, r.label ? h("span", { class: "d", text: r.label }) : null, h("b", { text: r.name })))));
+  // 一覧
+  const list = filtered();
+  const grid = $("#grid");
+  let shown = 0;
+  if (isLiveView() && F.sort !== "media") {
+    const groups = liveGroups(list);
+    const parts = [];
+    for (const g of groups) {
+      if (shown >= S.limit) break; // 公演の途中で切らないよう、まとまりごとに出す
+      parts.push(groupHtml(g));
+      shown += g.items.length;
     }
-    sec.append(h("ol", { class: "items" }, ...items.map(itemRow)));
-    list.append(sec);
-    jump.append(h("option", { value: y, text: `${label}（${items.length} 件）` }));
+    grid.className = "live-list";
+    grid.innerHTML = parts.join("");
+  } else {
+    grid.className = "article-grid";
+    const page = list.slice(0, S.limit);
+    shown = page.length;
+    grid.innerHTML = page.map(card).join("");
   }
-  $("#yjWrap").hidden = groups.size < 2;
+  for (const img of grid.querySelectorAll("img[data-thumb]")) img.addEventListener("error", () => img.remove(), { once: true });
+  $("#loadMore").hidden = shown >= list.length;
+  $("#empty").hidden = list.length > 0;
+  $("#emptyText").textContent = F.status === "later" && !list.length && !F.q
+    ? "まだ「あとで読む」に保存した記事はありません。カードの右上のしおりを押すと、ここに集まります。"
+    : "条件を変えて、もう一度探してみてください。";
+  $("#resultCount").textContent = `${list.length} 件の記事`;
+  writeURL();
 }
 
-/* ---------- マイページ ---------- */
-
-function liveCount(kind) { return S.items.filter((it) => S.marks[kind][it.id]).length; }
-
-function renderMypage() {
-  $("#my-bm").textContent = liveCount("bm");
-  $("#my-lt").textContent = liveCount("lt");
-  $("#my-rd").textContent = liveCount("rd");
-  $("#adminState").hidden = !S.admin;
+// 条件を変えたときの共通の処理（表示件数を最初に戻して描き直す）
+function apply() { S.limit = PAGE_SIZE; render(); }
+function scrollToList() {
+  const el = $("#archiveTitle");
+  el.scrollIntoView({ behavior: reduceMotion() ? "auto" : "smooth", block: "start" });
+  el.focus({ preventScroll: true });
 }
 
-/* ---------- 管理画面 ---------- */
+/* ---------- メニュー ---------- */
+
+function renderMenu() {
+  $("#laterCount").textContent = String(Object.keys(S.marks.lt).filter((id) => S.items.some((it) => it.id === id)).length || Object.keys(S.marks.lt).length);
+  $("#adminLink").hidden = !S.admin;
+  const cur = S.page === "admin" ? "admin" : F.status === "later" ? "later" : "list";
+  for (const a of $$("#menuClip [data-go]")) {
+    if (a.dataset.go === cur) a.setAttribute("aria-current", "page"); else a.removeAttribute("aria-current");
+  }
+  if (cur === "admin") $("#adminLink").setAttribute("aria-current", "page"); else $("#adminLink").removeAttribute("aria-current");
+}
+function setMenuOpen(open, { focusBack = true } = {}) {
+  const btn = $("#menuBtn"), clip = $("#menuClip");
+  btn.setAttribute("aria-expanded", String(open));
+  btn.setAttribute("aria-label", open ? "メニューを閉じる" : "メニューを開く");
+  clip.classList.toggle("open", open);
+  clip.setAttribute("aria-hidden", String(!open));
+  if (open) clip.removeAttribute("inert"); else clip.setAttribute("inert", "");
+  if (!open && focusBack && clip.contains(document.activeElement)) btn.focus();
+}
+$("#menuBtn").addEventListener("click", () => setMenuOpen($("#menuBtn").getAttribute("aria-expanded") !== "true"));
+document.addEventListener("click", (e) => {
+  if ($("#menuBtn").getAttribute("aria-expanded") === "true" && !e.target.closest("#menuClip, #menuBtn")) setMenuOpen(false, { focusBack: false });
+});
+$("#menuClip").addEventListener("click", (e) => {
+  const go = e.target.closest("[data-go]");
+  if (!go) return;
+  e.preventDefault();
+  setMenuOpen(false, { focusBack: false });
+  goList(() => { if (go.dataset.go === "later") { F.status = "later"; F.format = "all"; } });
+});
+$("#adminLink").addEventListener("click", () => setMenuOpen(false, { focusBack: false }));
+
+// 記事一覧に戻る（条件はいったん空にしてから、change で必要な条件を入れる）
+function goList(change) {
+  resetFilters();
+  if (change) change();
+  S.page = "list";
+  if (location.hash) history.replaceState(null, "", location.pathname + location.search);
+  render();
+  window.scrollTo({ top: 0, behavior: "auto" });
+}
+$("#brand").addEventListener("click", (e) => { e.preventDefault(); setMenuOpen(false, { focusBack: false }); goList(); });
+
+/* ---------- 入口・検索・タブ・絞り込みの操作 ---------- */
+
+$("#entryTabs").addEventListener("click", (e) => {
+  const b = e.target.closest("[data-entry]");
+  if (!b) return;
+  const entry = b.dataset.entry;
+  F.entry = F.entry === entry ? "" : entry;
+  if (F.entry !== "live" && F.tour && entry === "live") F.tour = "";
+  apply();
+});
+$("#entryPanel").addEventListener("click", (e) => {
+  const p = e.target.closest("[data-pick-person]"), w = e.target.closest("[data-pick-work]"), y = e.target.closest("[data-pick-year]");
+  if (p) { const v = p.dataset.pickPerson; F.person = F.person === v ? "" : v; if (!F.person) F.scope = ""; apply(); }
+  else if (w) { const v = w.dataset.pickWork; F.work = F.work === v ? "" : v; apply(); }
+  else if (y) { const v = y.dataset.pickYear; F.year = F.year === v ? "" : v; apply(); }
+});
+$("#entryPanel").addEventListener("change", (e) => {
+  const t = e.target;
+  if (t.id === "personScope") F.scope = t.value;
+  else if (t.id === "workChoice") F.work = t.value;
+  else if (t.id === "yearChoice") F.year = t.value;
+  else if (t.id === "tourChoice") F.tour = t.value;
+  else return;
+  apply();
+});
+$("#entryPanel").addEventListener("input", (e) => { if (e.target.id === "personSearch") filterPeople(e.target.value); });
+
+let qTimer = null;
+$("#q").addEventListener("input", () => {
+  clearTimeout(qTimer);
+  qTimer = setTimeout(() => { F.q = $("#q").value.trim().slice(0, 200); apply(); }, 180);
+});
+$("#q").addEventListener("keydown", (e) => { if (e.key === "Enter") { e.preventDefault(); $("#q").blur(); } });
+$("#qclear").addEventListener("click", () => { F.q = ""; apply(); $("#q").focus(); });
+// 「/」キーで検索欄へ（ほかの入力欄に書いているときは何もしない）
+document.addEventListener("keydown", (e) => {
+  if (e.key !== "/" || e.metaKey || e.ctrlKey || e.altKey || S.page !== "list") return;
+  const t = e.target;
+  if (t.closest("input, textarea, select, [contenteditable='true']") || $("#modal").open) return;
+  e.preventDefault();
+  $("#q").focus();
+});
+
+$("#formatTabs").addEventListener("click", (e) => {
+  const b = e.target.closest("[data-format]");
+  if (!b) return;
+  F.format = b.dataset.format;
+  if (isLiveView()) { F.entry = F.entry === "live" ? "" : F.entry; F.tour = ""; if (F.kind === LIVE_KIND) F.kind = ""; }
+  apply();
+});
+
+const SELECT_KEYS = { fCat: "cat", fPerson: "person", fYear: "year", fMedia: "media", fLang: "lang", fKind: "kind", fStatus: "status", sort: "sort" };
+for (const [id, key] of Object.entries(SELECT_KEYS)) {
+  $("#" + id).addEventListener("change", (e) => {
+    F[key] = e.target.value;
+    if (key === "person" && !F.person) F.scope = "";
+    apply();
+  });
+}
+$("#activeFilters").addEventListener("click", (e) => {
+  const b = e.target.closest("[data-clear]");
+  if (!b) return;
+  const key = b.dataset.clear;
+  F[key] = F_DEFAULT[key];
+  if (key === "person") F.scope = "";
+  apply();
+});
+$("#loadMore").addEventListener("click", () => {
+  const before = $$("#grid .article-card").length;
+  S.limit += PAGE_SIZE;
+  render();
+  $$("#grid .article-card")[before]?.querySelector("a")?.focus({ preventScroll: true });
+});
+
+// スマホでは「さらに絞り込む」をたたんでおく（パソコンでは、いつも開いたまま）
+const filterPanel = $("#filterPanel");
+function syncFilterPanel() { filterPanel.open = isWide(); }
+matchMedia("(min-width: 701px)").addEventListener("change", syncFilterPanel);
+filterPanel.querySelector("summary").addEventListener("click", (e) => { if (isWide()) e.preventDefault(); });
+
+/* ---------- あとで読む・既読 ---------- */
+
+function setMark(kind, id, on) {
+  if (on) S.marks[kind][id] = 1; else delete S.marks[kind][id];
+  saveMarks();
+  renderMenu();
+  const needsRedraw = (kind === "lt" && F.status === "later") || (kind === "rd" && (F.status === "unread" || F.status === "read"));
+  if (needsRedraw) { render(); return; }
+  // カードだけをその場で直す（一覧が動かないように）
+  for (const el of $$(`#grid .article-card[data-id="${CSS.escape(id)}"]`)) {
+    const it = S.items.find((x) => x.id === id);
+    if (!it) continue;
+    const open = el.querySelector(".card-description")?.open;
+    el.outerHTML = card(it);
+    if (open) $(`#grid .article-card[data-id="${CSS.escape(id)}"] .card-description`).open = true;
+  }
+}
+$("#grid").addEventListener("click", (e) => {
+  const cardEl = e.target.closest(".article-card");
+  if (!cardEl) return;
+  const id = cardEl.dataset.id;
+  const act = e.target.closest("[data-act]");
+  const tag = e.target.closest("[data-tag]");
+  if (act && act.dataset.act === "later") { const on = !S.marks.lt[id]; setMark("lt", id, on); toast(on ? "あとで読むに保存しました" : "あとで読むから外しました"); return; }
+  if (act && act.dataset.act === "read") { setMark("rd", id, !S.marks.rd[id]); return; }
+  if (tag) { F.q = tag.dataset.tag; apply(); scrollToList(); return; }
+  // 記事を開いたら、既読にする
+  if (e.target.closest("[data-open]") && !S.marks.rd[id]) setTimeout(() => setMark("rd", id, true), 0);
+});
+// 中ボタンで開いたときも既読にする
+$("#grid").addEventListener("auxclick", (e) => {
+  const cardEl = e.target.closest(".article-card");
+  if (e.button === 1 && cardEl && e.target.closest("[data-open]") && !S.marks.rd[cardEl.dataset.id]) setMark("rd", cardEl.dataset.id, true);
+});
+
+// ランダムに読む：いまの条件に合う記事から1つを、新しいタブで開いて既読にする
+function openRandom() {
+  const list = filtered();
+  if (!list.length) { toast("いまの条件に合う記事がありません"); return; }
+  const it = list[Math.floor(Math.random() * list.length)];
+  window.open(it.url, "_blank", "noopener,noreferrer");
+  setMark("rd", it.id, true);
+  toast(`開きました：${it.title.length > 28 ? it.title.slice(0, 27) + "…" : it.title}`);
+}
+
+/* ---------- 小窓（保存データの管理・収録方針・記事を追加） ---------- */
+
+let modalBack = null;
+function openModal(nodes) {
+  modalBack = document.activeElement;
+  $("#modalBody").replaceChildren(...nodes);
+  const m = $("#modal");
+  if (!m.open) m.showModal();
+  $("#modalClose").focus();
+}
+function closeModal() { const m = $("#modal"); if (m.open) m.close(); }
+$("#modalClose").addEventListener("click", closeModal);
+$("#modal").addEventListener("click", (e) => { if (e.target === $("#modal")) closeModal(); });
+$("#modal").addEventListener("close", () => { if (modalBack && document.contains(modalBack)) modalBack.focus(); modalBack = null; });
+
+function showBackup() {
+  const count = (k) => Object.keys(S.marks[k]).length;
+  const msg = h("p", { class: "msg", role: "status", id: "backupMsg" });
+  const file = h("input", { type: "file", accept: ".json,application/json", hidden: true });
+  const exportBtn = h("button", { type: "button", class: "btn primary", text: "ファイルに書き出す" });
+  const importBtn = h("button", { type: "button", class: "btn", text: "ファイルから読み込む" });
+  exportBtn.addEventListener("click", () => exportMarks(msg));
+  importBtn.addEventListener("click", () => file.click());
+  file.addEventListener("change", () => { if (file.files[0]) importMarks(file.files[0], msg); file.value = ""; });
+  const nodes = [
+    h("p", { class: "modal-eyebrow", text: "MY DATA" }),
+    h("h2", { id: "modalTitle", text: "保存データの管理" }),
+    h("ul", { class: "counts" },
+      h("li", null, h("span", { text: "あとで読む" }), h("b", { text: `${count("lt")} 件` })),
+      h("li", null, h("span", { text: "既読" }), h("b", { text: `${count("rd")} 件` }))),
+    h("p", { text: "「あとで読む」と「既読」は、このブラウザだけに保存しています。ほかの端末やブラウザには共有されません。機種変更やブラウザのデータ消去の前に、ファイルに書き出しておくと、あとで読み込めます。" }),
+    h("div", { class: "panelbtns" }, exportBtn, importBtn), file, msg
+  ];
+  if (S.admin) {
+    const off = h("button", { type: "button", class: "btn plain", text: "管理者モードをオフにする" });
+    off.addEventListener("click", () => { setAdmin(false); closeModal(); });
+    nodes.push(h("p", { class: "small-note", text: "この端末は管理者モードです。メニューに「運営管理」が出ています。" }), off);
+  }
+  openModal(nodes);
+}
+
+function exportMarks(msg) {
+  const data = { app: "radwimps-interview-index", version: 3, exportedAt: new Date().toISOString(), bookmarks: [], later: Object.keys(S.marks.lt), read: Object.keys(S.marks.rd) };
+  const d = new Date();
+  const name = `radwimps-archive-backup-${d.getFullYear()}${String(d.getMonth() + 1).padStart(2, "0")}${String(d.getDate()).padStart(2, "0")}.json`;
+  const url = URL.createObjectURL(new Blob([JSON.stringify(data, null, 2)], { type: "application/json" }));
+  const a = h("a", { href: url, download: name });
+  document.body.append(a);
+  a.click();
+  a.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 10000);
+  msg.classList.remove("err");
+  msg.textContent = `あとで読む ${data.later.length} 件・既読 ${data.read.length} 件をファイルに書き出しました。`;
+}
+async function importMarks(file, msg) {
+  try {
+    const data = JSON.parse(await file.text());
+    if (!data || data.app !== "radwimps-interview-index") throw new Error("not a backup");
+    const ids = (v) => (Array.isArray(v) ? v.filter((x) => typeof x === "string" && x.length < 160) : []);
+    const add = (kind, list) => { let n = 0; for (const id of ids(list)) if (!S.marks[kind][id]) { S.marks[kind][id] = 1; n++; } return n; };
+    const nl = add("lt", [...ids(data.later), ...ids(data.bookmarks)]), nr = add("rd", data.read); // 以前の「お気に入り」は、あとで読むへ
+    saveMarks();
+    render();
+    msg.classList.remove("err");
+    msg.textContent = `読み込みました（あとで読む ${nl} 件・既読 ${nr} 件を追加）。今ある記録はそのまま残ります。`;
+  } catch {
+    msg.classList.add("err");
+    msg.textContent = "このファイルは読み込めませんでした。このサイトで書き出したバックアップファイルを選んでください。";
+  }
+}
+
+function showAbout() {
+  const nodes = [
+    h("p", { class: "modal-eyebrow", text: "ABOUT" }),
+    h("h2", { id: "modalTitle", text: "収録方針と出典について" }),
+    ...$("#aboutText").content.cloneNode(true).children // 文章は index.html の <template id="aboutText"> にあります
+  ];
+  if (REPO) nodes.push(h("p", null, "記事の誤りやリンク切れに気づいたら、", h("a", { href: issueUrl("記事の誤り・リンク切れのお知らせ", "記事のタイトルか URL：\n\n気づいたこと：\n"), target: "_blank", rel: "noopener noreferrer", text: "こちらから知らせてください" }), "（GitHub のアカウントが必要です）。"));
+  if (S.updated) nodes.push(h("p", { class: "small-note", text: `最終更新：${S.updated}` }));
+  openModal(nodes);
+}
+
+function showAdd() {
+  if (S.admin) { closeModal(); location.hash = "admin-add"; return; }
+  const url = h("input", { id: "addUrl", type: "url", inputmode: "url", autocomplete: "off", placeholder: "https://" });
+  const title = h("input", { id: "addTitle", type: "text", autocomplete: "off" });
+  const note = h("textarea", { id: "addNote", rows: "3" });
+  const send = h("a", { class: "btn primary", target: "_blank", rel: "noopener noreferrer", "aria-disabled": "true", text: "GitHub で送る" });
+  const hint = h("p", { class: "hint" });
+  const update = () => {
+    const u = url.value.trim(), t = title.value.trim(), n = note.value.trim();
+    send.removeAttribute("href");
+    send.setAttribute("aria-disabled", "true");
+    if (!REPO) { hint.textContent = "このページから送るには、サイトを GitHub Pages で公開している必要があります。"; return; }
+    if (!/^https?:\/\/\S+$/i.test(u)) { hint.textContent = u ? "URL は https:// から始まる形で入れてください。" : "記事の URL を入れると、送れるようになります。送るには GitHub のアカウント（無料）が必要です。"; return; }
+    send.href = issueUrl("記事の追加のお願い：" + (t || u), `記事の URL：${u}\nタイトル：${t || "（不明）"}\n\nひとこと：\n${n}\n`);
+    send.removeAttribute("aria-disabled");
+    hint.textContent = "押すと GitHub の画面が開きます。内容を確かめて「Submit new issue」を押すと送られます（GitHub のアカウントが必要です）。";
+  };
+  for (const el of [url, title, note]) el.addEventListener("input", update);
+  send.addEventListener("click", (e) => { if (send.getAttribute("aria-disabled") === "true") e.preventDefault(); });
+  const form = h("form", { class: "addform", novalidate: true },
+    h("label", { for: "addUrl" }, "記事の URL（必須）", url),
+    h("label", { for: "addTitle" }, "タイトル（わかれば）", title),
+    h("label", { for: "addNote" }, "ひとこと（任意）", note),
+    send, hint);
+  form.addEventListener("submit", (e) => e.preventDefault());
+  update();
+  openModal([
+    h("p", { class: "modal-eyebrow", text: "ADD AN ARTICLE" }),
+    h("h2", { id: "modalTitle", text: "記事を追加する" }),
+    h("p", { text: "この索引に載っていないインタビューやライブレポートを見つけたら、教えてください。運営が中身を確かめてから追加します。" }),
+    form
+  ]);
+}
+
+/* ---------- 運営管理（#admin） ---------- */
 
 // GitHub のリポジトリの URL（config.js に書いたもの。なければ ○○.github.io の URL から見つける）
 function repoUrl() {
@@ -482,15 +827,17 @@ function repoUrl() {
   return `https://github.com/${m[1]}/${repo}`;
 }
 const REPO = repoUrl();
+const issueUrl = (title, body) => `${REPO}/issues/new?title=${encodeURIComponent(title)}&body=${encodeURIComponent(body)}`;
 
-let adminEditor = null, adminLoading = false;
+let adminEditor = null, adminLoading = false, adminOpenNew = false;
 function renderAdmin() {
   $("#adminOffView").hidden = S.admin;
   $("#adminOnView").hidden = !S.admin;
   if (!S.admin) return;
-  // 記事の管理（assets/admin.js）は、管理画面を開いたときだけ読み込む
-  const wantNew = !!S.view.openNew;
-  if (wantNew) { history.replaceState(null, "", "#admin"); S.view = viewFromHash(); }
+  // 記事の管理（assets/admin.js）は、運営管理を開いたときだけ読み込む
+  const wantNew = adminOpenNew;
+  adminOpenNew = false;
+  if (wantNew) history.replaceState(null, "", location.pathname + location.search + "#admin");
   if (adminEditor) { if (wantNew) adminEditor.openNew(); }
   else if (!adminLoading) {
     adminLoading = true;
@@ -504,12 +851,13 @@ function renderAdmin() {
   if (!S.parsed) { stats.replaceChildren(h("li", { text: "記事データを読み込んでいます…" })); return; }
   const all = S.parsed.items;
   const n = (state) => all.filter((it) => it.state === state).length;
-  const pub = S.items.length, vids = S.items.filter((it) => it.cat === "video").length;
+  const pub = S.items.length, vids = S.items.filter((it) => it.kind === VIDEO_KIND).length;
+  const withSummary = S.items.filter((it) => it.summary).length;
   stats.replaceChildren(
     h("li", null, h("span", { text: "公開" }), h("b", { text: `${pub} 件` }), h("small", { text: `記事 ${pub - vids}・動画 ${vids}` })),
     h("li", null, h("span", { text: "非表示" }), h("b", { text: `${n("非表示")} 件` })),
     h("li", null, h("span", { text: "リンク切れ" }), h("b", { text: `${n("リンク切れ")} 件` })),
-    h("li", null, h("span", { text: "あとで読む（この端末）" }), h("b", { text: `${liveCount("lt")} 件` })));
+    h("li", null, h("span", { text: "説明あり" }), h("b", { text: `${withSummary} 件` }), h("small", { text: `公開中の記事のうち` })));
   const { errors, warnings } = S.parsed;
   const lines = (list, label, cls) => list.slice(0, 30).map((e) => h("li", { class: cls, text: `${label}（${e.line} 行目）${e.msg}` }));
   issuesBox.replaceChildren(errors.length || warnings.length
@@ -528,7 +876,6 @@ function renderAdmin() {
   ].filter(Boolean));
   $("#admRepoNote").hidden = !!REPO;
 }
-
 function setAdmin(on) {
   S.admin = on;
   try { if (on) localStorage.setItem(STORE_ADMIN, "1"); else localStorage.removeItem(STORE_ADMIN); } catch { /* 保存できない環境 */ }
@@ -536,93 +883,22 @@ function setAdmin(on) {
   toast(on ? "この端末を管理者モードにしました" : "管理者モードをオフにしました");
 }
 
-/* ---------- 記事を追加（追加のお願いを GitHub の Issue で送る） ---------- */
+/* ---------- ボタン（data-act）の共通の受け口 ---------- */
 
-function renderAdd() {
-  $("#addAdminNote").hidden = !S.admin;
-  updateAddLink();
-}
-function updateAddLink() {
-  const a = $("#addSend");
-  const url = $("#addUrl").value.trim(), title = $("#addTitle").value.trim(), note = $("#addNote").value.trim();
-  const okUrl = /^https?:\/\/\S+$/i.test(url);
-  if (!REPO) {
-    a.setAttribute("aria-disabled", "true");
-    a.removeAttribute("href");
-    $("#addHint").textContent = "このページから送るには、サイトを GitHub Pages で公開している必要があります。";
-    return;
-  }
-  if (!okUrl) {
-    a.setAttribute("aria-disabled", "true");
-    a.removeAttribute("href");
-    $("#addHint").textContent = url ? "URL は https:// から始まる形で入れてください。" : "記事の URL を入れると、送れるようになります。送るには GitHub のアカウント（無料）が必要です。";
-    return;
-  }
-  const body = `記事の URL：${url}\nタイトル：${title || "（不明）"}\n\nひとこと：\n${note}\n`;
-  a.href = `${REPO}/issues/new?title=${encodeURIComponent("記事の追加のお願い：" + (title || url))}&body=${encodeURIComponent(body)}`;
-  a.removeAttribute("aria-disabled");
-  $("#addHint").textContent = "押すと GitHub の画面が開きます。内容を確かめて「Submit new issue」を押すと送られます（GitHub のアカウントが必要です）。";
-}
-["#addUrl", "#addTitle", "#addNote"].forEach((s) => $(s).addEventListener("input", updateAddLink));
-$("#addForm").addEventListener("submit", (e) => e.preventDefault());
-$("#addSend").addEventListener("click", (e) => { if ($("#addSend").getAttribute("aria-disabled") === "true") e.preventDefault(); });
+document.addEventListener("click", (e) => {
+  const b = e.target.closest("[data-act]");
+  if (!b || b.closest("#grid")) return;
+  const act = b.dataset.act;
+  if (act === "reset") { resetFilters(); render(); scrollToList(); }
+  else if (act === "random") openRandom();
+  else if (act === "backup") { setMenuOpen(false, { focusBack: false }); showBackup(); }
+  else if (act === "about") showAbout();
+  else if (act === "add") { setMenuOpen(false, { focusBack: false }); showAdd(); }
+  else if (act === "admin-on") setAdmin(true);
+  else if (act === "admin-off") setAdmin(false);
+});
 
-/* ---------- お気に入り・あとで読む・既読 ---------- */
-
-const MARK_CLASS = { bm: "is-bm", lt: "is-lt", rd: "is-read" };
-function setMark(kind, id, on, li) {
-  if (on) S.marks[kind][id] = 1; else delete S.marks[kind][id];
-  if (li) {
-    li.classList.toggle(MARK_CLASS[kind], on);
-    const b = li.querySelector(`[data-act="${kind}"]`);
-    if (b) b.setAttribute("aria-pressed", String(on));
-  }
-  saveMarks();
-  renderStats();
-  renderMenu();
-  if (S.view.cat === "later" && kind === "lt") renderHead();
-}
-
-/* ---------- バックアップ（書き出し・読み込み） ---------- */
-
-function backupMsg(text, isErr) {
-  const p = $("#backupMsg");
-  p.textContent = text;
-  p.classList.toggle("err", !!isErr);
-}
-
-function exportMarks() {
-  const data = {
-    app: "radwimps-interview-index", version: 2, exportedAt: new Date().toISOString(),
-    bookmarks: Object.keys(S.marks.bm), later: Object.keys(S.marks.lt), read: Object.keys(S.marks.rd)
-  };
-  const d = new Date();
-  const name = `radwimps-index-backup-${d.getFullYear()}${String(d.getMonth() + 1).padStart(2, "0")}${String(d.getDate()).padStart(2, "0")}.json`;
-  const url = URL.createObjectURL(new Blob([JSON.stringify(data, null, 2)], { type: "application/json" }));
-  const a = h("a", { href: url, download: name });
-  document.body.append(a);
-  a.click();
-  a.remove();
-  setTimeout(() => URL.revokeObjectURL(url), 10000);
-  backupMsg(`お気に入り ${data.bookmarks.length} 件・あとで読む ${data.later.length} 件・既読 ${data.read.length} 件をファイルに書き出しました。`);
-}
-
-async function importMarks(file) {
-  try {
-    const data = JSON.parse(await file.text());
-    if (!data || data.app !== "radwimps-interview-index") throw new Error("not a backup");
-    const ids = (v) => (Array.isArray(v) ? v.filter((x) => typeof x === "string" && x.length < 160) : []);
-    const add = (kind, list) => { let n = 0; for (const id of ids(list)) if (!S.marks[kind][id]) { S.marks[kind][id] = 1; n++; } return n; };
-    const nb = add("bm", data.bookmarks), nl = add("lt", data.later), nr = add("rd", data.read);
-    saveMarks();
-    render();
-    backupMsg(`読み込みました（お気に入り ${nb} 件・あとで読む ${nl} 件・既読 ${nr} 件を追加）。今ある記録はそのまま残ります。`);
-  } catch {
-    backupMsg("このファイルは読み込めませんでした。このサイトで書き出したバックアップファイルを選んでください。", true);
-  }
-}
-
-/* ---------- 操作 ---------- */
+/* ---------- 通知 ---------- */
 
 let toastTimer = null;
 function toast(msg) {
@@ -633,236 +909,30 @@ function toast(msg) {
   toastTimer = setTimeout(() => t.classList.remove("show"), 1800);
 }
 
-const appbar = $("#appbar");
-const barH = () => appbar.offsetHeight;
-
-// 指定した位置まで移動する（遠いときは、なめらかに動かさずにすぐ移動する）
-function jumpTo(top) {
-  const far = Math.abs(top - window.scrollY) > innerHeight * 3;
-  window.scrollTo({ top: Math.max(0, top), behavior: reduceMotion() || far ? "auto" : "smooth" });
-}
-function scrollToList() {
-  const top = $("#main").getBoundingClientRect().top + window.scrollY - barH();
-  if (window.scrollY > top) jumpTo(top);
-}
-
-function resetFilters() {
-  S.q = "";
-  $("#q").value = "";
-  S.f.w.clear(); S.f.k.clear(); S.f.y.clear(); S.f.tag.clear(); S.f.lang = "";
-  S.sort = "desc";
-  saveUI();
-  render();
-}
-
-let qTimer = null;
-$("#q").addEventListener("input", (e) => {
-  clearTimeout(qTimer);
-  const v = e.target.value;
-  qTimer = setTimeout(() => { S.q = v; render(); }, 120);
-});
-$("#q").addEventListener("keydown", (e) => { if (e.key === "Enter") e.target.blur(); });
-$("#qclear").addEventListener("click", () => { S.q = ""; $("#q").value = ""; render(); $("#q").focus(); });
-
-document.querySelector(".tabs").addEventListener("click", (e) => {
-  const b = e.target.closest(".tab");
-  if (!b) return;
-  S.tab = b.dataset.tab;
-  saveUI();
-  render();
-  scrollToList();
-});
-
-// 絞り込みのパネル（開いている間は、うしろの一覧を動かさない）
-function setFiltersOpen(open) {
-  const sheet = $("#filters");
-  if (open === !sheet.hidden) return;
-  sheet.hidden = !open;
-  document.documentElement.classList.toggle("locked", open);
-  $("#ftoggle").setAttribute("aria-expanded", String(open));
-  if (open) $("#fClose").focus();
-  else $("#ftoggle").focus({ preventScroll: true });
-}
-$("#ftoggle").addEventListener("click", () => setFiltersOpen(true));
-$("#fClose").addEventListener("click", () => setFiltersOpen(false));
-$("#fBack").addEventListener("click", () => setFiltersOpen(false));
-$("#fDone").addEventListener("click", () => { setFiltersOpen(false); scrollToList(); });
-$("#fReset").addEventListener("click", resetFilters);
 document.addEventListener("keydown", (e) => {
-  if (e.key === "Escape" && !$("#menuWrap").hidden) { setMenuOpen(false); return; }
-  const sheet = $("#filters");
-  if (sheet.hidden) return;
-  if (e.key === "Escape") { setFiltersOpen(false); return; }
-  if (e.key !== "Tab") return;
-  // Tab キーでの移動を、パネルの中だけにとどめる
-  const els = [...sheet.querySelectorAll("button:not(:disabled), [href], input, select")].filter((x) => x.offsetParent !== null);
-  if (!els.length) return;
-  const first = els[0], last = els[els.length - 1];
-  if (e.shiftKey && (document.activeElement === first || !sheet.contains(document.activeElement))) { e.preventDefault(); last.focus(); }
-  else if (!e.shiftKey && (document.activeElement === last || !sheet.contains(document.activeElement))) { e.preventDefault(); first.focus(); }
+  if (e.key === "Escape" && $("#menuBtn").getAttribute("aria-expanded") === "true") setMenuOpen(false);
 });
 
-$("#fgroups").addEventListener("click", (e) => {
-  const c = e.target.closest(".chip");
-  if (!c || c.disabled) return;
-  const g = c.dataset.g, v = c.dataset.v;
-  if (g === "sort") S.sort = v;
-  else if (g === "lang") S.f.lang = S.f.lang === v ? "" : v;
-  else if (S.f[g].has(v)) S.f[g].delete(v);
-  else S.f[g].add(v);
-  saveUI();
+/* ---------- はじめに ---------- */
+
+function onHash() {
+  const r = readHash();
+  S.page = r.page;
+  if (r.openNew) adminOpenNew = true;
+  if (r.clear) history.replaceState(null, "", location.pathname + location.search);
   render();
-});
-
-$("#active").addEventListener("click", (e) => {
-  const b = e.target.closest("button");
-  if (!b) return;
-  const g = b.dataset.g, v = b.dataset.v;
-  if (g === "all") return resetFilters();
-  if (g === "q") { S.q = ""; $("#q").value = ""; }
-  else if (g === "sort") S.sort = "desc";
-  else if (g === "lang") S.f.lang = "";
-  else S.f[g].delete(v);
-  saveUI();
-  render();
-});
-
-// 「年へ移動」：選んだ年の見出しまで移動して、選択を元に戻す
-$("#yearjump").addEventListener("change", (e) => {
-  const sec = e.target.value && document.getElementById("y-" + e.target.value);
-  e.target.value = "";
-  if (sec) jumpTo(sec.getBoundingClientRect().top + window.scrollY - barH());
-});
-
-// 「上へ戻る」ボタン：一覧を2画面ぶん以上進んだら出す
-const toTop = $("#toTop");
-let topTick = false;
-window.addEventListener("scroll", () => {
-  if (topTick) return;
-  topTick = true;
-  requestAnimationFrame(() => { toTop.hidden = window.scrollY < innerHeight * 2; topTick = false; });
-}, { passive: true });
-toTop.addEventListener("click", () => {
-  jumpTo(0);
-  $("#top").focus({ preventScroll: true });
-});
-
-$("#list").addEventListener("click", (e) => {
-  const t = e.target.closest("button, a");
-  if (!t) return;
-  if (t.dataset.act === "reset") return resetFilters();
-  const li = t.closest(".item");
-  const id = li && li.dataset.id;
-  if (t.matches("a.title, a.thumb")) {
-    if (id && !S.marks.rd[id]) setMark("rd", id, true, li); // 記事を開いたら既読にする
-    return;
-  }
-  const act = t.dataset.act;
-  if (act === "bm" || act === "lt" || act === "rd") {
-    const on = !S.marks[act][id];
-    setMark(act, id, on, li);
-    toast({
-      bm: on ? "お気に入りに入れました" : "お気に入りから外しました",
-      lt: on ? "あとで読むに入れました" : "あとで読むから外しました",
-      rd: on ? "既読にしました" : "未読に戻しました"
-    }[act]);
-  } else if (t.classList.contains("tag")) {
-    S.f.tag.add(t.dataset.tag);
-    saveUI();
-    render();
-    scrollToList();
-    toast(`「${t.dataset.tag}」で絞り込みました`);
-  }
-});
-$("#list").addEventListener("auxclick", (e) => { // 中クリックで開いたときも既読にする
-  const a = e.target.closest("a.title, a.thumb");
-  const li = a && e.button === 1 ? a.closest(".item") : null;
-  if (li && !S.marks.rd[li.dataset.id]) setMark("rd", li.dataset.id, true, li);
-});
-
-// マイページ・管理画面のボタン
-document.addEventListener("click", (e) => {
-  const b = e.target.closest("[data-go], [data-act='admin-on'], [data-act='admin-off']");
-  if (!b) return;
-  if (b.dataset.act === "admin-on") return setAdmin(true);
-  if (b.dataset.act === "admin-off") return setAdmin(false);
-  if (b.dataset.go === "bm") { // マイページの「お気に入り」：すべての記事の★のタブへ
-    S.tab = "bm";
-    saveUI();
-    if (location.hash === "#articles") render(); else location.hash = "#articles";
-  }
-});
-
-/* ---------- メニュー（左上のボタン） ----------
-   動きの参考：Motion Prompt #065 ハンバーガーメニュー（MIT License © 2026 Shohei Ohtaki）
-   ボタンの3本線が「×」に変わり（上下の線が中央へ寄って ±45° 回転、真ん中の線は消える）、
-   メニューが帯の下から 0.3 秒で降りてきます（動きの速さの変化は easeInOutCubic）。 */
-const menuWrap = $("#menuWrap"), menuBtn = $("#menuBtn");
-let menuTimer = null;
-function setMenuOpen(open, { focusBack = true } = {}) {
-  const isOpen = menuBtn.getAttribute("aria-expanded") === "true";
-  if (open === isOpen) return;
-  clearTimeout(menuTimer);
-  menuBtn.setAttribute("aria-expanded", String(open));
-  menuBtn.setAttribute("aria-label", open ? "メニューを閉じる" : "メニューを開く");
-  document.documentElement.classList.toggle("locked", open);
-  if (open) {
-    menuWrap.hidden = false;
-    menuWrap.getBoundingClientRect(); // 一度描いてから動かす
-    menuWrap.classList.add("open");
-    const cur = menuWrap.querySelector('[aria-current="page"]') || menuWrap.querySelector("a");
-    if (cur) cur.focus({ preventScroll: true });
-  } else {
-    menuWrap.classList.remove("open");
-    menuTimer = setTimeout(() => { menuWrap.hidden = true; }, reduceMotion() ? 0 : 320);
-    if (focusBack) menuBtn.focus({ preventScroll: true });
-  }
+  if (r.page === "admin") { window.scrollTo(0, 0); $("#adminTitle").focus({ preventScroll: true }); }
+  if (r.dialog === "add") { history.replaceState(null, "", location.pathname + location.search); showAdd(); }
+  if (r.dialog === "backup") { history.replaceState(null, "", location.pathname + location.search); showBackup(); }
 }
-menuBtn.addEventListener("click", () => setMenuOpen(menuBtn.getAttribute("aria-expanded") !== "true"));
-$("#menuCatch").addEventListener("click", () => setMenuOpen(false));
-$("#menuIn").addEventListener("click", (e) => {
-  const a = e.target.closest("a");
-  if (!a) return;
-  setMenuOpen(false, { focusBack: false });
-  if (a.getAttribute("href") === location.hash) { jumpTo(0); $("#top").focus({ preventScroll: true }); } // 今のページを押したときは上へ
-});
-// メニューの外（タブキーなど）にフォーカスが出たら閉じる
-menuWrap.addEventListener("focusout", (e) => {
-  if (menuBtn.getAttribute("aria-expanded") === "true" && e.relatedTarget && !menuWrap.contains(e.relatedTarget) && e.relatedTarget !== menuBtn) setMenuOpen(false, { focusBack: false });
-});
+window.addEventListener("hashchange", () => { if (location.hash !== "#archive") onHash(); });
 
-// ページの切り替え（メニューのリンクは #○○ へのリンク）
-window.addEventListener("hashchange", () => {
-  const prev = S.view && S.view.key;
-  S.view = viewFromHash();
-  if (S.view.key === prev) return;
-  setMenuOpen(false, { focusBack: false });
-  render();
-  window.scrollTo({ top: 0, behavior: "auto" });
-  $("#top").focus({ preventScroll: true });
-});
-
-// バックアップ
-$("#exportBtn").addEventListener("click", exportMarks);
-$("#importBtn").addEventListener("click", () => $("#importFile").click());
-$("#importFile").addEventListener("change", (e) => {
-  const file = e.target.files && e.target.files[0];
-  if (file) importMarks(file);
-  e.target.value = "";
-});
-
-// 固定した帯の影と高さ（年の見出しとメニューの位置に使う）
-new IntersectionObserver(([en]) => appbar.classList.toggle("stuck", !en.isIntersecting)).observe($("#sentinel"));
-const setBarH = () => document.documentElement.style.setProperty("--barH", barH() + "px");
-new ResizeObserver(setBarH).observe(appbar);
-setBarH();
-
-// 「誤りやリンク切れを知らせる」リンク：GitHub の Issue 作成ページへ
 if (REPO) {
-  const body = "記事のタイトル：\n掲載元の URL：\n\n気づいたこと（リンク切れ・内容の誤りなど）：\n";
-  $("#report").href = `${REPO}/issues/new?title=${encodeURIComponent("記事についての連絡")}&body=${encodeURIComponent(body)}`;
-  $("#reportRow").hidden = false;
+  $("#report").href = issueUrl("記事の誤り・リンク切れのお知らせ", "記事のタイトルか URL：\n\n気づいたこと：\n");
+  $("#report").hidden = false;
 }
-
-render();
+saveMarks(); // 以前の「お気に入り」を「あとで読む」にまとめた結果を保存
+readURL();
+syncFilterPanel();
+onHash();
 loadData();
