@@ -2,7 +2,8 @@
    サイトの見た目です。
    色を変えたいときは、すぐ下の「色」の値（#から始まる6桁）を書き換えます。
    全体のイメージ：紙に近い生成りの背景に、落ち着いた文字色。アーティスト写真より「言葉」を主役にします。
-   朱色（--accent）はロゴと大事な強調だけ、濃い緑（--green）は「選んでいる・既読」の印に使い、意味を分けています。
+   メインカラー（--accent・--green：紺 #113584）はロゴ・強調・選んでいる印に、アクセントカラー（--accent-soft：#CFD4E6）は選んでいる面や淡い強調に使います。
+   既読は緑系（--read-…）のままにして、意味を分けています。
    画面の幅の切り替わり：700px 以下はスマホ（1列）、701px 以上は左に絞り込み、1050px 以上はカードが2列。 */
 
 /* ---------- 色と書体 ---------- */
@@ -21,12 +22,14 @@
   --line-card-hover: #BBC3B0;
   --line-entry: #D8DBCF;   /* 入口ボタンの線 */
   --line-input: #BFC3B6;   /* 検索欄・ランダムボタンの線 */
-  --accent: #CC482E;       /* 朱色：ロゴ・強調・保存した印 */
-  --accent-soft: #F4E9DE;  /* 選んでいる入口ボタンの面 */
-  --green: #293C34;        /* 濃い緑：選んでいるタブ・人物 */
-  --green-ink: #F5F3EC;    /* 濃い緑の上の文字 */
-  --chip-on: #E8ECDF;      /* 選んでいる条件の小さな札 */
-  --chip-on-line: #CFD7C3;
+  --accent: #113584;       /* メインカラー（紺）：ロゴ・強調・保存した印 */
+  --accent-soft: #CFD4E6;  /* アクセントカラー：選んでいる入口ボタンの面 */
+  --accent-tint: #E9ECF4;  /* アクセントカラーを薄めた色：押せる面に指を置いたとき・小さな札 */
+  --accent-deep: #0B2560;  /* メインカラーを濃くした色：ボタンに指を置いたとき */
+  --green: var(--accent);  /* 選んでいるタブ・人物（メインカラー） */
+  --green-ink: #FFFFFF;    /* メインカラーの上の文字 */
+  --chip-on: var(--accent-tint);      /* 選んでいる条件の小さな札 */
+  --chip-on-line: var(--accent-soft);
   --read-bg: #E7EDDF;      /* 既読のカード */
   --read-line: #91A780;
   --read-left: #587248;
@@ -124,7 +127,7 @@ body::before { content: ""; position: fixed; inset: 0 0 auto; height: env(safe-a
   min-height: 76px; padding: 15px 10px; border: 1px solid var(--line-entry); border-radius: 8px; background: var(--card); text-align: left;
   transition: background .15s, border-color .15s;
 }
-.entry-tabs button:hover { background: #FFFAF6; }
+.entry-tabs button:hover { background: var(--accent-tint); }
 .entry-tabs button[aria-expanded="true"] { background: var(--accent-soft); border-color: var(--accent); box-shadow: inset 0 -3px 0 var(--accent); }
 .entry-icon { grid-row: 1 / span 2; align-self: start; color: var(--accent); line-height: 0; padding-top: 1px; }
 .entry-icon svg { width: 21px; height: 21px; }
@@ -147,7 +150,7 @@ body::before { content: ""; position: fixed; inset: 0 0 auto; height: env(safe-a
 .person-chips { display: flex; flex-wrap: wrap; gap: 8px; }
 .person-chip { min-height: 42px; padding: 9px 10px; border: 1px solid #DADCD2; border-radius: 5px; background: var(--white); color: var(--ink); font-size: 12px; transition: border-color .15s, background .15s; }
 .person-chip:hover { border-color: var(--line-card-hover); }
-.person-chip[aria-pressed="true"] { border-color: #A16C56; background: #283C35; color: var(--white); }
+.person-chip[aria-pressed="true"] { border-color: var(--accent); background: var(--accent); color: var(--white); }
 .panel-chips { margin-top: 12px; }
 .panel-empty { margin: 8px 0 0; font-size: 12px; color: var(--muted); }
 
@@ -224,7 +227,7 @@ body::before { content: ""; position: fixed; inset: 0 0 auto; height: env(safe-a
 .save-button { display: grid; place-items: center; width: 40px; height: 40px; padding: 0; border: 0; border-radius: 50%; background: transparent; color: var(--save-off); transition: color .15s, background .15s; }
 .save-button:hover { background: var(--sunk); }
 .save-button svg { width: 20px; height: 20px; }
-.save-button[aria-pressed="true"] { background: #EAECE2; color: var(--accent); }
+.save-button[aria-pressed="true"] { background: var(--accent-tint); color: var(--accent); }
 .save-button[aria-pressed="true"] svg path { fill: currentColor; }
 
 .card-main { display: grid; grid-template-columns: 64px minmax(0, 1fr); gap: 11px; align-items: start; }
@@ -341,7 +344,7 @@ dialog.modal::backdrop { background: rgba(23, 32, 24, .5); -webkit-backdrop-filt
 .btn.plain { border-color: transparent; background: transparent; color: var(--ink-2); padding: 0 10px; }
 .btn.plain:hover { color: var(--ink); background: var(--sunk); }
 .btn.primary { border-color: var(--green); background: var(--green); color: var(--green-ink); font-weight: 600; }
-.btn.primary:hover { background: #1F2F28; }
+.btn.primary:hover { background: var(--accent-deep); }
 .btn[aria-disabled="true"], .btn:disabled { opacity: .45; cursor: default; }
 
 /* ---------- 管理画面（URL の末尾に #admin） ---------- */
@@ -425,10 +428,10 @@ dialog.modal::backdrop { background: rgba(23, 32, 24, .5); -webkit-backdrop-filt
 .chip { position: relative; display: inline-flex; align-items: center; gap: 6px; min-height: 40px; padding: 4px 13px; border: 1px solid #DADCD2; border-radius: 5px; background: var(--white); color: var(--ink); font-size: 13px; line-height: 1.3; }
 .chip .n { font-size: 11px; color: var(--muted); font-variant-numeric: tabular-nums; }
 .chip:hover { border-color: var(--line-card-hover); }
-.chip[aria-pressed="true"] { border-color: #A16C56; background: #283C35; color: var(--white); }
+.chip[aria-pressed="true"] { border-color: var(--accent); background: var(--accent); color: var(--white); }
 .chip.check { cursor: pointer; }
 .chip.check input { position: absolute; opacity: 0; width: 1px; height: 1px; }
-.chip.check:has(input:checked) { border-color: #A16C56; background: #283C35; color: var(--white); }
+.chip.check:has(input:checked) { border-color: var(--accent); background: var(--accent); color: var(--white); }
 .chip.check:has(input:focus-visible) { outline: 2px solid var(--accent); outline-offset: 2px; }
 .chip:disabled { opacity: .4; cursor: default; }
 .btn.danger { border-color: var(--danger); color: var(--danger); }
