@@ -626,6 +626,13 @@ dialog.modal::backdrop { background: rgba(23, 32, 24, .5); -webkit-backdrop-filt
 .hist-link.buy { border-color: var(--accent); color: var(--accent); font-weight: 700; }
 .hist-link.buy small { font-weight: 400; }
 .hist-link svg { flex: none; }
+.hist-link.tower { border-color: var(--line-input); color: var(--ink); }
+.hist-link.tower:hover { border-color: var(--accent); }
+.pr { display: inline-block; padding: 1px 5px; border: 1px solid currentColor; border-radius: 4px; font-size: 9.5px; font-weight: 700; line-height: 1.3; letter-spacing: .04em; color: var(--muted); }
+.hist-pr { display: flex; align-items: baseline; gap: 8px; margin-block: 16px 0; }
+.hist-pr .pr { flex: none; }
+.hist-pr-top { display: flex; align-items: baseline; gap: 8px; margin: 10px 0 0; font-size: 11px; line-height: 1.7; color: var(--muted); }
+.hist-pr-top .pr { flex: none; }
 .hist-note { margin-block: 8px 24px; font-size: 11px; line-height: 1.8; color: var(--muted); }
 .hist-top { position: fixed; right: calc(16px + env(safe-area-inset-right, 0px)); bottom: calc(16px + env(safe-area-inset-bottom, 0px)); z-index: 15; width: 46px; height: 46px; border: 1px solid var(--line-input); border-radius: 50%; background: var(--white); color: var(--ink); font-size: 18px; box-shadow: var(--shadow); }
 @media (min-width: 701px) {

@@ -40,9 +40,10 @@ history.html          「RADWIMPSの歩み」（年表）のページ
 assets/
   style.css           見た目（色など）
   app.js              画面の動き（探す入口・検索・絞り込み・あとで読む・既読）
+  history.js          「RADWIMPSの歩み」（年表）の動き
   admin.js            運営管理の「記事の管理」（記事の編集と GitHub への保存。運営管理を開いたときだけ読み込み）
   data.js             CSV の読み方と「書ける値」の決まり、「曲・作品から探す」の作品の一覧（サイトとチェック用プログラムで共通）
-  config.js           設定（独自ドメインのときだけ使う）
+  config.js           設定（独自ドメインのとき・タワーレコードのアフィリエイトを始めるとき）
   icon.svg            ブラウザのタブのアイコン
 data/
   articles.csv        記事の一覧

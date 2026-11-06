@@ -3,6 +3,7 @@
 // 上のタブでカテゴリを選ぶと、そのカテゴリの出来事だけが並びます（URL の末尾 #release などでも開けます）。
 
 import { parseCSV } from "./data.js";
+import config from "./config.js";
 
 const $ = (s) => document.querySelector(s);
 
@@ -43,7 +44,7 @@ function load(text) {
   const head = rows[0].map((h) => h.trim());
   const at = (name) => head.indexOf(name);
   const c = { y: at("年"), m: at("月"), d: at("日"), ey: at("終了年"), em: at("終了月"), ed: at("終了日"), cat: at("カテゴリ"), title: at("出来事"), note: at("補足"),
-    site: at("特設サイト"), buy: at("購入"), buyMemo: at("購入メモ"), page: at("作品ページ") };
+    site: at("特設サイト"), buy: at("購入"), buyMemo: at("購入メモ"), tower: at("タワーレコード"), page: at("作品ページ") };
   const num = (v) => (v && /^\d+$/.test(v.trim()) ? +v : 0);
   const url = (v) => (v && /^https:\/\/[^\s"<>]+$/.test(v.trim()) ? v.trim() : ""); // https で始まるリンクだけ使う
   const cell = (r, i) => (i < 0 ? "" : (r[i] || "").trim());
@@ -52,7 +53,7 @@ function load(text) {
     ey: num(r[c.ey]), em: num(r[c.em]), ed: num(r[c.ed]),
     cat: CATS.find((k) => k.name === (r[c.cat] || "").trim()) || CATS[3],
     title: (r[c.title] || "").trim(), note: (r[c.note] || "").trim(), i,
-    site: url(cell(r, c.site)), buy: url(cell(r, c.buy)), buyMemo: cell(r, c.buyMemo), page: url(cell(r, c.page))
+    site: url(cell(r, c.site)), buy: url(cell(r, c.buy)), buyMemo: cell(r, c.buyMemo), tower: towerUrl(cell(r, c.tower)), page: url(cell(r, c.page))
   })).filter((e) => e.y && e.title)
     // 古い順（同じ日は CSV に書いた順）。月・日がないものは、その年・その月のはじめに
     .sort((a, b) => a.y - b.y || a.m - b.m || a.d - b.d || a.i - b.i);
@@ -96,20 +97,33 @@ function renderTimeline() {
   renderEras(list);
 }
 
-// 出来事の下に並ぶリンク：特設サイト・公式ストアで購入・作品ページ（どれも新しいタブで開く）
+// タワーレコードのリンク。CSV には、検索する言葉（例：RADWIMPS 人間開花）か、tower.jp の商品ページの URL を書く。
+// config.js にバリューコマースの sid・pid を書くと、アフィリエイトリンクになる。
+const AFF = config.towerAffiliate || {};
+const affiliateOn = !!(AFF.sid && AFF.pid);
+function towerUrl(v) {
+  if (!v) return "";
+  const plain = /^https:\/\/tower\.jp\/[^\s"<>]*$/.test(v) ? v : `https://tower.jp/search/item/${encodeURIComponent(v)}`;
+  if (!affiliateOn) return plain;
+  return `https://ck.jp.ap.valuecommerce.com/servlet/referral?sid=${encodeURIComponent(AFF.sid)}&pid=${encodeURIComponent(AFF.pid)}&vc_url=${encodeURIComponent(plain)}`;
+}
+
+// 出来事の下に並ぶリンク：特設サイト・公式ストアで購入・タワーレコードで購入・作品ページ（どれも新しいタブで開く）
 const CART = '<svg viewBox="0 0 24 24" width="15" height="15" aria-hidden="true"><path d="M3 4h2.2l2.1 10.2a1.6 1.6 0 0 0 1.6 1.3h7.9a1.6 1.6 0 0 0 1.5-1.2L20 8H6.2" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/><circle cx="9.5" cy="19.5" r="1.4" fill="currentColor"/><circle cx="17" cy="19.5" r="1.4" fill="currentColor"/></svg>';
 function linksRow(e) {
-  const out = (href, cls, label, sub) => {
-    const a = el("a", { class: `hist-link ${cls}`, href, target: "_blank", rel: "noopener noreferrer" });
-    if (cls === "buy") a.insertAdjacentHTML("beforeend", CART);
+  const out = (href, cls, label, { pr = false } = {}) => {
+    const a = el("a", { class: `hist-link ${cls}`, href, target: "_blank", rel: pr ? "sponsored noopener noreferrer" : "noopener noreferrer" });
+    if (cls.startsWith("buy")) a.insertAdjacentHTML("beforeend", CART);
     a.append(el("span", { text: label }));
-    if (sub) a.append(el("small", { text: sub }));
+    if (pr) a.append(el("span", { class: "pr", text: "PR", title: "広告（アフィリエイトリンク）" }));
     a.append(el("span", { class: "arr", "aria-hidden": "true", text: "↗" }));
     return a;
   };
+  const what = e.buyMemo ? `${e.buyMemo}を` : "";
   const links = [
     e.site ? out(e.site, "site", "特設サイト") : null,
-    e.buy ? out(e.buy, "buy", e.buyMemo ? `${e.buyMemo}を公式ストアで購入` : "公式ストアで購入") : null,
+    e.buy ? out(e.buy, "buy", `${what}公式ストアで購入`) : null,
+    e.tower ? out(e.tower, "buy tower", `${what}タワーレコードで購入`, { pr: affiliateOn }) : null,
     e.page ? out(e.page, "page", "作品ページ") : null
   ].filter(Boolean);
   return links.length ? el("p", { class: "hist-links" }, ...links) : null;
@@ -193,6 +207,7 @@ try { if (localStorage.getItem("radwimps-interview-index:admin") === "1") $("#ad
     if (!res.ok) throw new Error();
     events = load(await res.text());
     if (events.length) $("#span").textContent = `${events[0].y} — ${events[events.length - 1].y}`;
+    if (affiliateOn) $("#prNote").hidden = $("#prTop").hidden = false;
     setCat(location.hash.slice(1));
   } catch {
     $("#loading").textContent = "年表を読み込めませんでした。時間をおいて、もう一度開いてください。";
