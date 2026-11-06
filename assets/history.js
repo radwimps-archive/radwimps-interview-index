@@ -15,7 +15,9 @@ const CATS = [
   { name: "ライブ・ツアー", slug: "live", short: "ライブ" },
   { name: "映画・タイアップ", slug: "tieup", short: "タイアップ" },
   { name: "バンドの出来事", slug: "band", short: "出来事" },
-  { name: "山口智史・VXD", slug: "vxd", short: "VXD" }
+  // メンバーそれぞれの活動（MV のタブでも、このカテゴリの印を残す）
+  { name: "野田洋次郎・ソロ", slug: "solo", short: "ソロ", person: true },
+  { name: "山口智史・VXD", slug: "vxd", short: "VXD", person: true }
 ];
 const catsOf = (v) => {
   const list = String(v || "").split(/[、,]/).map((x) => x.trim()).map((n) => CATS.find((k) => k.name === n)).filter(Boolean);
@@ -121,7 +123,7 @@ function mvSongs() {
   mvCache = events.flatMap((e) => e.videos.filter((v) => /^MV/.test(v.label)).map((v, j) => {
     const rest = v.label.slice(2).trim();
     const name = /^「.+」$/.test(rest) ? rest.slice(1, -1) : firstName(e.title) + (rest ? (/^[（(]/.test(rest) ? rest : ` ${rest}`) : "");
-    return { y: e.y, m: e.m, d: e.d, ey: 0, em: 0, ed: 0, cat: MV_TAB, title: `「${name}」`, note: e.title, i: e.i * 100 + j,
+    return { y: e.y, m: e.m, d: e.d, ey: 0, em: 0, ed: 0, cat: MV_TAB, cats: [MV_TAB, ...e.cats.filter((c) => c.person)], title: `「${name}」`, note: e.title, i: e.i * 100 + j,
       site: "", tower: "", videos: [{ label: "MV を見る", id: v.id }] };
   }));
   return mvCache;
