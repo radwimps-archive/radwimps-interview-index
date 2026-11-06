@@ -617,6 +617,15 @@ dialog.modal::backdrop { background: rgba(23, 32, 24, .5); -webkit-backdrop-filt
 .cat-band { --cat: #6A6E64; }
 .hist-tab:not(.cat-all)::before { content: ""; align-self: center; width: 7px; height: 7px; border-radius: 2px; background: var(--cat); }
 .hist-tab[aria-selected="true"]::before { background: var(--white); }
+/* 出来事の下のリンク（特設サイト・公式ストアで購入・作品ページ） */
+.hist-links { display: flex; flex-wrap: wrap; gap: 6px 8px; margin: 10px 0 0; }
+.hist-link { display: inline-flex; align-items: center; gap: 5px; min-height: 34px; padding: 6px 11px; border: 1px solid var(--line-input); border-radius: 17px; background: var(--card); color: var(--ink); font-size: 12px; line-height: 1.2; text-decoration: none; }
+.hist-link small { font-size: 11px; color: var(--muted); }
+.hist-link .arr { font-size: 11px; color: var(--muted); }
+.hist-link:hover { border-color: var(--accent); background: var(--accent-tint); }
+.hist-link.buy { border-color: var(--accent); color: var(--accent); font-weight: 700; }
+.hist-link.buy small { font-weight: 400; }
+.hist-link svg { flex: none; }
 .hist-note { margin-block: 8px 24px; font-size: 11px; line-height: 1.8; color: var(--muted); }
 .hist-top { position: fixed; right: calc(16px + env(safe-area-inset-right, 0px)); bottom: calc(16px + env(safe-area-inset-bottom, 0px)); z-index: 15; width: 46px; height: 46px; border: 1px solid var(--line-input); border-radius: 50%; background: var(--white); color: var(--ink); font-size: 18px; box-shadow: var(--shadow); }
 @media (min-width: 701px) {
@@ -631,6 +640,6 @@ dialog.modal::backdrop { background: rgba(23, 32, 24, .5); -webkit-backdrop-filt
   .hist-item::before { left: -38px; top: 23px; }
   .hist-meta { grid-row: 1 / span 2; flex-direction: column; align-items: flex-start; gap: 4px; margin: 2px 0 0; }
   .hist-title { font-size: 16px; }
-  .hist-sub { grid-column: 2; }
+  .hist-sub, .hist-links { grid-column: 2; }
   .era-links a, .era-links span { font-size: 24px; }
 }

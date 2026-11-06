@@ -42,13 +42,17 @@ function load(text) {
   const { rows } = parseCSV(text);
   const head = rows[0].map((h) => h.trim());
   const at = (name) => head.indexOf(name);
-  const c = { y: at("年"), m: at("月"), d: at("日"), ey: at("終了年"), em: at("終了月"), ed: at("終了日"), cat: at("カテゴリ"), title: at("出来事"), note: at("補足") };
+  const c = { y: at("年"), m: at("月"), d: at("日"), ey: at("終了年"), em: at("終了月"), ed: at("終了日"), cat: at("カテゴリ"), title: at("出来事"), note: at("補足"),
+    site: at("特設サイト"), buy: at("購入"), buyMemo: at("購入メモ"), page: at("作品ページ") };
   const num = (v) => (v && /^\d+$/.test(v.trim()) ? +v : 0);
+  const url = (v) => (v && /^https:\/\/[^\s"<>]+$/.test(v.trim()) ? v.trim() : ""); // https で始まるリンクだけ使う
+  const cell = (r, i) => (i < 0 ? "" : (r[i] || "").trim());
   return rows.slice(1).filter((r) => r.some((x) => x.trim())).map((r, i) => ({
     y: num(r[c.y]), m: num(r[c.m]), d: num(r[c.d]),
     ey: num(r[c.ey]), em: num(r[c.em]), ed: num(r[c.ed]),
     cat: CATS.find((k) => k.name === (r[c.cat] || "").trim()) || CATS[3],
-    title: (r[c.title] || "").trim(), note: (r[c.note] || "").trim(), i
+    title: (r[c.title] || "").trim(), note: (r[c.note] || "").trim(), i,
+    site: url(cell(r, c.site)), buy: url(cell(r, c.buy)), buyMemo: cell(r, c.buyMemo), page: url(cell(r, c.page))
   })).filter((e) => e.y && e.title)
     // 古い順（同じ日は CSV に書いた順）。月・日がないものは、その年・その月のはじめに
     .sort((a, b) => a.y - b.y || a.m - b.m || a.d - b.d || a.i - b.i);
@@ -82,13 +86,33 @@ function renderTimeline() {
           e.m ? el("time", { text: dateLabel(e) }) : null,
           el("span", { class: "hist-cat", text: e.cat.name })),
         el("p", { class: "hist-title", text: e.title }),
-        e.note ? el("p", { class: "hist-sub", text: e.note }) : null));
+        e.note ? el("p", { class: "hist-sub", text: e.note }) : null,
+        linksRow(e)));
     }
     sec.append(ol);
     box.append(sec);
   }
   if (!list.length) box.append(el("p", { class: "hist-loading", text: "このカテゴリの出来事はまだありません。" }));
   renderEras(list);
+}
+
+// 出来事の下に並ぶリンク：特設サイト・公式ストアで購入・作品ページ（どれも新しいタブで開く）
+const CART = '<svg viewBox="0 0 24 24" width="15" height="15" aria-hidden="true"><path d="M3 4h2.2l2.1 10.2a1.6 1.6 0 0 0 1.6 1.3h7.9a1.6 1.6 0 0 0 1.5-1.2L20 8H6.2" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/><circle cx="9.5" cy="19.5" r="1.4" fill="currentColor"/><circle cx="17" cy="19.5" r="1.4" fill="currentColor"/></svg>';
+function linksRow(e) {
+  const out = (href, cls, label, sub) => {
+    const a = el("a", { class: `hist-link ${cls}`, href, target: "_blank", rel: "noopener noreferrer" });
+    if (cls === "buy") a.insertAdjacentHTML("beforeend", CART);
+    a.append(el("span", { text: label }));
+    if (sub) a.append(el("small", { text: sub }));
+    a.append(el("span", { class: "arr", "aria-hidden": "true", text: "↗" }));
+    return a;
+  };
+  const links = [
+    e.site ? out(e.site, "site", "特設サイト") : null,
+    e.buy ? out(e.buy, "buy", e.buyMemo ? `${e.buyMemo}を公式ストアで購入` : "公式ストアで購入") : null,
+    e.page ? out(e.page, "page", "作品ページ") : null
+  ].filter(Boolean);
+  return links.length ? el("p", { class: "hist-links" }, ...links) : null;
 }
 
 // 年代へ移動するリンク（表示中の出来事がある年代だけ押せる）
