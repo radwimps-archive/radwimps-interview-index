@@ -81,6 +81,7 @@ const S = {
   works: [],      // 「曲・作品から探す」に出す作品（記事があるものだけ）
   people: { members: [], support: [], former: [], others: [] },
   page: "list",   // list：記事一覧　admin：運営管理
+  lastEntry: "",  // 最後に開いた入口（パネルを閉じても覚えておき、別の入口に切り替えたときに、前の入口で選んだものを外すため）
   limit: PAGE_SIZE,
   marks: cleanMarks(load(STORE_MARKS)),
   admin: load(STORE_ADMIN) === 1,
@@ -122,7 +123,13 @@ function writeURL() {
   const hash = S.page === "admin" ? location.hash : "";
   try { history.replaceState(null, "", location.pathname + (qs ? "?" + qs : "") + hash); } catch { /* 変えられない環境 */ }
 }
-function resetFilters() { Object.assign(F, F_DEFAULT); S.limit = PAGE_SIZE; }
+function resetFilters() { Object.assign(F, F_DEFAULT); S.limit = PAGE_SIZE; S.lastEntry = ""; }
+
+// 入口ごとの「選んだもの」。別の入口に切り替えたら、前の入口で選んだものは外します（探し方は一度に1つ）。
+// 「さらに絞り込む」で選んだ内容・メディア・言語・資料の種類・読書の状態と、検索の言葉はそのまま残ります。
+const ENTRY_KEYS = { people: ["person", "scope"], works: ["work"], years: ["year"], live: ["tour"] };
+// URL から開いたときなど、どの入口で選んだ状態かを条件から決める
+const entryOfState = () => F.entry || (F.tour ? "live" : F.person ? "people" : F.work ? "works" : F.year ? "years" : "");
 
 // 以前のサイトの URL（#later・#videos・#c-○○ など）も、そのまま使えるようにする
 function readHash() {
@@ -580,8 +587,11 @@ $("#entryTabs").addEventListener("click", (e) => {
   const b = e.target.closest("[data-entry]");
   if (!b) return;
   const entry = b.dataset.entry;
-  F.entry = F.entry === entry ? "" : entry;
-  if (F.entry !== "live" && F.tour && entry === "live") F.tour = "";
+  // 開いている入口をもう一度押すと、パネルを閉じるだけ（選んだものはそのまま）
+  if (F.entry === entry) { F.entry = ""; apply(); return; }
+  const prev = F.entry || S.lastEntry;
+  if (prev && prev !== entry) for (const key of ENTRY_KEYS[prev]) F[key] = F_DEFAULT[key];
+  F.entry = S.lastEntry = entry;
   apply();
 });
 $("#entryPanel").addEventListener("click", (e) => {
@@ -935,6 +945,7 @@ if (REPO) {
 }
 saveMarks(); // 以前の「お気に入り」を「あとで読む」にまとめた結果を保存
 readURL();
+S.lastEntry = entryOfState();
 syncFilterPanel();
 onHash();
 loadData();
