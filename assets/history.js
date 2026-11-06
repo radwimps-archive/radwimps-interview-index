@@ -87,7 +87,7 @@ function renderTimeline() {
   const box = $("#timeline");
   const list = current === "all" ? events : current === "mv" ? mvSongs() : events.filter((e) => e.cats.some((c) => c.slug === current));
   // 今見ているカテゴリの名前と件数（スマホではタブに件数を出さないので、ここに出す）
-  const view = current === "all" ? "すべての出来事" : current === "mv" ? "MV のある曲" : CATS.find((c) => c.slug === current).name;
+  const view = current === "all" ? "すべての出来事" : current === "mv" ? "MV（ない曲は公式のライブ映像）" : CATS.find((c) => c.slug === current).name;
   $("#view").replaceChildren(el("b", { text: view }), el("span", { text: `${list.length} 件` }));
   // 年表の点の色：カテゴリのタブでは、そのカテゴリの色。「すべて」では、はじめに書いたカテゴリの色
   const dot = (e) => e.cats?.find((c) => c.slug === current) || e.cat;
@@ -116,16 +116,30 @@ function renderTimeline() {
 
 // MV のある曲を1曲ずつの行にする。曲名は、ラベルの「」の中（MV「光」→ 光）か、ラベルが「MV」だけなら出来事の「」の中の名前。
 // 下の小さな文字に、もとの出来事（シングル・アルバムなど）を出す。
+// MV が見当たらない曲は、公式のライブ映像（ラベルが「ライブ映像」「スタジオライブ」で始まるもの）を代わりに並べる。
+//   その曲の MV がどこかの行にあれば並べない。同じ曲のライブ映像がいくつかあれば、いちばん早い行の1つだけ。
+const MV_LIVE = /^(ライブ映像|スタジオライブ)/;
 let mvCache = null;
 function mvSongs() {
   if (mvCache) return mvCache;
   const firstName = (t) => (t.match(/[「『]([^」』]+)[」』]/) || [])[1] || t;
-  mvCache = events.flatMap((e) => e.videos.filter((v) => /^MV/.test(v.label)).map((v, j) => {
-    const rest = v.label.slice(2).trim();
-    const name = /^「.+」$/.test(rest) ? rest.slice(1, -1) : firstName(e.title) + (rest ? (/^[（(]/.test(rest) ? rest : ` ${rest}`) : "");
-    return { y: e.y, m: e.m, d: e.d, ey: 0, em: 0, ed: 0, cat: MV_TAB, cats: [MV_TAB, ...e.cats.filter((c) => c.person)], title: `「${name}」`, note: e.title, i: e.i * 100 + j,
-      site: "", tower: "", videos: [{ label: "MV を見る", id: v.id }] };
-  }));
+  const nameOf = (e, label, prefix) => {
+    const rest = label.slice(prefix.length).trim();
+    return /^「.+」$/.test(rest) ? rest.slice(1, -1) : firstName(e.title) + (rest ? (/^[（(]/.test(rest) ? rest : ` ${rest}`) : "");
+  };
+  // 同じ曲かどうかを見るための名前（「(movie ver.)」などのちがい、空白、大文字・小文字は気にしない）
+  const songKey = (name) => name.replace(/\s*[（(［\[].*$/, "").replace(/\s+/g, "").toLowerCase();
+  const item = (e, v, j, name, label, tag = MV_TAB) => ({ y: e.y, m: e.m, d: e.d, ey: 0, em: 0, ed: 0, cat: MV_TAB,
+    cats: [tag, ...e.cats.filter((c) => c.person)], title: `「${name}」`, note: e.title, i: e.i * 100 + j,
+    site: "", tower: "", videos: [{ label, id: v.id }] });
+  const mvs = [], lives = [];
+  for (const e of events) e.videos.forEach((v, j) => {
+    if (/^MV/.test(v.label)) mvs.push(item(e, v, j, nameOf(e, v.label, "MV"), "MV を見る"));
+    else if (MV_LIVE.test(v.label)) { const p = v.label.match(MV_LIVE)[1]; lives.push(item(e, v, j, nameOf(e, v.label, p), `${p}を見る`, { ...MV_TAB, name: p })); }
+  });
+  const have = new Set(mvs.map((x) => songKey(x.title.slice(1, -1))));
+  const subs = lives.filter((x) => { const k = songKey(x.title.slice(1, -1)); if (have.has(k)) return false; have.add(k); return true; });
+  mvCache = [...mvs, ...subs].sort((a, b) => a.y - b.y || a.m - b.m || a.d - b.d || a.i - b.i);
   return mvCache;
 }
 
