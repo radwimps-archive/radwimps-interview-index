@@ -175,8 +175,8 @@ function openPlayer(btn) {
   const title = li.querySelector(".hist-title").textContent;
   const frame = el("div", { class: "frame" }, el("iframe", {
     src: `https://www.youtube-nocookie.com/embed/${id}?autoplay=1&playsinline=1&rel=0`,
-    title: `${label}（${title}）`, loading: "lazy", referrerpolicy: "strict-origin-when-cross-origin",
-    allow: "accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share", allowfullscreen: ""
+    title: `${label}（${title}）`, referrerpolicy: "strict-origin-when-cross-origin", frameborder: "0",
+    allow: "accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share; fullscreen", allowfullscreen: ""
   }));
   const close = el("button", { type: "button", class: "pclose", text: "閉じる" });
   close.addEventListener("click", () => { closePlayer(); btn.focus(); });
@@ -187,9 +187,9 @@ function openPlayer(btn) {
   btn.setAttribute("aria-expanded", "true");
 }
 
-// スクロール中の誤タップを防ぐ：指で画面を動かしている途中・スクロールが止まった直後のタップでは、リンクを開かない
+// スクロール中の誤タップを防ぐ：画面がまだ動いている最中（0.25秒以内）に触れたタップや、指が滑ったタップでは、リンクや動画を開かない
 // （スクロールの勢いを止めようとして触れたときに、リンクが開いてしまうのを防ぐ。マウスのクリックはそのまま）
-const GUARD_MS = 400;
+const GUARD_MS = 250;
 let lastScroll = 0, tap = { touch: false, x: 0, y: 0, moved: false, scrolling: false };
 addEventListener("scroll", () => { lastScroll = performance.now(); }, { passive: true });
 document.addEventListener("pointerdown", (e) => {
@@ -227,7 +227,7 @@ function setCat(slug, { scroll = false } = {}) {
 
 const headerH = () => $("#header").getBoundingClientRect().height;
 
-const tapIsAccident = () => tap.touch && (tap.moved || tap.scrolling || performance.now() - lastScroll < GUARD_MS);
+const tapIsAccident = () => tap.touch && (tap.moved || tap.scrolling);
 $("#timeline").addEventListener("click", (e) => {
   if (e.target.closest("a.title-link")) { if (tapIsAccident()) e.preventDefault(); return; }
   const btn = e.target.closest(".vbtn");
