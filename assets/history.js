@@ -1,6 +1,7 @@
 // assets/history.js
 // 「RADWIMPSの歩み」のページの動き。年表のデータは data/history.csv です（ここを書き換えると年表が変わります）。
 // 上のタブでカテゴリを選ぶと、そのカテゴリの出来事だけが並びます（URL の末尾 #release などでも開けます）。
+// 「MV」のタブ（#mv）は、MV のある曲だけを1曲ずつ並べます。
 
 import { parseCSV } from "./data.js";
 import config from "./config.js";
@@ -14,6 +15,9 @@ const CATS = [
   { name: "映画・タイアップ", slug: "tieup", short: "タイアップ" },
   { name: "バンドの出来事", slug: "band", short: "出来事" }
 ];
+// 「MV」のタブ：「動画」の列で「MV」から始まるラベルの動画を、1曲ずつの行にして並べる（CSV に書く必要はありません）
+const MV_TAB = { name: "MV", slug: "mv", short: "MV" };
+const VIEWS = ["all", ...CATS.map((c) => c.slug), MV_TAB.slug];
 // 年代へ移動するリンク（参考：年代ごとの区切り）
 const ERAS = [[2001, 2008], [2009, 2016], [2017, 9999]];
 
@@ -62,9 +66,9 @@ function load(text) {
 function renderTabs() {
   const tabs = $("#tabs");
   tabs.replaceChildren();
-  const all = [{ name: "すべて", slug: "all", short: "すべて" }, ...CATS];
+  const all = [{ name: "すべて", slug: "all", short: "すべて" }, ...CATS, MV_TAB];
   for (const t of all) {
-    const n = t.slug === "all" ? events.length : events.filter((e) => e.cat.slug === t.slug).length;
+    const n = t.slug === "all" ? events.length : t.slug === "mv" ? mvSongs().length : events.filter((e) => e.cat.slug === t.slug).length;
     const b = el("button", { type: "button", role: "tab", class: `hist-tab cat-${t.slug}`, "aria-selected": String(t.slug === current), "data-cat": t.slug, "aria-label": `${t.name} ${n}件` },
       el("span", { class: "lbl-full", text: t.name }), el("span", { class: "lbl-short", text: t.short, "aria-hidden": "true" }), el("small", { text: String(n) }));
     tabs.append(b);
@@ -73,7 +77,7 @@ function renderTabs() {
 
 function renderTimeline() {
   const box = $("#timeline");
-  const list = current === "all" ? events : events.filter((e) => e.cat.slug === current);
+  const list = current === "all" ? events : current === "mv" ? mvSongs() : events.filter((e) => e.cat.slug === current);
   const years = new Map();
   for (const e of list) (years.get(e.y) || years.set(e.y, []).get(e.y)).push(e);
   box.replaceChildren();
@@ -93,8 +97,23 @@ function renderTimeline() {
     sec.append(ol);
     box.append(sec);
   }
-  if (!list.length) box.append(el("p", { class: "hist-loading", text: "このカテゴリの出来事はまだありません。" }));
+  if (!list.length) box.append(el("p", { class: "hist-loading", text: current === "mv" ? "MV はまだありません。" : "このカテゴリの出来事はまだありません。" }));
   renderEras(list);
+}
+
+// MV のある曲を1曲ずつの行にする。曲名は、ラベルの「」の中（MV「光」→ 光）か、ラベルが「MV」だけなら出来事の「」の中の名前。
+// 下の小さな文字に、もとの出来事（シングル・アルバムなど）を出す。
+let mvCache = null;
+function mvSongs() {
+  if (mvCache) return mvCache;
+  const firstName = (t) => (t.match(/[「『]([^」』]+)[」』]/) || [])[1] || t;
+  mvCache = events.flatMap((e) => e.videos.filter((v) => /^MV/.test(v.label)).map((v, j) => {
+    const rest = v.label.slice(2).trim();
+    const name = /^「.+」$/.test(rest) ? rest.slice(1, -1) : firstName(e.title) + (rest ? (/^[（(]/.test(rest) ? rest : ` ${rest}`) : "");
+    return { y: e.y, m: e.m, d: e.d, ey: 0, em: 0, ed: 0, cat: MV_TAB, title: `「${name}」`, note: e.title, i: e.i * 100 + j,
+      site: "", tower: "", videos: [{ label: "MV を見る", id: v.id }] };
+  }));
+  return mvCache;
 }
 
 // タワーレコードのリンク。CSV には、検索する言葉（例：RADWIMPS 人間開花）か、tower.jp の商品ページの URL を書く。
@@ -215,7 +234,7 @@ function renderEras(list) {
 }
 
 function setCat(slug, { scroll = false } = {}) {
-  current = CATS.some((c) => c.slug === slug) ? slug : "all";
+  current = VIEWS.includes(slug) ? slug : "all";
   renderTabs();
   renderTimeline();
   history.replaceState(null, "", current === "all" ? location.pathname + location.search : `#${current}`);
@@ -293,4 +312,4 @@ try { if (localStorage.getItem("radwimps-interview-index:admin") === "1") $("#ad
     $("#loading").textContent = "年表を読み込めませんでした。時間をおいて、もう一度開いてください。";
   }
 })();
-addEventListener("hashchange", () => { if (CATS.some((c) => c.slug === location.hash.slice(1))) setCat(location.hash.slice(1)); });
+addEventListener("hashchange", () => { if (VIEWS.includes(location.hash.slice(1))) setCat(location.hash.slice(1)); });

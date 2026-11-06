@@ -615,6 +615,7 @@ dialog.modal::backdrop { background: rgba(23, 32, 24, .5); -webkit-backdrop-filt
 .cat-live { --cat: #3E7BD6; }
 .cat-tieup { --cat: #9A6A17; }
 .cat-band { --cat: #6A6E64; }
+.cat-mv { --cat: #8A4F7D; }
 .hist-tab:not(.cat-all)::before { content: ""; align-self: center; width: 7px; height: 7px; border-radius: 2px; background: var(--cat); }
 .hist-tab[aria-selected="true"]::before { background: var(--white); }
 /* 見出しの中の作品名のリンク（タワーレコード・特設サイト）：点線の下線で控えめに */
