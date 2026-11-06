@@ -44,7 +44,7 @@ function load(text) {
   const head = rows[0].map((h) => h.trim());
   const at = (name) => head.indexOf(name);
   const c = { y: at("年"), m: at("月"), d: at("日"), ey: at("終了年"), em: at("終了月"), ed: at("終了日"), cat: at("カテゴリ"), title: at("出来事"), note: at("補足"),
-    site: at("特設サイト"), tower: at("タワーレコード") };
+    site: at("特設サイト"), tower: at("タワーレコード"), video: at("動画") };
   const num = (v) => (v && /^\d+$/.test(v.trim()) ? +v : 0);
   const url = (v) => (v && /^https:\/\/[^\s"<>]+$/.test(v.trim()) ? v.trim() : ""); // https で始まるリンクだけ使う
   const cell = (r, i) => (i < 0 ? "" : (r[i] || "").trim());
@@ -53,7 +53,7 @@ function load(text) {
     ey: num(r[c.ey]), em: num(r[c.em]), ed: num(r[c.ed]),
     cat: CATS.find((k) => k.name === (r[c.cat] || "").trim()) || CATS[3],
     title: (r[c.title] || "").trim(), note: (r[c.note] || "").trim(), i,
-    site: url(cell(r, c.site)), tower: towerUrl(cell(r, c.tower))
+    site: url(cell(r, c.site)), tower: towerUrl(cell(r, c.tower)), videos: videoList(cell(r, c.video))
   })).filter((e) => e.y && e.title)
     // 古い順（同じ日は CSV に書いた順）。月・日がないものは、その年・その月のはじめに
     .sort((a, b) => a.y - b.y || a.m - b.m || a.d - b.d || a.i - b.i);
@@ -87,7 +87,8 @@ function renderTimeline() {
           e.m ? el("time", { text: dateLabel(e) }) : null,
           el("span", { class: "hist-cat", text: e.cat.name })),
         titleLine(e),
-        e.note ? el("p", { class: "hist-sub", text: e.note }) : null));
+        e.note ? el("p", { class: "hist-sub", text: e.note }) : null,
+        videoLine(e)));
     }
     sec.append(ol);
     box.append(sec);
@@ -131,6 +132,61 @@ function titleLine(e) {
   return p;
 }
 
+// 動画（MV・予告編など）。CSV の「動画」の列に「ラベル=YouTube の ID か URL」を「 | 」で区切って書く。
+//   例：MV=XRnX65LDRoU　／　MV「光」=WuU6C8oXzIA | MV「前前前世 [original ver.]」=vLGQQbjZc5A　／　予告編=https://www.youtube.com/watch?v=…
+function ytId(v) {
+  if (/^[A-Za-z0-9_-]{11}$/.test(v)) return v;
+  try {
+    const u = new URL(v);
+    if (u.hostname === "youtu.be") return (u.pathname.match(/^\/([A-Za-z0-9_-]{11})/) || [])[1] || "";
+    if (/(^|\.)youtube(-nocookie)?\.com$/.test(u.hostname))
+      return u.searchParams.get("v") || (u.pathname.match(/\/(?:embed|shorts|live)\/([A-Za-z0-9_-]{11})/) || [])[1] || "";
+  } catch { /* URL ではない */ }
+  return "";
+}
+function videoList(v) {
+  if (!v) return [];
+  return v.split("|").map((x) => x.trim()).filter(Boolean).map((x) => {
+    const m = x.match(/^(?:(.*?)\s*=\s*)?(https:\/\/\S+|[A-Za-z0-9_-]{11})$/);
+    const id = m ? ytId(m[2]) : "";
+    return id ? { label: (m[1] || "MV").trim() || "MV", id } : null;
+  }).filter(Boolean);
+}
+// 出来事の下に、小さな文字で「▶ MV」などを並べる。押すと、その場（出来事のすぐ下）で再生する
+function videoLine(e) {
+  if (!e.videos.length) return null;
+  const p = el("p", { class: "hist-videos" });
+  e.videos.forEach((v, i) => {
+    if (i) p.append(el("span", { class: "sep", "aria-hidden": "true", text: "·" }));
+    p.append(el("button", { type: "button", class: "vbtn", "data-vid": v.id, "data-label": v.label, "aria-expanded": "false" },
+      el("span", { class: "tri", "aria-hidden": "true", text: "▶" }), el("span", { class: "vl", text: v.label })));
+  });
+  return p;
+}
+function closePlayer() {
+  const open = $("#timeline .hist-player");
+  if (!open) return;
+  open.remove();
+  document.querySelectorAll('#timeline .vbtn[aria-expanded="true"]').forEach((b) => b.setAttribute("aria-expanded", "false"));
+}
+function openPlayer(btn) {
+  const id = btn.dataset.vid, label = btn.dataset.label;
+  const li = btn.closest(".hist-item");
+  const title = li.querySelector(".hist-title").textContent;
+  const frame = el("div", { class: "frame" }, el("iframe", {
+    src: `https://www.youtube-nocookie.com/embed/${id}?autoplay=1&playsinline=1&rel=0`,
+    title: `${label}（${title}）`, loading: "lazy", referrerpolicy: "strict-origin-when-cross-origin",
+    allow: "accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share", allowfullscreen: ""
+  }));
+  const close = el("button", { type: "button", class: "pclose", text: "閉じる" });
+  close.addEventListener("click", () => { closePlayer(); btn.focus(); });
+  const player = el("div", { class: "hist-player" }, frame,
+    el("p", { class: "player-foot" },
+      el("a", { href: `https://www.youtube.com/watch?v=${id}`, target: "_blank", rel: "noopener noreferrer", text: "YouTube で開く" }), close));
+  li.append(player);
+  btn.setAttribute("aria-expanded", "true");
+}
+
 // スクロール中の誤タップを防ぐ：指で画面を動かしている途中・スクロールが止まった直後のタップでは、リンクを開かない
 // （スクロールの勢いを止めようとして触れたときに、リンクが開いてしまうのを防ぐ。マウスのクリックはそのまま）
 const GUARD_MS = 400;
@@ -171,9 +227,14 @@ function setCat(slug, { scroll = false } = {}) {
 
 const headerH = () => $("#header").getBoundingClientRect().height;
 
+const tapIsAccident = () => tap.touch && (tap.moved || tap.scrolling || performance.now() - lastScroll < GUARD_MS);
 $("#timeline").addEventListener("click", (e) => {
-  if (!e.target.closest("a.title-link") || !tap.touch) return;
-  if (tap.moved || tap.scrolling || performance.now() - lastScroll < GUARD_MS) e.preventDefault();
+  if (e.target.closest("a.title-link")) { if (tapIsAccident()) e.preventDefault(); return; }
+  const btn = e.target.closest(".vbtn");
+  if (!btn || tapIsAccident()) return;
+  const wasOpen = btn.getAttribute("aria-expanded") === "true";
+  closePlayer();
+  if (!wasOpen) openPlayer(btn);
 });
 
 $("#tabs").addEventListener("click", (e) => {
