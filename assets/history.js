@@ -9,12 +9,18 @@ import config from "./config.js";
 const $ = (s) => document.querySelector(s);
 
 // カテゴリ：CSV に書く名前、URL の末尾（#…）、スマホのタブに出す短い名前
+// 1つの出来事を2つのカテゴリに入れるときは、CSV に「バンドの出来事、山口智史・VXD」のように「、」で区切って書く（最初のものが主なカテゴリ）
 const CATS = [
   { name: "リリース", slug: "release", short: "リリース" },
   { name: "ライブ・ツアー", slug: "live", short: "ライブ" },
   { name: "映画・タイアップ", slug: "tieup", short: "タイアップ" },
-  { name: "バンドの出来事", slug: "band", short: "出来事" }
+  { name: "バンドの出来事", slug: "band", short: "出来事" },
+  { name: "山口智史・VXD", slug: "vxd", short: "VXD" }
 ];
+const catsOf = (v) => {
+  const list = String(v || "").split(/[、,]/).map((x) => x.trim()).map((n) => CATS.find((k) => k.name === n)).filter(Boolean);
+  return list.length ? [...new Set(list)] : [CATS[3]];
+};
 // 「MV」のタブ：「動画」の列で「MV」から始まるラベルの動画を、1曲ずつの行にして並べる（CSV に書く必要はありません）
 const MV_TAB = { name: "MV", slug: "mv", short: "MV" };
 const VIEWS = ["all", ...CATS.map((c) => c.slug), MV_TAB.slug];
@@ -55,10 +61,10 @@ function load(text) {
   return rows.slice(1).filter((r) => r.some((x) => x.trim())).map((r, i) => ({
     y: num(r[c.y]), m: num(r[c.m]), d: num(r[c.d]),
     ey: num(r[c.ey]), em: num(r[c.em]), ed: num(r[c.ed]),
-    cat: CATS.find((k) => k.name === (r[c.cat] || "").trim()) || CATS[3],
+    cats: catsOf(r[c.cat]),
     title: (r[c.title] || "").trim(), note: (r[c.note] || "").trim(), i,
     site: url(cell(r, c.site)), tower: towerUrl(cell(r, c.tower)), videos: videoList(cell(r, c.video))
-  })).filter((e) => e.y && e.title)
+  })).map((e) => ({ ...e, cat: e.cats[0] })).filter((e) => e.y && e.title)
     // 古い順（同じ日は CSV に書いた順）。月・日がないものは、その年・その月のはじめに
     .sort((a, b) => a.y - b.y || a.m - b.m || a.d - b.d || a.i - b.i);
 }
@@ -68,7 +74,7 @@ function renderTabs() {
   tabs.replaceChildren();
   const all = [{ name: "すべて", slug: "all", short: "すべて" }, ...CATS, MV_TAB];
   for (const t of all) {
-    const n = t.slug === "all" ? events.length : t.slug === "mv" ? mvSongs().length : events.filter((e) => e.cat.slug === t.slug).length;
+    const n = t.slug === "all" ? events.length : t.slug === "mv" ? mvSongs().length : events.filter((e) => e.cats.some((c) => c.slug === t.slug)).length;
     const b = el("button", { type: "button", role: "tab", class: `hist-tab cat-${t.slug}`, "aria-selected": String(t.slug === current), "data-cat": t.slug, "aria-label": `${t.name} ${n}件` },
       el("span", { class: "lbl-full", text: t.name }), el("span", { class: "lbl-short", text: t.short, "aria-hidden": "true" }), el("small", { text: String(n) }));
     tabs.append(b);
@@ -77,7 +83,12 @@ function renderTabs() {
 
 function renderTimeline() {
   const box = $("#timeline");
-  const list = current === "all" ? events : current === "mv" ? mvSongs() : events.filter((e) => e.cat.slug === current);
+  const list = current === "all" ? events : current === "mv" ? mvSongs() : events.filter((e) => e.cats.some((c) => c.slug === current));
+  // 今見ているカテゴリの名前と件数（スマホではタブに件数を出さないので、ここに出す）
+  const view = current === "all" ? "すべての出来事" : current === "mv" ? "MV のある曲" : CATS.find((c) => c.slug === current).name;
+  $("#view").replaceChildren(el("b", { text: view }), el("span", { text: `${list.length} 件` }));
+  // 年表の点の色：カテゴリのタブでは、そのカテゴリの色。「すべて」では、はじめに書いたカテゴリの色
+  const dot = (e) => e.cats?.find((c) => c.slug === current) || e.cat;
   const years = new Map();
   for (const e of list) (years.get(e.y) || years.set(e.y, []).get(e.y)).push(e);
   box.replaceChildren();
@@ -86,10 +97,10 @@ function renderTimeline() {
       el("h2", { id: `yh${y}`, class: "hist-year-head" }, el("span", { text: String(y) }), el("small", { text: `${items.length} 件` })));
     const ol = el("ol", { class: "hist-list" });
     for (const e of items) {
-      ol.append(el("li", { class: `hist-item cat-${e.cat.slug}` },
+      ol.append(el("li", { class: `hist-item cat-${dot(e).slug}` },
         el("p", { class: "hist-meta" },
           e.m ? el("time", { text: dateLabel(e) }) : null,
-          el("span", { class: "hist-cat", text: e.cat.name })),
+          ...(e.cats || [e.cat]).map((c) => el("span", { class: `hist-cat cat-${c.slug}`, text: c.name }))),
         titleLine(e),
         e.note ? el("p", { class: "hist-sub", text: e.note }) : null,
         videoLine(e)));
@@ -144,7 +155,8 @@ function titleLine(e) {
     class: "title-link", href, target: "_blank",
     rel: tower && affiliateOn ? "sponsored noopener noreferrer" : "noopener noreferrer",
     title: tower ? `「${name}」をタワーレコードで見る（新しいタブで開きます）`
-      : /radwimps\.jp\/live(_archive)?\//.test(href) ? `「${name}」の公式サイトのライブ情報（新しいタブで開きます）` : `「${name}」の特設サイト（新しいタブで開きます）`
+      : /radwimps\.jp\/live(_archive)?\//.test(href) ? `「${name}」の公式サイトのライブ情報（新しいタブで開きます）`
+      : /\/\/radwimps\.jp\//.test(href) ? `「${name}」の特設サイト（新しいタブで開きます）` : `「${name}」の公式ページ（新しいタブで開きます）`
   }, name);
   p.append(e.title.slice(0, open + 1), a, e.title.slice(close));
   if (tower && affiliateOn) p.append(el("span", { class: "pr", text: "PR", title: "広告（アフィリエイトリンク）" }));

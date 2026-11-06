@@ -584,11 +584,15 @@ dialog.modal::backdrop { background: rgba(23, 32, 24, .5); -webkit-backdrop-filt
 .era-links .off { opacity: .4; }
 /* カテゴリのタブ：上の帯のすぐ下に残る */
 .hist-tabs-bar { position: sticky; top: calc(44px + env(safe-area-inset-top, 0px)); z-index: 10; background: var(--paper); border-bottom: 1px solid var(--rule); }
-/* スマホでは2段に折り返して、全部のタブが見えるように */
+/* スマホでは2段に折り返して、全部のタブが見えるように（件数はタブに出さず、年表のいちばん上に出す） */
 .hist-tabs { display: flex; flex-wrap: wrap; gap: 6px; padding-block: 8px; }
 .hist-tab { flex: none; display: inline-flex; align-items: baseline; gap: 6px; min-height: 36px; padding: 7px 12px; border: 1px solid var(--line-entry); border-radius: 20px; background: var(--card); color: var(--ink); font-size: 13px; white-space: nowrap; }
 .hist-tab .lbl-full { display: none; }
-.hist-tab small { font-size: 11px; color: var(--muted); font-variant-numeric: tabular-nums; }
+.hist-tab small { display: none; font-size: 11px; color: var(--muted); font-variant-numeric: tabular-nums; }
+/* 今見ているカテゴリの名前と件数（スマホだけ。パソコンではタブに件数が出るので、読み上げ用に隠して残す） */
+.hist-view { display: flex; align-items: baseline; gap: 8px; margin-block: 0; padding-block: 14px 0; font-size: 12px; color: var(--muted); }
+.hist-view b { font-weight: 700; color: var(--ink); }
+.hist-view:empty { display: none; }
 .hist-tab:hover { background: var(--accent-tint); }
 .hist-tab[aria-selected="true"] { border-color: var(--accent); background: var(--accent); color: var(--white); }
 .hist-tab[aria-selected="true"] small { color: var(--accent-soft); }
@@ -616,6 +620,7 @@ dialog.modal::backdrop { background: rgba(23, 32, 24, .5); -webkit-backdrop-filt
 .cat-tieup { --cat: #9A6A17; }
 .cat-band { --cat: #6A6E64; }
 .cat-mv { --cat: #8A4F7D; }
+.cat-vxd { --cat: #2E7D6B; }
 .hist-tab:not(.cat-all)::before { content: ""; align-self: center; width: 7px; height: 7px; border-radius: 2px; background: var(--cat); }
 .hist-tab[aria-selected="true"]::before { background: var(--white); }
 /* 見出しの中の作品名のリンク（タワーレコード・特設サイト）：点線の下線で控えめに */
@@ -648,12 +653,15 @@ dialog.modal::backdrop { background: rgba(23, 32, 24, .5); -webkit-backdrop-filt
   .hist-tab { min-height: 40px; padding: 9px 14px; }
   .hist-tab .lbl-full { display: inline; }
   .hist-tab .lbl-short { display: none; }
+  .hist-tab small { display: inline; }
+  .hist-view { position: absolute; width: 1px; height: 1px; margin: -1px; padding: 0; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
   .hist-year { margin-left: 10px; padding-left: 34px; }
   .hist-year-head::before { left: -39px; top: 52px; }
   .hist-year-head span { font-size: 48px; }
-  .hist-item { display: grid; grid-template-columns: 150px minmax(0, 1fr); column-gap: 20px; padding: 16px 0; }
+  /* 左の列（日付・カテゴリ）が長くなっても、右の見出しと補足のあいだが空かないように、余りは最後の行で受ける */
+  .hist-item { display: grid; grid-template-columns: 150px minmax(0, 1fr); grid-template-rows: repeat(4, auto) 1fr; column-gap: 20px; padding: 16px 0; }
   .hist-item::before { left: -38px; top: 23px; }
-  .hist-meta { grid-row: 1 / span 2; flex-direction: column; align-items: flex-start; gap: 4px; margin: 2px 0 0; }
+  .hist-meta { grid-row: 1 / -1; flex-direction: column; align-items: flex-start; gap: 4px; margin: 2px 0 0; }
   .hist-title { font-size: 16px; }
   .hist-sub, .hist-videos, .hist-player { grid-column: 2; }
   .era-links a, .era-links span { font-size: 24px; }
