@@ -3,7 +3,7 @@
    色を変えたいときは、すぐ下の「色」の値（#から始まる6桁）を書き換えます。
    全体のイメージ：紙に近い生成りの背景に、落ち着いた文字色。アーティスト写真より「言葉」を主役にします。
    メインカラー（--accent・--green：紺 #113584）はロゴ・強調・選んでいる印に、アクセントカラー（--accent-soft：#CFD4E6）は選んでいる面や淡い強調に使います。
-   既読は緑系（--read-…）のままにして、意味を分けています。
+   既読（--read-…）も紺系です。保存した印は塗りつぶした紺、既読は淡い紺の面と左の線で見分けます。
    画面の幅の切り替わり：700px 以下はスマホ（1列）、701px 以上は左に絞り込み、1050px 以上はカードが2列。 */
 
 /* ---------- 色と書体 ---------- */
@@ -30,12 +30,12 @@
   --green-ink: #FFFFFF;    /* メインカラーの上の文字 */
   --chip-on: var(--accent-tint);      /* 選んでいる条件の小さな札 */
   --chip-on-line: var(--accent-soft);
-  --read-bg: #E7EDDF;      /* 既読のカード */
-  --read-line: #91A780;
-  --read-left: #587248;
-  --read-title: #526348;
-  --read-text: #606C57;
-  --read-label: #536C42;
+  --read-bg: #EDEFF6;      /* 既読のカード */
+  --read-line: #A9B2CF;
+  --read-left: #113584;
+  --read-title: #47557A;
+  --read-text: #5D6580;
+  --read-label: #113584;
   --save-off: #87907B;     /* 「あとで読む」をまだ押していない印 */
   --live: #2457B2;         /* 公演日・ライブの情報 */
   --note-ink: #755D38;     /* 参考資料などの注意書き */
@@ -241,7 +241,7 @@ body::before { content: ""; position: fixed; inset: 0 0 auto; height: env(safe-a
 .thumbnail-fallback strong { display: -webkit-box; max-width: 90%; overflow: hidden; -webkit-box-orient: vertical; -webkit-line-clamp: 3; font-size: 14px; font-weight: 600; line-height: 1.4; overflow-wrap: anywhere; }
 .thumbnail-fallback.long strong { font-size: 11px; }
 .is-video .thumbnail-fallback { background: linear-gradient(120deg, #DEDFEF, #EEEAF4); }
-.is-read .thumbnail-fallback { background: linear-gradient(120deg, #D6E1D0, #E4EAD9); }
+.is-read .thumbnail-fallback { background: linear-gradient(120deg, #D5DAEA, #E6E9F2); }
 .card-copy { min-width: 0; }
 .card-category { margin: 0 0 4px; font-size: 10px; line-height: 1.5; color: var(--muted); }
 .card-title { margin: 0; font-size: 16px; font-weight: 650; line-height: 1.6; letter-spacing: 0; overflow-wrap: anywhere; }
@@ -270,8 +270,8 @@ body::before { content: ""; position: fixed; inset: 0 0 auto; height: env(safe-a
 .card-report { display: inline-block; margin-top: 8px; font-size: 10px; color: var(--muted); }
 
 .card-bottom { display: flex; align-items: center; justify-content: space-between; gap: 8px; min-height: 44px; margin-top: 4px; padding-top: 2px; border-top: 1px solid var(--rule); }
-.read-button { display: flex; align-items: center; gap: 4px; min-height: 44px; padding: 4px 0; border: 0; background: none; color: #737C69; font-size: 11px; white-space: nowrap; }
-.read-button[aria-pressed="true"] { color: #3F5932; font-weight: 700; }
+.read-button { display: flex; align-items: center; gap: 4px; min-height: 44px; padding: 4px 0; border: 0; background: none; color: #6B7187; font-size: 11px; white-space: nowrap; }
+.read-button[aria-pressed="true"] { color: var(--accent); font-weight: 700; }
 .source-link { display: flex; align-items: center; justify-content: flex-end; gap: 7px; min-width: 0; min-height: 44px; padding: 7px 0; color: var(--ink); font-size: 11px; font-weight: 500; line-height: 1.4; text-decoration: none; }
 .source-name { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 16px; font-weight: 500; }
 .source-link:hover .source-name { text-decoration: underline; text-underline-offset: 4px; text-decoration-thickness: 1px; }
@@ -421,7 +421,7 @@ dialog.modal::backdrop { background: rgba(23, 32, 24, .5); -webkit-backdrop-filt
 /* 保存していない変更があるときの帯（画面の下に固定） */
 .admbar { display: grid; gap: 8px; margin-top: 4px; }
 .admbar .hint { font-size: 12px; }
-.admbar.on { position: sticky; bottom: calc(10px + env(safe-area-inset-bottom, 0px)); z-index: 4; padding: 12px 14px; border: 1px solid #697B4E; border-left-width: 4px; border-radius: 5px; box-shadow: var(--shadow); background: var(--read-bg); }
+.admbar.on { position: sticky; bottom: calc(10px + env(safe-area-inset-bottom, 0px)); z-index: 4; padding: 12px 14px; border: 1px solid var(--read-line); border-left-width: 4px; border-radius: 5px; box-shadow: var(--shadow); background: var(--read-bg); }
 .admsum { margin: 0; display: flex; flex-wrap: wrap; align-items: baseline; gap: 2px 10px; }
 .admsum span { font-size: 12px; color: var(--ink-2); }
 .chips { display: flex; flex-wrap: wrap; gap: 6px; }
