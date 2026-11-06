@@ -44,7 +44,7 @@ function load(text) {
   const head = rows[0].map((h) => h.trim());
   const at = (name) => head.indexOf(name);
   const c = { y: at("年"), m: at("月"), d: at("日"), ey: at("終了年"), em: at("終了月"), ed: at("終了日"), cat: at("カテゴリ"), title: at("出来事"), note: at("補足"),
-    site: at("特設サイト"), buy: at("購入"), buyMemo: at("購入メモ"), tower: at("タワーレコード"), page: at("作品ページ") };
+    site: at("特設サイト"), tower: at("タワーレコード") };
   const num = (v) => (v && /^\d+$/.test(v.trim()) ? +v : 0);
   const url = (v) => (v && /^https:\/\/[^\s"<>]+$/.test(v.trim()) ? v.trim() : ""); // https で始まるリンクだけ使う
   const cell = (r, i) => (i < 0 ? "" : (r[i] || "").trim());
@@ -53,7 +53,7 @@ function load(text) {
     ey: num(r[c.ey]), em: num(r[c.em]), ed: num(r[c.ed]),
     cat: CATS.find((k) => k.name === (r[c.cat] || "").trim()) || CATS[3],
     title: (r[c.title] || "").trim(), note: (r[c.note] || "").trim(), i,
-    site: url(cell(r, c.site)), buy: url(cell(r, c.buy)), buyMemo: cell(r, c.buyMemo), tower: towerUrl(cell(r, c.tower)), page: url(cell(r, c.page))
+    site: url(cell(r, c.site)), tower: towerUrl(cell(r, c.tower))
   })).filter((e) => e.y && e.title)
     // 古い順（同じ日は CSV に書いた順）。月・日がないものは、その年・その月のはじめに
     .sort((a, b) => a.y - b.y || a.m - b.m || a.d - b.d || a.i - b.i);
@@ -86,9 +86,8 @@ function renderTimeline() {
         el("p", { class: "hist-meta" },
           e.m ? el("time", { text: dateLabel(e) }) : null,
           el("span", { class: "hist-cat", text: e.cat.name })),
-        el("p", { class: "hist-title", text: e.title }),
-        e.note ? el("p", { class: "hist-sub", text: e.note }) : null,
-        linksRow(e)));
+        titleLine(e),
+        e.note ? el("p", { class: "hist-sub", text: e.note }) : null));
     }
     sec.append(ol);
     box.append(sec);
@@ -108,27 +107,39 @@ function towerUrl(v) {
   return `https://ck.jp.ap.valuecommerce.com/servlet/referral?sid=${encodeURIComponent(AFF.sid)}&pid=${encodeURIComponent(AFF.pid)}&vc_url=${encodeURIComponent(plain)}`;
 }
 
-// 出来事の下に、小さな薄い文字で1行だけ並べるリンク（来歴を読むじゃまにならないように、ボタンにはしない）
-//   作品ページ · 特設サイト · 公式ストア · タワーレコード（ツアーの行は「ライブ映像：公式ストア · タワーレコード」）
-function linksRow(e) {
-  const link = (href, label, { pr = false } = {}) => {
-    const a = el("a", { class: "hist-link", href, target: "_blank", rel: pr ? "sponsored noopener noreferrer" : "noopener noreferrer" }, el("span", { text: label }));
-    if (pr) a.append(el("span", { class: "pr", text: "PR", title: "広告（アフィリエイトリンク）" }));
-    return a;
-  };
-  const info = [e.page ? link(e.page, "作品ページ") : null, e.site ? link(e.site, "特設サイト") : null].filter(Boolean);
-  const shops = [e.buy ? link(e.buy, "公式ストア") : null, e.tower ? link(e.tower, "タワーレコード", { pr: affiliateOn }) : null].filter(Boolean);
-  if (!info.length && !shops.length) return null;
-  const row = el("p", { class: "hist-links" });
-  const put = (items) => items.forEach((a, i) => { if (i || row.childElementCount) row.append(el("span", { class: "sep", "aria-hidden": "true", text: "·" })); row.append(a); });
-  put(info);
-  if (shops.length) {
-    if (row.childElementCount) row.append(el("span", { class: "sep", "aria-hidden": "true", text: "·" }));
-    if (e.buyMemo) row.append(el("span", { class: "lbl", text: `${e.buyMemo}：` }));
-    shops.forEach((a, i) => { if (i) row.append(el("span", { class: "sep", "aria-hidden": "true", text: "·" })); row.append(a); });
-  }
-  return row;
+// 出来事の見出し。いちばん初めの「」か『』の中（作品名・ライブ名）を、リンクにする。
+//   リリース：タワーレコード（CSV の「タワーレコード」の列）／ライブ：特設サイト（「特設サイト」の列）
+//   リンクにするのは作品名の文字だけ（行全体にはしない）。点線の下線で、控えめに示す。
+function titleLine(e) {
+  const p = el("p", { class: "hist-title" });
+  const href = e.tower || e.site;
+  const m = href ? e.title.match(/[「『]/) : null;
+  if (!m) { p.textContent = e.title; return p; }
+  const open = m.index, close = e.title.indexOf(m[0] === "「" ? "」" : "』", open + 1);
+  if (close < 0) { p.textContent = e.title; return p; }
+  const name = e.title.slice(open + 1, close);
+  const tower = !!e.tower;
+  const a = el("a", {
+    class: "title-link", href, target: "_blank",
+    rel: tower && affiliateOn ? "sponsored noopener noreferrer" : "noopener noreferrer",
+    title: tower ? `「${name}」をタワーレコードで見る（新しいタブで開きます）` : `「${name}」の特設サイト（新しいタブで開きます）`
+  }, name);
+  p.append(e.title.slice(0, open + 1), a, e.title.slice(close));
+  if (tower && affiliateOn) p.append(el("span", { class: "pr", text: "PR", title: "広告（アフィリエイトリンク）" }));
+  return p;
 }
+
+// スクロール中の誤タップを防ぐ：指で画面を動かしている途中・スクロールが止まった直後のタップでは、リンクを開かない
+// （スクロールの勢いを止めようとして触れたときに、リンクが開いてしまうのを防ぐ。マウスのクリックはそのまま）
+const GUARD_MS = 400;
+let lastScroll = 0, tap = { touch: false, x: 0, y: 0, moved: false, scrolling: false };
+addEventListener("scroll", () => { lastScroll = performance.now(); }, { passive: true });
+document.addEventListener("pointerdown", (e) => {
+  tap = { touch: e.pointerType !== "mouse", x: e.clientX, y: e.clientY, moved: false, scrolling: performance.now() - lastScroll < GUARD_MS };
+}, { passive: true });
+document.addEventListener("pointermove", (e) => {
+  if (tap.touch && Math.hypot(e.clientX - tap.x, e.clientY - tap.y) > 10) tap.moved = true;
+}, { passive: true });
 
 // 年代へ移動するリンク（表示中の出来事がある年代だけ押せる）
 function renderEras(list) {
@@ -157,6 +168,11 @@ function setCat(slug, { scroll = false } = {}) {
 }
 
 const headerH = () => $("#header").getBoundingClientRect().height;
+
+$("#timeline").addEventListener("click", (e) => {
+  if (!e.target.closest("a.title-link") || !tap.touch) return;
+  if (tap.moved || tap.scrolling || performance.now() - lastScroll < GUARD_MS) e.preventDefault();
+});
 
 $("#tabs").addEventListener("click", (e) => {
   const b = e.target.closest("[data-cat]");
