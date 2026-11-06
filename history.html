@@ -1,0 +1,63 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>RADWIMPSの歩み｜RADWIMPS Archive</title>
+<meta name="description" content="2001年の結成から現在まで、RADWIMPS のリリース・ライブ・映画やタイアップ・バンドの出来事をたどる年表です。">
+<meta property="og:title" content="RADWIMPSの歩み｜RADWIMPS Archive">
+<meta property="og:description" content="2001年の結成から現在まで、RADWIMPS のリリース・ライブ・映画やタイアップ・バンドの出来事をたどる年表です。">
+<meta property="og:type" content="website">
+<meta name="theme-color" content="#FFFFFF">
+<link rel="icon" href="assets/icon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="assets/style.css">
+<script type="module" src="assets/history.js"></script>
+</head>
+<body class="history-page">
+<a href="#timeline" class="skip">年表へ移動</a>
+
+<!-- いちばん上の帯（記事一覧のページと同じ。左上のボタンでメニューが開きます） -->
+<header class="header" id="header">
+  <div class="header-inner">
+    <button id="menuBtn" class="hamburger" type="button" aria-expanded="false" aria-controls="menuClip" aria-label="メニューを開く"><span></span><span></span><span></span></button>
+    <a href="./" class="brand" aria-label="RADWIMPS Archive トップへ"><span class="brand-symbol" aria-hidden="true">r<span>．</span></span><span class="brand-text">RADWIMPS<span>INTERVIEW ARCHIVE</span></span></a>
+  </div>
+  <div class="menu-clip" id="menuClip" inert aria-hidden="true">
+    <nav class="menu-panel" aria-label="メニュー">
+      <a class="nav-item" href="./">記事一覧 <span aria-hidden="true">↗</span></a>
+      <a class="nav-item" href="./?status=later">あとで読む <span aria-hidden="true">↗</span></a>
+      <a class="nav-item" href="history.html" aria-current="page">RADWIMPSの歩み <span aria-hidden="true">↗</span></a>
+      <a class="nav-item" href="./#admin" id="adminLink" hidden>運営管理 <span aria-hidden="true">↗</span></a>
+    </nav>
+  </div>
+</header>
+
+<main id="main">
+  <section class="hero wrap" aria-labelledby="historyTitle">
+    <p class="eyebrow">RADWIMPS HISTORY <span id="span">2001 —</span></p>
+    <h1 id="historyTitle">RADWIMPSの歩み</h1>
+    <p class="hero-description">2001年の結成から現在まで。リリース・ライブ・映画やタイアップ・バンドの出来事を、年ごとにたどります。</p>
+    <nav class="era-links" aria-label="年代へ移動" id="eras"></nav>
+  </section>
+
+  <!-- カテゴリのタブ（スクロールしても上に残ります） -->
+  <div class="hist-tabs-bar">
+    <div class="hist-tabs wrap" role="tablist" aria-label="カテゴリ" id="tabs"></div>
+  </div>
+
+  <section class="timeline wrap" id="timeline" aria-live="polite">
+    <p class="hist-loading" id="loading">年表を読み込んでいます…</p>
+  </section>
+
+  <p class="hist-note wrap">公式サイト・Wikipedia・各媒体の発表をもとに、運営がまとめた非公式の年表です。日付が「月」までのものは、日にちを確認できなかった出来事です。誤りに気づいたら、お知らせください。</p>
+</main>
+
+<footer class="site-footer wrap">
+  <div class="footer-brand">RADWIMPS <span>INTERVIEW ARCHIVE</span></div>
+  <p>UNOFFICIAL FAN ARCHIVE · 本人・所属事務所・各媒体とは関係ありません。</p>
+  <div class="footer-links"><a href="./">記事一覧へ ↗</a></div>
+</footer>
+
+<button type="button" class="hist-top" id="toTop" aria-label="いちばん上へ" hidden>↑</button>
+</body>
+</html>

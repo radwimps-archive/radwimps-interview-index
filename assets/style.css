@@ -575,3 +575,62 @@ dialog.modal::backdrop { background: rgba(23, 32, 24, .5); -webkit-backdrop-filt
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { transition: none !important; animation: none !important; scroll-behavior: auto !important; }
 }
+
+/* ---------- RADWIMPSの歩み（history.html：年表） ---------- */
+.era-links { display: flex; flex-wrap: wrap; gap: 4px 18px; margin-top: 16px; }
+.era-links a, .era-links span { font-family: var(--f-logo); font-size: 20px; line-height: 1.5; color: var(--muted); text-decoration: none; }
+.era-links a::after { content: " ↓"; font-family: var(--f-body); font-size: 12px; }
+.era-links a:hover { color: var(--accent); }
+.era-links .off { opacity: .4; }
+/* カテゴリのタブ：上の帯のすぐ下に残る */
+.hist-tabs-bar { position: sticky; top: calc(44px + env(safe-area-inset-top, 0px)); z-index: 10; background: var(--paper); border-bottom: 1px solid var(--rule); }
+/* スマホでは2段に折り返して、全部のタブが見えるように */
+.hist-tabs { display: flex; flex-wrap: wrap; gap: 6px; padding-block: 8px; }
+.hist-tab { flex: none; display: inline-flex; align-items: baseline; gap: 6px; min-height: 36px; padding: 7px 12px; border: 1px solid var(--line-entry); border-radius: 20px; background: var(--card); color: var(--ink); font-size: 13px; white-space: nowrap; }
+.hist-tab .lbl-full { display: none; }
+.hist-tab small { font-size: 11px; color: var(--muted); font-variant-numeric: tabular-nums; }
+.hist-tab:hover { background: var(--accent-tint); }
+.hist-tab[aria-selected="true"] { border-color: var(--accent); background: var(--accent); color: var(--white); }
+.hist-tab[aria-selected="true"] small { color: var(--accent-soft); }
+/* 年表：左に縦の線、年ごとに大きな数字 */
+.timeline { position: relative; padding-block: 8px 24px; }
+.hist-loading { padding: 40px 0; color: var(--muted); font-size: 13px; }
+.hist-year { position: relative; padding-left: 22px; border-left: 1px solid var(--rule); margin-left: 6px; }
+.hist-year-head { position: relative; display: flex; align-items: baseline; gap: 10px; margin: 0; padding: 30px 0 6px; }
+.hist-year-head::before { content: ""; position: absolute; left: -27px; top: 47px; width: 9px; height: 9px; border-radius: 50%; background: var(--accent); box-shadow: 0 0 0 4px var(--paper); }
+.hist-year-head span { font-family: var(--f-logo); font-size: 36px; font-weight: 400; line-height: 1.1; letter-spacing: .01em; color: var(--ink); }
+.hist-year-head small { font-size: 11px; font-weight: 400; color: var(--muted); }
+.hist-list { list-style: none; margin: 0; padding: 0; }
+.hist-item { position: relative; padding: 14px 0; border-bottom: 1px solid var(--rule); }
+.hist-item:last-child { border-bottom: 0; }
+.hist-item::before { content: ""; position: absolute; left: -26px; top: 21px; width: 7px; height: 7px; border-radius: 50%; background: var(--paper); border: 1.5px solid var(--cat, var(--accent)); }
+.hist-meta { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 10px; margin: 0 0 4px; }
+.hist-meta time { font-family: var(--f-mono); font-size: 12px; color: var(--muted); letter-spacing: .02em; }
+.hist-cat { display: inline-flex; align-items: center; gap: 5px; font-size: 10.5px; color: var(--muted); }
+.hist-cat::before { content: ""; width: 7px; height: 7px; border-radius: 2px; background: var(--cat, var(--accent)); }
+.hist-title { margin: 0; font-size: 15px; font-weight: 700; line-height: 1.6; color: var(--ink); text-wrap: pretty; }
+.hist-sub { margin: 4px 0 0; font-size: 12px; line-height: 1.7; color: var(--muted); }
+/* カテゴリごとの印の色（タブの数字の前の印と、年表の点） */
+.cat-release { --cat: #113584; }
+.cat-live { --cat: #3E7BD6; }
+.cat-tieup { --cat: #9A6A17; }
+.cat-band { --cat: #6A6E64; }
+.hist-tab:not(.cat-all)::before { content: ""; align-self: center; width: 7px; height: 7px; border-radius: 2px; background: var(--cat); }
+.hist-tab[aria-selected="true"]::before { background: var(--white); }
+.hist-note { margin-block: 8px 24px; font-size: 11px; line-height: 1.8; color: var(--muted); }
+.hist-top { position: fixed; right: calc(16px + env(safe-area-inset-right, 0px)); bottom: calc(16px + env(safe-area-inset-bottom, 0px)); z-index: 15; width: 46px; height: 46px; border: 1px solid var(--line-input); border-radius: 50%; background: var(--white); color: var(--ink); font-size: 18px; box-shadow: var(--shadow); }
+@media (min-width: 701px) {
+  .hist-tabs { gap: 8px; padding-block: 12px; }
+  .hist-tab { min-height: 40px; padding: 9px 14px; }
+  .hist-tab .lbl-full { display: inline; }
+  .hist-tab .lbl-short { display: none; }
+  .hist-year { margin-left: 10px; padding-left: 34px; }
+  .hist-year-head::before { left: -39px; top: 52px; }
+  .hist-year-head span { font-size: 48px; }
+  .hist-item { display: grid; grid-template-columns: 150px minmax(0, 1fr); column-gap: 20px; padding: 16px 0; }
+  .hist-item::before { left: -38px; top: 23px; }
+  .hist-meta { grid-row: 1 / span 2; flex-direction: column; align-items: flex-start; gap: 4px; margin: 2px 0 0; }
+  .hist-title { font-size: 16px; }
+  .hist-sub { grid-column: 2; }
+  .era-links a, .era-links span { font-size: 24px; }
+}

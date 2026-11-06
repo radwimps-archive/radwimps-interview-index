@@ -36,6 +36,7 @@ RADWIMPS とメンバーのインタビュー・対談・ライブレポート�
 ```
 index.html            サイトの骨組みと文章
 maker.html            記事データ作成ツール
+history.html          「RADWIMPSの歩み」（年表）のページ
 assets/
   style.css           見た目（色など）
   app.js              画面の動き（探す入口・検索・絞り込み・あとで読む・既読）
@@ -46,6 +47,7 @@ assets/
 data/
   articles.csv        記事の一覧
   releases.csv        年ごとの主なリリース（「年代から探す」で年を選ぶと出る）
+  history.csv         「RADWIMPSの歩み」（年表）の出来事
 tools/
   validate.mjs        書式チェック
   check-links.mjs     リンク確認
