@@ -108,25 +108,26 @@ function towerUrl(v) {
   return `https://ck.jp.ap.valuecommerce.com/servlet/referral?sid=${encodeURIComponent(AFF.sid)}&pid=${encodeURIComponent(AFF.pid)}&vc_url=${encodeURIComponent(plain)}`;
 }
 
-// 出来事の下に並ぶリンク：特設サイト・公式ストアで購入・タワーレコードで購入・作品ページ（どれも新しいタブで開く）
-const CART = '<svg viewBox="0 0 24 24" width="15" height="15" aria-hidden="true"><path d="M3 4h2.2l2.1 10.2a1.6 1.6 0 0 0 1.6 1.3h7.9a1.6 1.6 0 0 0 1.5-1.2L20 8H6.2" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/><circle cx="9.5" cy="19.5" r="1.4" fill="currentColor"/><circle cx="17" cy="19.5" r="1.4" fill="currentColor"/></svg>';
+// 出来事の下に、小さな薄い文字で1行だけ並べるリンク（来歴を読むじゃまにならないように、ボタンにはしない）
+//   作品ページ · 特設サイト · 公式ストア · タワーレコード（ツアーの行は「ライブ映像：公式ストア · タワーレコード」）
 function linksRow(e) {
-  const out = (href, cls, label, { pr = false } = {}) => {
-    const a = el("a", { class: `hist-link ${cls}`, href, target: "_blank", rel: pr ? "sponsored noopener noreferrer" : "noopener noreferrer" });
-    if (cls.startsWith("buy")) a.insertAdjacentHTML("beforeend", CART);
-    a.append(el("span", { text: label }));
+  const link = (href, label, { pr = false } = {}) => {
+    const a = el("a", { class: "hist-link", href, target: "_blank", rel: pr ? "sponsored noopener noreferrer" : "noopener noreferrer" }, el("span", { text: label }));
     if (pr) a.append(el("span", { class: "pr", text: "PR", title: "広告（アフィリエイトリンク）" }));
-    a.append(el("span", { class: "arr", "aria-hidden": "true", text: "↗" }));
     return a;
   };
-  const what = e.buyMemo ? `${e.buyMemo}を` : "";
-  const links = [
-    e.site ? out(e.site, "site", "特設サイト") : null,
-    e.buy ? out(e.buy, "buy", `${what}公式ストアで購入`) : null,
-    e.tower ? out(e.tower, "buy tower", `${what}タワーレコードで購入`, { pr: affiliateOn }) : null,
-    e.page ? out(e.page, "page", "作品ページ") : null
-  ].filter(Boolean);
-  return links.length ? el("p", { class: "hist-links" }, ...links) : null;
+  const info = [e.page ? link(e.page, "作品ページ") : null, e.site ? link(e.site, "特設サイト") : null].filter(Boolean);
+  const shops = [e.buy ? link(e.buy, "公式ストア") : null, e.tower ? link(e.tower, "タワーレコード", { pr: affiliateOn }) : null].filter(Boolean);
+  if (!info.length && !shops.length) return null;
+  const row = el("p", { class: "hist-links" });
+  const put = (items) => items.forEach((a, i) => { if (i || row.childElementCount) row.append(el("span", { class: "sep", "aria-hidden": "true", text: "·" })); row.append(a); });
+  put(info);
+  if (shops.length) {
+    if (row.childElementCount) row.append(el("span", { class: "sep", "aria-hidden": "true", text: "·" }));
+    if (e.buyMemo) row.append(el("span", { class: "lbl", text: `${e.buyMemo}：` }));
+    shops.forEach((a, i) => { if (i) row.append(el("span", { class: "sep", "aria-hidden": "true", text: "·" })); row.append(a); });
+  }
+  return row;
 }
 
 // 年代へ移動するリンク（表示中の出来事がある年代だけ押せる）
