@@ -108,7 +108,8 @@ function towerUrl(v) {
 }
 
 // 出来事の見出し。いちばん初めの「」か『』の中（作品名・ライブ名）を、リンクにする。
-//   リリース：タワーレコード（CSV の「タワーレコード」の列）／ライブ：特設サイト（「特設サイト」の列）
+//   リリース：タワーレコード（CSV の「タワーレコード」の列）
+//   ライブ：特設サイト、なければ公式サイトのライブ情報のページ（「特設サイト」の列）
 //   リンクにするのは作品名の文字だけ（行全体にはしない）。点線の下線で、控えめに示す。
 function titleLine(e) {
   const p = el("p", { class: "hist-title" });
@@ -122,7 +123,8 @@ function titleLine(e) {
   const a = el("a", {
     class: "title-link", href, target: "_blank",
     rel: tower && affiliateOn ? "sponsored noopener noreferrer" : "noopener noreferrer",
-    title: tower ? `「${name}」をタワーレコードで見る（新しいタブで開きます）` : `「${name}」の特設サイト（新しいタブで開きます）`
+    title: tower ? `「${name}」をタワーレコードで見る（新しいタブで開きます）`
+      : /radwimps\.jp\/live(_archive)?\//.test(href) ? `「${name}」の公式サイトのライブ情報（新しいタブで開きます）` : `「${name}」の特設サイト（新しいタブで開きます）`
   }, name);
   p.append(e.title.slice(0, open + 1), a, e.title.slice(close));
   if (tower && affiliateOn) p.append(el("span", { class: "pr", text: "PR", title: "広告（アフィリエイトリンク）" }));
