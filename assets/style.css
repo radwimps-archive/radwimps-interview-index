@@ -641,7 +641,8 @@ dialog.modal::backdrop { background: rgba(23, 32, 24, .5); -webkit-backdrop-filt
 .vbtn .vl { text-decoration: underline dotted; text-decoration-color: var(--line-input); text-underline-offset: 4px; }
 .vbtn:hover, .vbtn[aria-expanded="true"] { color: var(--accent); }
 .hist-player { margin: 10px 0 2px; max-width: 560px; }
-.hist-player .frame { position: relative; width: 100%; max-width: 100%; height: 0; padding-top: 56.25%; overflow: hidden; border-radius: 6px; background: #000; }
+/* YouTube の決まりで、プレーヤーは 200×200 ピクセル以上（せまいスマホでは高さ 200px にして、上下に黒い帯が出る） */
+.hist-player .frame { position: relative; width: 100%; max-width: 100%; height: 0; padding-top: 56.25%; padding-top: max(56.25%, 200px); overflow: hidden; border-radius: 6px; background: #000; }
 .hist-player iframe { position: absolute; inset: 0; width: 100%; height: 100%; border: 0; }
 .player-foot { display: flex; justify-content: flex-start; gap: 20px; margin: 4px 0 0; font-size: 11px; }
 .player-foot a, .player-foot button { display: inline-flex; align-items: center; min-height: 32px; padding: 0; border: 0; background: none; color: var(--muted); font: inherit; text-decoration: underline; text-decoration-color: var(--rule); text-underline-offset: 3px; cursor: pointer; }
@@ -653,6 +654,10 @@ dialog.modal::backdrop { background: rgba(23, 32, 24, .5); -webkit-backdrop-filt
 .hist-pr-top { display: flex; align-items: baseline; gap: 8px; margin: 10px 0 0; font-size: 11px; line-height: 1.7; color: var(--muted); }
 .hist-pr-top .pr { flex: none; }
 .hist-note { margin-block: 8px 24px; font-size: 11px; line-height: 1.8; color: var(--muted); }
+.hist-yt-note { margin: 8px 0 0; font-size: 11px; line-height: 1.7; color: var(--muted); }
+.hist-yt-note a { color: inherit; text-decoration: underline; text-decoration-color: var(--rule); text-underline-offset: 3px; }
+.hist-yt-note a:hover { color: var(--accent); }
+.player-in-view .hist-top { visibility: hidden; }
 .hist-top { position: fixed; right: calc(16px + env(safe-area-inset-right, 0px)); bottom: calc(16px + env(safe-area-inset-bottom, 0px)); z-index: 15; width: 46px; height: 46px; border: 1px solid var(--line-input); border-radius: 50%; background: var(--white); color: var(--ink); font-size: 18px; box-shadow: var(--shadow); }
 @media (min-width: 701px) {
   .hist-tabs { gap: 6px; padding-block: 12px; }

@@ -213,6 +213,9 @@ function videoLine(e) {
 function closePlayer() {
   const open = $("#timeline .hist-player");
   if (!open) return;
+  open._io?.disconnect();
+  open._vis?.disconnect();
+  document.body.classList.remove("player-in-view");
   open.remove();
   document.querySelectorAll('#timeline .vbtn[aria-expanded="true"]').forEach((b) => b.setAttribute("aria-expanded", "false"));
 }
@@ -220,11 +223,11 @@ function openPlayer(btn) {
   const id = btn.dataset.vid, label = btn.dataset.label;
   const li = btn.closest(".hist-item");
   const title = li.querySelector(".hist-title").textContent;
-  const frame = el("div", { class: "frame" }, el("iframe", {
-    src: `https://www.youtube-nocookie.com/embed/${id}?autoplay=1&playsinline=1&rel=0`,
+  const iframe = el("iframe", {
     title: `${label}（${title}）`, referrerpolicy: "strict-origin-when-cross-origin", frameborder: "0",
     allow: "accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share; fullscreen", allowfullscreen: ""
-  }));
+  });
+  const frame = el("div", { class: "frame" }, iframe);
   const close = el("button", { type: "button", class: "pclose", text: "閉じる" });
   close.addEventListener("click", () => { closePlayer(); btn.focus(); });
   const player = el("div", { class: "hist-player" }, frame,
@@ -232,6 +235,18 @@ function openPlayer(btn) {
       el("a", { href: `https://www.youtube.com/watch?v=${id}`, target: "_blank", rel: "noopener noreferrer", text: "YouTube で開く" }), close));
   li.append(player);
   btn.setAttribute("aria-expanded", "true");
+  // YouTube の決まり：自動で再生を始めるのは、プレーヤーが半分以上見えてから。
+  // 動画はプレーヤーが半分以上見えたときに読み込み、見えていなければ見える位置まで動かす
+  const start = () => { if (!iframe.getAttribute("src")) iframe.src = `https://www.youtube-nocookie.com/embed/${id}?autoplay=1&playsinline=1&rel=0`; };
+  if (!("IntersectionObserver" in window)) return start();
+  player._io = new IntersectionObserver((list) => {
+    if (list.some((x) => x.intersectionRatio >= 0.5)) { player._io.disconnect(); start(); }
+  }, { threshold: [0.5] });
+  player._io.observe(frame);
+  // プレーヤーが見えているあいだは、右下の「↑」ボタンを隠す（YouTube の決まりで、プレーヤーの上に何も重ねない）
+  player._vis = new IntersectionObserver(([x]) => document.body.classList.toggle("player-in-view", x.isIntersecting));
+  player._vis.observe(frame);
+  frame.scrollIntoView({ block: "nearest", behavior: "smooth" });
 }
 
 // スクロール中の誤タップを防ぐ：画面がまだ動いている最中（0.25秒以内）に触れたタップや、指が滑ったタップでは、リンクや動画を開かない
