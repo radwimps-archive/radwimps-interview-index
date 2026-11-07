@@ -176,6 +176,7 @@ function titleLine(e) {
     rel: tower && affiliateOn ? "sponsored noopener noreferrer" : "noopener noreferrer",
     title: tower ? `「${name}」をタワーレコードで見る（新しいタブで開きます）`
       : /radwimps\.jp\/live(_archive)?\//.test(href) ? `「${name}」の公式サイトのライブ情報（新しいタブで開きます）`
+      : /radwimps\.jp\/news\//.test(href) ? `「${name}」についての公式サイトのお知らせ（新しいタブで開きます）`
       : /\/\/radwimps\.jp\//.test(href) ? `「${name}」の特設サイト（新しいタブで開きます）` : `「${name}」の公式ページ（新しいタブで開きます）`
   }, name);
   p.append(e.title.slice(0, open + 1), a, e.title.slice(close));
