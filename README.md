@@ -42,7 +42,8 @@ assets/
   app.js              画面の動き（探す入口・検索・絞り込み・あとで読む・既読）
   history.js          「RADWIMPSの歩み」（年表）の動き
   admin.js            運営管理の「記事の管理」（記事の編集と GitHub への保存。運営管理を開いたときだけ読み込み）
-  data.js             CSV の読み方と「書ける値」の決まり、「曲・作品から探す」の作品の一覧（サイトとチェック用プログラムで共通）
+  ui.js               画面の共通部品（メニュー・管理者モード・ファイルの書き出しなど。3つの画面で共通）
+  data.js             CSV の読み方と「書ける値」の決まり（記事・年表）、「曲・作品から探す」の作品の一覧（サイトとチェック用プログラムで共通。画面の処理は入れない）
   config.js           設定（独自ドメインのとき・タワーレコードのアフィリエイトを始めるとき）
   icon.svg            ブラウザのタブのアイコン
 data/
@@ -50,14 +51,17 @@ data/
   releases.csv        年ごとの主なリリース（「年代から探す」で年を選ぶと出る）
   history.csv         「RADWIMPSの歩み」（年表）の出来事
 tools/
-  validate.mjs        書式チェック
+  validate.mjs        書式チェック（記事・年ごとのリリース・年表）
   check-links.mjs     リンク確認
+tests/
+  data.test.mjs       data.js（CSV の読み取り）のテスト
 .github/workflows/    自動公開・自動チェックの設定
 docs/manual.md        運用マニュアル
 ```
 
 ビルドの手順や `npm install` は必要ありません。ファイルはそのまま公開されます。
-チェック用プログラムは Node.js だけで動きます（`node tools/validate.mjs`）。
+チェック用プログラムとテストは Node.js だけで動きます（`node tools/validate.mjs`、`node --test`）。
+`assets` に新しいファイルを足すときは、名前を小文字の英字だけにします（例：`ui.js`）。公開時に古いファイルが残らないようにする仕組み（`.github/workflows/deploy.yml`）が、その形の名前にだけ効くためです。
 
 ## 合鍵（アクセストークン）について
 

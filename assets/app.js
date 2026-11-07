@@ -11,13 +11,13 @@
 import config from "./config.js";
 import {
   parseArticles, parseReleases, KIND_ORDER, MEMBERS, MEMBER_ORDER, CATEGORIES, SUPPORT_MEMBERS, WORKS, QUICK_WORKS,
-  VIDEO_KIND, LIVE_KIND, LANG_BADGE, youtubeId
+  VIDEO_KIND, LIVE_KIND, INTERVIEW_KIND, OTHERS_KIND, LANG_BADGE, youtubeId
 } from "./data.js";
+import { h, isAdminDevice, setAdminDevice, setupMenu, downloadFile } from "./ui.js";
 
 /* ---------- 共通の道具 ---------- */
 
 const STORE_MARKS = "radwimps-interview-index:marks"; // あとで読む・既読の保存場所の名前（以前の「お気に入り」もここ）
-const STORE_ADMIN = "radwimps-interview-index:admin"; // 管理者モード（この端末だけの設定）
 const PAGE_SIZE = 12;                                 // 一覧に一度に出す件数
 
 const $ = (s) => document.querySelector(s);
@@ -25,18 +25,7 @@ const $$ = (s) => [...document.querySelectorAll(s)];
 const isWide = () => matchMedia("(min-width: 701px)").matches;
 const reduceMotion = () => matchMedia("(prefers-reduced-motion: reduce)").matches;
 
-// 画面の部品を作る小さな関数：h("p", { class: "note", text: "本文" })
-function h(tag, attrs, ...kids) {
-  const el = document.createElement(tag);
-  for (const [k, v] of Object.entries(attrs || {})) {
-    if (v === null || v === undefined || v === false) continue;
-    if (k === "class") el.className = v;
-    else if (k === "text") el.textContent = v;
-    else el.setAttribute(k, v === true ? "" : String(v));
-  }
-  for (const kid of kids) if (kid !== null && kid !== undefined && kid !== false) el.append(kid);
-  return el;
-}
+// 画面の部品を作る h()、メニュー、管理者モード、ファイルの書き出しは、ほかのページと共通（assets/ui.js）
 // HTML に文字を入れるときの安全な書き方（< や " をそのまま入れない）
 const esc = (s) => String(s ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
 
@@ -84,7 +73,7 @@ const S = {
   lastEntry: "",  // 最後に開いた入口（パネルを閉じても覚えておき、別の入口に切り替えたときに、前の入口で選んだものを外すため）
   limit: PAGE_SIZE,
   marks: cleanMarks(load(STORE_MARKS)),
-  admin: load(STORE_ADMIN) === 1,
+  admin: isAdminDevice(),
   loaded: false,
   updated: ""     // 記事データの最終更新日
 };
@@ -132,8 +121,11 @@ const ENTRY_KEYS = { people: ["person", "scope"], works: ["work"], years: ["year
 const entryOfState = () => F.entry || (F.tour ? "live" : F.person ? "people" : F.work ? "works" : F.year ? "years" : "");
 
 // 以前のサイトの URL（#later・#videos・#c-○○ など）も、そのまま使えるようにする
+// （URL の末尾が「#%E3」のように壊れていても止まらないよう、読めないときはそのままの文字で扱う）
 function readHash() {
-  const key = decodeURIComponent(location.hash.replace(/^#/, ""));
+  const raw = location.hash.replace(/^#/, "");
+  let key;
+  try { key = decodeURIComponent(raw); } catch { key = raw; }
   if (key === "admin" || key === "admin-add") return { page: "admin", openNew: key === "admin-add" };
   if (key === "later") { resetFilters(); F.status = "later"; F.format = "all"; }
   else if (key === "videos") { resetFilters(); F.format = "video"; }
@@ -245,7 +237,7 @@ function personMatch(it, name, scope) {
   const self = key ? it.members.includes(key) : it.guests.includes(name);
   if (scope === "" || !scope) return self;
   const mentioned = it._tags.has(norm(name)) || it._h.includes(norm(name)) || (key && it._h.includes(norm(MEMBERS[key].kana)));
-  const about = !self && (key ? it.kind === "ほかの人が語る" && mentioned : mentioned);
+  const about = !self && (key ? it.kind === OTHERS_KIND && mentioned : mentioned);
   return scope === "about" ? about : self || about;
 }
 
@@ -389,7 +381,7 @@ function linkify(text) {
 }
 function whoLine(it) {
   const names = (list) => esc(list.join("・"));
-  if (it.kind === "ほかの人が語る" && it.guests.length) return `<p class="mention-context"><span>語り手</span>${names(it.guests)}</p>`;
+  if (it.kind === OTHERS_KIND && it.guests.length) return `<p class="mention-context"><span>語り手</span>${names(it.guests)}</p>`;
   if (it.kind === "対談・鼎談" && it.guests.length) return `<p class="mention-context"><span>対談</span>${names([...it.members.filter((k) => k !== "band").map((k) => MEMBERS[k].name), ...it.guests])}</p>`;
   if (it.kind === LIVE_KIND && it.guests.length) return `<p class="mention-context"><span>共演</span>${names(it.guests)}</p>`;
   return "";
@@ -397,7 +389,7 @@ function whoLine(it) {
 function card(it) {
   const saved = !!S.marks.lt[it.id], read = !!S.marks.rd[it.id];
   const isVideo = it.kind === VIDEO_KIND, isLive = it.kind === LIVE_KIND;
-  const category = [isVideo ? "▶ 動画" : "", it.categories.join("・"), it.kind !== "インタビュー" && !isVideo ? it.kind : ""].filter(Boolean).join(" · ");
+  const category = [isVideo ? "▶ 動画" : "", it.categories.join("・"), it.kind !== INTERVIEW_KIND && !isVideo ? it.kind : ""].filter(Boolean).join(" · ");
   const date = it.date ? dotDate(it.date) : "日付不明";
   const hasMore = it.summary || it.note || it.tags.length;
   const isReference = /^参考資料/.test(it.note);
@@ -548,19 +540,8 @@ function renderMenu() {
   }
   if (cur === "admin") $("#adminLink").setAttribute("aria-current", "page"); else $("#adminLink").removeAttribute("aria-current");
 }
-function setMenuOpen(open, { focusBack = true } = {}) {
-  const btn = $("#menuBtn"), clip = $("#menuClip");
-  btn.setAttribute("aria-expanded", String(open));
-  btn.setAttribute("aria-label", open ? "メニューを閉じる" : "メニューを開く");
-  clip.classList.toggle("open", open);
-  clip.setAttribute("aria-hidden", String(!open));
-  if (open) clip.removeAttribute("inert"); else clip.setAttribute("inert", "");
-  if (!open && focusBack && clip.contains(document.activeElement)) btn.focus();
-}
-$("#menuBtn").addEventListener("click", () => setMenuOpen($("#menuBtn").getAttribute("aria-expanded") !== "true"));
-document.addEventListener("click", (e) => {
-  if ($("#menuBtn").getAttribute("aria-expanded") === "true" && !e.target.closest("#menuClip, #menuBtn")) setMenuOpen(false, { focusBack: false });
-});
+// 開け閉め・外を押したとき・Esc キーで閉じる動きは、年表のページと共通（ui.js）
+const setMenuOpen = setupMenu();
 $("#menuClip").addEventListener("click", (e) => {
   const go = e.target.closest("[data-go]");
   if (!go) return;
@@ -756,12 +737,7 @@ function exportMarks(msg) {
   const data = { app: "radwimps-interview-index", version: 3, exportedAt: new Date().toISOString(), bookmarks: [], later: Object.keys(S.marks.lt), read: Object.keys(S.marks.rd) };
   const d = new Date();
   const name = `radwimps-archive-backup-${d.getFullYear()}${String(d.getMonth() + 1).padStart(2, "0")}${String(d.getDate()).padStart(2, "0")}.json`;
-  const url = URL.createObjectURL(new Blob([JSON.stringify(data, null, 2)], { type: "application/json" }));
-  const a = h("a", { href: url, download: name });
-  document.body.append(a);
-  a.click();
-  a.remove();
-  setTimeout(() => URL.revokeObjectURL(url), 10000);
+  downloadFile(name, JSON.stringify(data, null, 2), "application/json");
   msg.classList.remove("err");
   msg.textContent = `あとで読む ${data.later.length} 件・既読 ${data.read.length} 件をファイルに書き出しました。`;
 }
@@ -890,7 +866,7 @@ function renderAdmin() {
 }
 function setAdmin(on) {
   S.admin = on;
-  try { if (on) localStorage.setItem(STORE_ADMIN, "1"); else localStorage.removeItem(STORE_ADMIN); } catch { /* 保存できない環境 */ }
+  setAdminDevice(on);
   render();
   toast(on ? "この端末を管理者モードにしました" : "管理者モードをオフにしました");
 }
@@ -920,10 +896,6 @@ function toast(msg) {
   clearTimeout(toastTimer);
   toastTimer = setTimeout(() => t.classList.remove("show"), 1800);
 }
-
-document.addEventListener("keydown", (e) => {
-  if (e.key === "Escape" && $("#menuBtn").getAttribute("aria-expanded") === "true") setMenuOpen(false);
-});
 
 /* ---------- はじめに ---------- */
 

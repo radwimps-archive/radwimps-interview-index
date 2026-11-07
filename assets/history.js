@@ -3,26 +3,14 @@
 // 上のタブでカテゴリを選ぶと、そのカテゴリの出来事だけが並びます（URL の末尾 #release などでも開けます）。
 // 「MV」のタブ（#mv）は、MV のある曲だけを1曲ずつ並べます。
 
-import { parseCSV } from "./data.js";
+import { parseHistory, HISTORY_CATEGORIES } from "./data.js";
+import { h as el, setupMenu, isAdminDevice } from "./ui.js";
 import config from "./config.js";
 
 const $ = (s) => document.querySelector(s);
 
-// カテゴリ：CSV に書く名前、URL の末尾（#…）、スマホのタブに出す短い名前
-// 1つの出来事を2つのカテゴリに入れるときは、CSV に「バンドの出来事、山口智史・VXD」のように「、」で区切って書く（最初のものが主なカテゴリ）
-const CATS = [
-  { name: "リリース", slug: "release", short: "リリース" },
-  { name: "ライブ・ツアー", slug: "live", short: "ライブ" },
-  { name: "映画・タイアップ", slug: "tieup", short: "タイアップ" },
-  { name: "バンドの出来事", slug: "band", short: "出来事" },
-  // メンバーそれぞれの活動（MV のタブでも、このカテゴリの印を残す）
-  { name: "野田洋次郎・ソロ", slug: "solo", short: "ソロ", person: true },
-  { name: "山口智史・VXD", slug: "vxd", short: "VXD", person: true }
-];
-const catsOf = (v) => {
-  const list = String(v || "").split(/[、,]/).map((x) => x.trim()).map((n) => CATS.find((k) => k.name === n)).filter(Boolean);
-  return list.length ? [...new Set(list)] : [CATS[3]];
-};
+// カテゴリ（CSV に書く名前・URL の末尾・スマホのタブの短い名前）は、data.js の HISTORY_CATEGORIES で決めています
+const CATS = HISTORY_CATEGORIES;
 // 「MV」のタブ：「動画」の列で「MV」から始まるラベルの動画を、1曲ずつの行にして並べる（CSV に書く必要はありません）
 const MV_TAB = { name: "MV", slug: "mv", short: "MV" };
 const VIEWS = ["all", ...CATS.map((c) => c.slug), MV_TAB.slug];
@@ -41,34 +29,13 @@ function dateLabel(e) {
   return `${start} – ${end}`;
 }
 
-function el(tag, attrs = {}, ...kids) {
-  const n = document.createElement(tag);
-  for (const [k, v] of Object.entries(attrs)) {
-    if (v == null || v === false) continue;
-    if (k === "text") n.textContent = v; else n.setAttribute(k, v);
-  }
-  for (const k of kids) if (k != null) n.append(k);
-  return n;
-}
 
+// 年表のデータを読む（読み取りは data.js の parseHistory。公開前のチェック tools/validate.mjs でも同じものを使う）
 function load(text) {
-  const { rows } = parseCSV(text);
-  const head = rows[0].map((h) => h.trim());
-  const at = (name) => head.indexOf(name);
-  const c = { y: at("年"), m: at("月"), d: at("日"), ey: at("終了年"), em: at("終了月"), ed: at("終了日"), cat: at("カテゴリ"), title: at("出来事"), note: at("補足"),
-    site: at("特設サイト"), tower: at("タワーレコード"), video: at("動画") };
-  const num = (v) => (v && /^\d+$/.test(v.trim()) ? +v : 0);
-  const url = (v) => (v && /^https:\/\/[^\s"<>]+$/.test(v.trim()) ? v.trim() : ""); // https で始まるリンクだけ使う
-  const cell = (r, i) => (i < 0 ? "" : (r[i] || "").trim());
-  return rows.slice(1).filter((r) => r.some((x) => x.trim())).map((r, i) => ({
-    y: num(r[c.y]), m: num(r[c.m]), d: num(r[c.d]),
-    ey: num(r[c.ey]), em: num(r[c.em]), ed: num(r[c.ed]),
-    cats: catsOf(r[c.cat]),
-    title: (r[c.title] || "").trim(), note: (r[c.note] || "").trim(), i,
-    site: url(cell(r, c.site)), tower: towerUrl(cell(r, c.tower)), videos: videoList(cell(r, c.video))
-  })).map((e) => ({ ...e, cat: e.cats[0] })).filter((e) => e.y && e.title)
-    // 古い順（同じ日は CSV に書いた順）。月・日がないものは、その年・その月のはじめに
-    .sort((a, b) => a.y - b.y || a.m - b.m || a.d - b.d || a.i - b.i);
+  const { events, errors } = parseHistory(text);
+  // 書き間違いは公開前のチェックでエラーになるので、ここでは読めた行だけを並べる
+  if (errors.length) console.warn("年表のデータに、直すところがあります", errors);
+  return events.map((e) => ({ ...e, cat: e.cats[0], tower: towerUrl(e.tower) }));
 }
 
 function renderTabs() {
@@ -186,24 +153,6 @@ function titleLine(e) {
 
 // 動画（MV・予告編など）。CSV の「動画」の列に「ラベル=YouTube の ID か URL」を「 | 」で区切って書く。
 //   例：MV=XRnX65LDRoU　／　MV「光」=WuU6C8oXzIA | MV「前前前世 [original ver.]」=vLGQQbjZc5A　／　予告編=https://www.youtube.com/watch?v=…
-function ytId(v) {
-  if (/^[A-Za-z0-9_-]{11}$/.test(v)) return v;
-  try {
-    const u = new URL(v);
-    if (u.hostname === "youtu.be") return (u.pathname.match(/^\/([A-Za-z0-9_-]{11})/) || [])[1] || "";
-    if (/(^|\.)youtube(-nocookie)?\.com$/.test(u.hostname))
-      return u.searchParams.get("v") || (u.pathname.match(/\/(?:embed|shorts|live)\/([A-Za-z0-9_-]{11})/) || [])[1] || "";
-  } catch { /* URL ではない */ }
-  return "";
-}
-function videoList(v) {
-  if (!v) return [];
-  return v.split("|").map((x) => x.trim()).filter(Boolean).map((x) => {
-    const m = x.match(/^(?:(.*?)\s*=\s*)?(https:\/\/\S+|[A-Za-z0-9_-]{11})$/);
-    const id = m ? ytId(m[2]) : "";
-    return id ? { label: (m[1] || "MV").trim() || "MV", id } : null;
-  }).filter(Boolean);
-}
 // 出来事の下に、小さな文字で「▶ MV」などを並べる。押すと、その場（出来事のすぐ下）で再生する
 function videoLine(e) {
   if (!e.videos.length) return null;
@@ -331,21 +280,9 @@ const toTop = $("#toTop");
 addEventListener("scroll", () => { toTop.hidden = scrollY < 900; }, { passive: true });
 toTop.addEventListener("click", () => scrollTo({ top: 0, behavior: "smooth" }));
 
-// メニュー（記事一覧のページと同じ動き）
-function setMenuOpen(open) {
-  const btn = $("#menuBtn"), clip = $("#menuClip");
-  btn.setAttribute("aria-expanded", String(open));
-  btn.setAttribute("aria-label", open ? "メニューを閉じる" : "メニューを開く");
-  clip.classList.toggle("open", open);
-  clip.setAttribute("aria-hidden", String(!open));
-  if (open) clip.removeAttribute("inert"); else clip.setAttribute("inert", "");
-}
-$("#menuBtn").addEventListener("click", () => setMenuOpen($("#menuBtn").getAttribute("aria-expanded") !== "true"));
-document.addEventListener("click", (e) => {
-  if ($("#menuBtn").getAttribute("aria-expanded") === "true" && !e.target.closest("#menuClip, #menuBtn")) setMenuOpen(false);
-});
-addEventListener("keydown", (e) => { if (e.key === "Escape") setMenuOpen(false); });
-try { if (localStorage.getItem("radwimps-interview-index:admin") === "1") $("#adminLink").hidden = false; } catch { /* 保存できない環境 */ }
+// メニュー（記事一覧のページと同じ動き。ui.js）
+setupMenu();
+if (isAdminDevice()) $("#adminLink").hidden = false;
 
 // 読み込み
 (async () => {

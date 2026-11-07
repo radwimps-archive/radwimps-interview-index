@@ -6,7 +6,8 @@
 //     合鍵はこの端末のブラウザにだけ保存し、GitHub（api.github.com）以外には送りません。
 //   ・合鍵がなくても「保存せずに試す」で、一覧と編集画面を試せます（変更はファイルに書き出せます）。
 
-import { parseCSV, parseArticles, toCSVLine, ARTICLE_HEADER, KIND_ORDER, MEMBERS, MEMBER_ORDER, LANGS, STATES, CATEGORIES, idFromUrl, youtubeId, VIDEO_KIND } from "./data.js";
+import { parseCSV, parseArticles, toCSVLine, ARTICLE_HEADER, KIND_ORDER, MEMBERS, MEMBER_ORDER, LANGS, STATES, CATEGORIES, idFromUrl, youtubeId, VIDEO_KIND, INTERVIEW_KIND } from "./data.js";
+import { h, downloadFile } from "./ui.js";
 
 const STORE_TOKEN = "radwimps-interview-index:gh-token";
 const STORE_REPO = "radwimps-interview-index:gh-repo";
@@ -27,19 +28,8 @@ function tokenUrl() {
   return "https://github.com/settings/personal-access-tokens/new?" + new URLSearchParams(q);
 }
 
-/* ---------- 小さな道具 ---------- */
+/* ---------- 小さな道具（画面の部品を作る h() とファイルの書き出しは ui.js） ---------- */
 
-function h(tag, attrs, ...kids) {
-  const el = document.createElement(tag);
-  for (const [k, v] of Object.entries(attrs || {})) {
-    if (v === null || v === undefined || v === false) continue;
-    if (k === "class") el.className = v;
-    else if (k === "text") el.textContent = v;
-    else el.setAttribute(k, v === true ? "" : String(v));
-  }
-  for (const kid of kids) if (kid !== null && kid !== undefined && kid !== false) el.append(kid);
-  return el;
-}
 const nf = (s) => String(s ?? "").normalize("NFKC").trim();
 const lsGet = (k) => { try { return localStorage.getItem(k) || ""; } catch { return ""; } };
 const lsSet = (k, v) => { try { if (v) localStorage.setItem(k, v); else localStorage.removeItem(k); } catch { /* 保存できない環境 */ } };
@@ -87,6 +77,8 @@ const ci = (name) => {
 const cell = (r, name) => { const i = ci(name); return i >= 0 ? String(r[i] ?? "").trim() : ""; };
 const keyOf = (r) => cell(r, "id") || idFromUrl(cell(r, "URL")); // サイトと同じ決め方の id
 const clone = (rows) => rows.map((r) => r.slice());
+// まだ保存していない変更を、すべて捨てる（読み込んだときの状態に戻す）
+function resetChanges() { A.rows = clone(A.baseRows); A.ops = []; }
 
 function loadTable(text) {
   A.bom = text.charCodeAt(0) === 0xfeff;
@@ -271,12 +263,7 @@ async function startPractice() {
   afterReady();
 }
 function exportCsv() {
-  const url = URL.createObjectURL(new Blob([serialize()], { type: "text/csv" }));
-  const a = h("a", { href: url, download: "articles.csv" });
-  document.body.append(a);
-  a.click();
-  a.remove();
-  setTimeout(() => URL.revokeObjectURL(url), 10000);
+  downloadFile("articles.csv", serialize(), "text/csv");
   toast("articles.csv を書き出しました。GitHub の data フォルダに上書きでアップロードすると反映されます");
 }
 
@@ -334,7 +321,7 @@ function connectView() {
     const drop = h("button", { type: "button", class: "linkbtn", text: "変更を捨てる" });
     drop.addEventListener("click", () => {
       if (!confirmInline(drop, "もう一度押すと、保存していない変更を捨てます")) return;
-      A.carry = false; A.rows = clone(A.baseRows); A.ops = []; render(); toast("変更を捨てました");
+      A.carry = false; resetChanges(); render(); toast("変更を捨てました");
     });
     box.append(h("div", { class: "admcarry" }, h("p", { class: "msg", text: `保存していない変更が ${sum.total} 件あります。合鍵を登録し直してつなぐと、続きから保存できます。` }), drop));
   }
@@ -367,7 +354,7 @@ function statusLine() {
     const back = h("button", { type: "button", class: "linkbtn", text: "GitHub とつなぐ" });
     back.addEventListener("click", () => {
       if (summary().total && !confirmInline(back, "保存していない変更があります。もう一度押すと、変更を捨てます。")) return;
-      A.mode = "off"; A.carry = false; A.rows = clone(A.baseRows); A.ops = []; render();
+      A.mode = "off"; A.carry = false; resetChanges(); render();
     });
     box.append(h("p", null, h("span", { class: "dot", "aria-hidden": "true" }), "保存せずに試しています（変更は GitHub に保存されません）"), back);
   }
@@ -463,7 +450,7 @@ function pendingBar() {
   const discard = h("button", { type: "button", class: "btn plain", text: "取り消す" });
   discard.addEventListener("click", () => {
     if (!confirmInline(discard, "もう一度押すと、保存していない変更をすべて取り消します")) return;
-    A.rows = clone(A.baseRows); A.ops = []; render(); toast("変更を取り消しました");
+    resetChanges(); render(); toast("変更を取り消しました");
   });
   const label = h("p", { class: "admsum" }, h("b", { text: `保存していない変更 ${sum.total} 件` }), h("span", { text: `追加 ${sum.added}・修正 ${sum.edited}・削除 ${sum.deleted}` }));
   if (A.mode === "github") {
@@ -558,7 +545,7 @@ function setState(s) { for (const r of F.state.querySelectorAll("input")) r.chec
 function checked(group) { return [...$s("#editForm").querySelectorAll(`input[data-g="${group}"]:checked`)].map((x) => x.value); }
 
 function emptyDraft() {
-  return { state: "公開", y: String(new Date().getFullYear()), m: "", d: "", media: "", kind: "インタビュー", cats: [], title: "", url: "", members: [], guests: "", tags: "", lang: "日本語", note: "", summary: "", eventDate: "", eventName: "", venue: "", id: "" };
+  return { state: "公開", y: String(new Date().getFullYear()), m: "", d: "", media: "", kind: INTERVIEW_KIND, cats: [], title: "", url: "", members: [], guests: "", tags: "", lang: "日本語", note: "", summary: "", eventDate: "", eventName: "", venue: "", id: "" };
 }
 // CSV の1行を、編集画面の値にする（書き方の揺れは、サイトと同じ読み方でそろえる）
 function rowToDraft(r) {
@@ -568,7 +555,7 @@ function rowToDraft(r) {
   return {
     state: it ? it.state : nf(cell(r, "状態")) || "公開",
     y: y || "", m: m ? String(+m) : "", d: d ? String(+d) : "",
-    media: cell(r, "媒体"), kind: it ? it.kind : nf(cell(r, "種類")) || "インタビュー",
+    media: cell(r, "媒体"), kind: it ? it.kind : nf(cell(r, "種類")) || INTERVIEW_KIND,
     cats: it ? it.categories : cell(r, "カテゴリ").split(/[、,，]/).map(nf).filter(Boolean),
     title: cell(r, "タイトル"), url: cell(r, "URL"),
     members: it ? it.members : memberKeys(cell(r, "メンバー")),
@@ -650,7 +637,7 @@ function showDeleteConfirm() {
 function onFormInput(e) {
   // YouTube の URL を入れたら、種類を「動画」・媒体を「YouTube」にする（まだ選んでいないとき）
   if (e && e.target === F.url && youtubeId(F.url.value.trim())) {
-    if (F.kind.value === "インタビュー") F.kind.value = VIDEO_KIND;
+    if (F.kind.value === INTERVIEW_KIND) F.kind.value = VIDEO_KIND;
     if (!F.media.value.trim()) F.media.value = "YouTube";
   }
   validate();

@@ -17,7 +17,9 @@ export const KIND_ORDER = ["インタビュー", "対談・鼎談", "特集・�
 export const VIDEO_KIND = "動画";
 export const RELEASE_KIND = "リリース情報";
 export const LIVE_KIND = "ライブレポート";
-export const categoryOf = (kind) => (kind === VIDEO_KIND ? "video" : "article");
+// 何も書かなかったときの種類と、メンバー以外の人が語る記事の種類（画面の表示を分けるのに使います）
+export const INTERVIEW_KIND = "インタビュー";
+export const OTHERS_KIND = "ほかの人が語る";
 export const formatOf = (kind) => (kind === VIDEO_KIND ? "video" : kind === RELEASE_KIND ? "release" : "text");
 
 // リンクを押すとアプリやストアが開き、インタビューの中身が読めないことが多いサイト。
@@ -97,7 +99,6 @@ for (const c of CATEGORIES) for (const n of [c.name, ...c.aliases]) CATEGORY_BY_
 // 「言語」列に書ける値。空欄なら日本語として扱います。
 export const LANGS = { "日本語": "ja", "英語": "en", "スペイン語": "es", "その他": "other" };
 export const LANG_BADGE = { en: "EN", es: "ES", other: "他" };
-export const LANG_NAME = { ja: "日本語の記事", en: "英語の記事", es: "スペイン語の記事", other: "日本語以外の記事" };
 
 // 「状態」列に書ける値。「公開」（または空欄）の記事だけをサイトに表示します。
 export const STATES = ["公開", "非表示", "リンク切れ"];
@@ -183,18 +184,22 @@ function memberKey(name) {
   return null;
 }
 
-// YouTube の動画の URL なら、動画の id を返します（それ以外は null）。
-export function youtubeId(url) {
+// YouTube の動画の URL なら、動画の id（11文字）を返します（それ以外は null）。
+// 受け付ける URL：youtube.com/watch?v=…、youtu.be/…、youtube.com/shorts/…・/embed/…・/live/…（www.・m.・music.・youtube-nocookie.com も）
+// { allowId: true } のときは、「XRnX65LDRoU」のような id だけの書き方も受け付けます（年表の「動画」の列）。
+const YOUTUBE_ID = /^[A-Za-z0-9_-]{11}$/;
+export function youtubeId(value, { allowId = false } = {}) {
+  const s = String(value ?? "").trim();
+  if (allowId && YOUTUBE_ID.test(s)) return s;
   let u;
-  try { u = new URL(url); } catch { return null; }
-  const host = u.hostname.replace(/^(www|m)\./, "");
-  if (host === "youtu.be") return u.pathname.slice(1).split("/")[0] || null;
-  if (host === "youtube.com" || host === "music.youtube.com") {
-    if (u.pathname === "/watch") return u.searchParams.get("v");
-    const m = u.pathname.match(/^\/(?:shorts|embed|live)\/([^/?#]+)/);
-    return m ? m[1] : null;
+  try { u = new URL(s); } catch { return null; }
+  const host = u.hostname.replace(/^(www|m|music)\./, "");
+  let id = null;
+  if (host === "youtu.be") id = u.pathname.split("/")[1];
+  else if (host === "youtube.com" || host === "youtube-nocookie.com") {
+    id = u.pathname === "/watch" ? u.searchParams.get("v") : (u.pathname.match(/^\/(?:shorts|embed|live)\/([^/?#]+)/) || [])[1];
   }
-  return null;
+  return id && YOUTUBE_ID.test(id) ? id : null;
 }
 
 function hostOf(url) {
@@ -271,7 +276,7 @@ export function parseArticles(text) {
     if (!url) err(line, "URL が空欄です");
     else if (!/^https?:\/\/\S+$/i.test(url)) err(line, "URL は http:// か https:// で始め、途中に空白を入れないでください");
 
-    let kind = nfkc(get("kind")) || "インタビュー";
+    let kind = nfkc(get("kind")) || INTERVIEW_KIND;
     kind = KIND_ALIASES[kind] || kind;
     if (!KIND_ORDER.includes(kind)) warn(line, `種類「${kind}」は決まった値にないため、新しい種類として表示されます`);
 
@@ -329,7 +334,7 @@ export function parseArticles(text) {
     if ((eventName || venue) && !eventDate) warn(line, "ライブ名や会場を書いたときは、公演日も書いてください（公演日ごとにまとめて表示するため）");
 
     if (errors.length > before) continue;
-    items.push({ id, state, date, media, kind, cat: categoryOf(kind), format: formatOf(kind), categories, title, url, members, guests, tags, lang,
+    items.push({ id, state, date, media, kind, format: formatOf(kind), categories, title, url, members, guests, tags, lang,
       note: get("note"), summary: get("summary"), eventDate, eventName, venue, line });
   }
   return { items, errors, warnings };
@@ -363,6 +368,98 @@ export function parseReleases(text) {
   list.sort((a, b) => a.m - b.m || a.d - b.d);
   for (const it of list) (byYear[it.y] = byYear[it.y] || []).push({ name: it.name, label: it.label });
   return { byYear, errors, warnings };
+}
+
+/* ---------- 年表（history.csv） ---------- */
+
+// 年表のカテゴリ：CSV に書く名前、URL の末尾（#…）、スマホのタブに出す短い名前
+// 1つの出来事を2つ以上のカテゴリに入れるときは、CSV に「バンドの出来事、山口智史・VXD」のように「、」で区切って書きます（最初のものが主なカテゴリ）
+export const HISTORY_CATEGORIES = [
+  { name: "リリース", slug: "release", short: "リリース" },
+  { name: "ライブ・ツアー", slug: "live", short: "ライブ" },
+  { name: "映画・タイアップ", slug: "tieup", short: "タイアップ" },
+  { name: "バンドの出来事", slug: "band", short: "出来事" },
+  // メンバーそれぞれの活動（MV のタブでも、このカテゴリの印を残す）
+  { name: "野田洋次郎・ソロ", slug: "solo", short: "ソロ", person: true },
+  { name: "山口智史・VXD", slug: "vxd", short: "VXD", person: true }
+];
+// カテゴリが空欄のときに入れるカテゴリ
+const HISTORY_DEFAULT_CATEGORY = HISTORY_CATEGORIES.find((c) => c.slug === "band");
+
+const HISTORY_COLUMNS = {
+  "年": "y", "月": "m", "日": "d", "終了年": "ey", "終了月": "em", "終了日": "ed", "カテゴリ": "cat", "出来事": "title", "補足": "note",
+  "特設サイト": "site", "タワーレコード": "tower", "動画": "video"
+};
+const HISTORY_REQUIRED = ["年", "カテゴリ", "出来事"];
+
+// 「動画」の列（「ラベル=動画の ID か URL」を「 | 」で区切って並べる。ラベルを省くと「MV」）を読みます。
+// 戻り値：{ videos: [{ label, id }], bad: 読めなかった部分の一覧 }
+export function parseVideos(value) {
+  const videos = [], bad = [];
+  for (const part of String(value ?? "").split("|").map((x) => x.trim()).filter(Boolean)) {
+    const m = part.match(/^(?:(.*?)\s*=\s*)?(https:\/\/\S+|[A-Za-z0-9_-]{11})$/);
+    const id = m ? youtubeId(m[2], { allowId: true }) : null;
+    if (id) videos.push({ label: (m[1] || "").trim() || "MV", id });
+    else bad.push(part);
+  }
+  return { videos, bad };
+}
+
+// 戻り値：{ events: 出来事の一覧（古い順）, errors: 直す必要がある問題, warnings: 気をつけたい点 }
+// 年か出来事が書けていない行は events に入りません。カテゴリの書き間違いは、チェックでエラーになります
+// （サイトでは、正しく書けたカテゴリだけで表示し、1つもなければ「バンドの出来事」に入れます）。
+export function parseHistory(text) {
+  const events = [], errors = [], warnings = [];
+  const err = (line, msg) => errors.push({ line, msg });
+  const warn = (line, msg) => warnings.push({ line, msg });
+  const { rows, lines, unclosedQuote, lastLine } = parseCSV(text);
+  if (unclosedQuote) err(lastLine, "「\"」で始めた項目が閉じられていません。\" の数を確かめてください");
+  if (!rows.length || rows.every((r) => r.every((c) => !c.trim()))) { err(1, "ファイルが空です"); return { events, errors, warnings }; }
+  const col = readHeader(rows, HISTORY_COLUMNS, HISTORY_REQUIRED, errors, warnings);
+  if (errors.length) return { events, errors, warnings };
+  const names = HISTORY_CATEGORIES.map((c) => c.name).join("・");
+
+  for (let r = 1; r < rows.length; r++) {
+    const cells = rows[r], line = lines[r];
+    if (cells.every((c) => !c.trim())) continue; // 空行は無視
+    const get = (key) => (col[key] === undefined ? "" : String(cells[col[key]] ?? "").trim());
+    const before = errors.length;
+
+    const title = get("title");
+    if (!title) err(line, "出来事が空欄です");
+    if (!get("y")) err(line, "年が空欄です");
+    const start = get("y") ? readDate(get("y"), get("m"), get("d"), line, err) : "";
+    const end = readDate(get("ey"), get("em"), get("ed"), line, err);
+    if (start && end && end < start) warn(line, "終わりの日付が、始まりの日付より前になっています");
+
+    // カテゴリ（「、」で区切って2つ以上書ける）
+    const cats = [];
+    for (const n of get("cat").split(/[、,]/).map((x) => nfkc(x).trim()).filter(Boolean)) {
+      const c = HISTORY_CATEGORIES.find((k) => k.name === n);
+      if (!c) err(line, `カテゴリ「${n}」は使えません。${names} のどれかを書いてください（2つ以上は「、」で区切ります）`);
+      else if (!cats.includes(c)) cats.push(c);
+    }
+    if (!get("cat")) warn(line, `カテゴリが空欄です（「${HISTORY_DEFAULT_CATEGORY.name}」として表示します）`);
+
+    // リンク
+    let site = get("site");
+    if (site && !/^https:\/\/[^\s"<>]+$/.test(site)) { warn(line, "特設サイトの URL は https:// で始まるものだけ使えます（このリンクは出ません）"); site = ""; }
+    const tower = get("tower");
+    if (/^https?:\/\//.test(tower) && !/^https:\/\/tower\.jp\//.test(tower)) {
+      warn(line, "「タワーレコード」の列には、検索の言葉か tower.jp の URL を書きます（ほかのサイトの URL は「特設サイト」の列へ）");
+    }
+    const { videos, bad } = parseVideos(get("video"));
+    for (const b of bad) err(line, `動画「${b}」の書き方が正しくありません（例：MV=XRnX65LDRoU、予告編=https://www.youtube.com/watch?v=…）`);
+
+    if (errors.length > before && (!title || !start)) continue; // 年か出来事がない行は、年表に入れない
+    const num = (v) => (v ? +v : 0);
+    const [y, m, d] = start.split("-").map(num), [ey, em, ed] = end.split("-").map(num);
+    events.push({ line, i: events.length, y, m: m || 0, d: d || 0, ey: ey || 0, em: em || 0, ed: ed || 0,
+      cats: cats.length ? cats : [HISTORY_DEFAULT_CATEGORY], title, note: get("note"), site, tower, videos });
+  }
+  // 古い順（同じ日は CSV に書いた順）。月・日がないものは、その年・その月のはじめに
+  events.sort((a, b) => a.y - b.y || a.m - b.m || a.d - b.d || a.i - b.i);
+  return { events, errors, warnings };
 }
 
 /* ---------- CSV の1行を作る（記事データ作成ツール用） ---------- */

@@ -35,7 +35,7 @@
   code { font-family: var(--f-mono); font-size: 12px; background: var(--chip); padding: 1px 5px; border-radius: 4px; overflow-wrap: anywhere; }
 </style>
 <script type="module">
-  import { KIND_ORDER, MEMBERS, MEMBER_ORDER, LANGS, STATES, CATEGORIES, ARTICLE_HEADER, VIDEO_KIND, toCSVLine, parseArticles, youtubeId } from "./assets/data.js";
+  import { KIND_ORDER, MEMBERS, MEMBER_ORDER, LANGS, STATES, CATEGORIES, ARTICLE_HEADER, VIDEO_KIND, INTERVIEW_KIND, toCSVLine, parseArticles, youtubeId } from "./assets/data.js";
 
   const $ = (s) => document.querySelector(s);
   const opt = (sel, values, first) => {
@@ -102,7 +102,7 @@
   // YouTube の URL を入れたら、種類を「動画」に、媒体が空なら「YouTube」にする（あとから変えられます）
   $("#url").addEventListener("input", () => {
     if (!youtubeId($("#url").value.trim())) return;
-    if ($("#kind").value === "インタビュー") $("#kind").value = VIDEO_KIND;
+    if ($("#kind").value === INTERVIEW_KIND) $("#kind").value = VIDEO_KIND;
     if (!$("#media").value.trim()) $("#media").value = "YouTube";
   });
 
