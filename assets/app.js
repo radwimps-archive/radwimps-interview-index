@@ -309,7 +309,8 @@ function renderEntry() {
   let html = "";
   if (F.entry === "people") {
     const group = (title, names) => names.length ? `<section><h3>${title}</h3><div class="person-chips">${names.map((n) => chip("data-pick-person", n, n, F.person === n)).join("")}</div></section>` : "";
-    html = `<label class="panel-label">名前を探す<input type="search" id="personSearch" autocomplete="off" placeholder="例：十明、新海誠、北村匠海" value="${esc(keepSearch)}"></label>`
+    html = `<label class="panel-label">名前を探す<input type="search" id="personSearch" enterkeyhint="search" autocomplete="off" placeholder="例：十明、新海誠、北村匠海" value="${esc(keepSearch)}"></label>`
+      + `<p class="browse-note">下の名前を押すと、その人の記事を表示します（名前を入れて検索キーを押しても選べます）。記事の言葉で探すときは、下の「キーワードで検索」へ。</p>`
       + `<div class="person-chips">${chip("data-pick-person", "RADWIMPS", "RADWIMPS", F.person === "RADWIMPS")}</div>`
       + `<div class="person-groups">${group("メンバー", S.people.members)}${group("サポートメンバー", S.people.support)}${group("脱退したメンバー", S.people.former)}`
       + (S.people.others.length ? `<section><details id="otherPeople"${keepSearch || S.people.others.includes(F.person) ? " open" : ""}><summary>共演者・監督・音楽仲間などから選ぶ</summary><div class="person-chips">${S.people.others.map((n) => chip("data-pick-person", n, n, F.person === n)).join("")}</div></details></section>` : "")
@@ -440,6 +441,7 @@ function headingText() {
   if (F.work) return `「${F.work}」の記事`;
   if (F.year) return `${F.year}年の記事`;
   if (F.cat) return F.cat;
+  if (F.q) return `「${F.q}」の検索結果`;
   if (F.format === "video") return "動画インタビュー";
   if (F.format === "release") return "リリース情報";
   return "新しく掲載された記事";
@@ -591,13 +593,36 @@ $("#entryPanel").addEventListener("change", (e) => {
   apply();
 });
 $("#entryPanel").addEventListener("input", (e) => { if (e.target.id === "personSearch") filterPeople(e.target.value); });
+// 名前を入れて検索キー（Enter）：名前がぴったり合う人か、候補が1人だけならその人を選び、記事の一覧を見せる
+// （候補が何人もいるときは、名前を押して選んでもらう）
+$("#entryPanel").addEventListener("keydown", (e) => {
+  if (e.target.id !== "personSearch" || e.key !== "Enter" || e.isComposing) return;
+  e.preventDefault();
+  const n = norm(e.target.value);
+  if (!n) return;
+  const chips = $$("#entryPanel [data-pick-person]:not([hidden])");
+  const pick = chips.find((b) => norm(b.dataset.pickPerson) === n) || (chips.length === 1 ? chips[0] : null);
+  if (!pick) return;
+  if (F.person !== pick.dataset.pickPerson) { F.person = pick.dataset.pickPerson; apply(); }
+  $("#personSearch")?.blur();
+  scrollToList();
+});
 
 let qTimer = null;
 $("#q").addEventListener("input", () => {
   clearTimeout(qTimer);
   qTimer = setTimeout(() => { F.q = $("#q").value.trim().slice(0, 200); apply(); }, 180);
 });
-$("#q").addEventListener("keydown", (e) => { if (e.key === "Enter") { e.preventDefault(); $("#q").blur(); } });
+// 「検索」ボタンとキーボードの検索キー：入力した言葉ですぐに絞り込み、一覧を見せる（記事は開かない。キーボードは閉じる）
+function runSearch() {
+  clearTimeout(qTimer);
+  F.q = $("#q").value.trim().slice(0, 200);
+  apply();
+  $("#q").blur();
+  scrollToList();
+}
+$("#q").addEventListener("keydown", (e) => { if (e.key === "Enter" && !e.isComposing) { e.preventDefault(); runSearch(); } });
+$("#qgo").addEventListener("click", runSearch);
 $("#qclear").addEventListener("click", () => { F.q = ""; apply(); $("#q").focus(); });
 // 「/」キーで検索欄へ（ほかの入力欄に書いているときは何もしない）
 document.addEventListener("keydown", (e) => {

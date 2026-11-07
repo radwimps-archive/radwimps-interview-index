@@ -80,7 +80,7 @@
           <button type="button" id="qclear" class="qclear" aria-label="検索語を消す" hidden>×</button>
           <kbd aria-hidden="true">/</kbd>
         </div>
-        <a class="random-button" data-act="random" href="#" target="_blank" rel="noopener noreferrer" aria-label="いまの条件の記事から、ランダムに1つ開く"><span class="random-label">ランダムに読む</span><span aria-hidden="true">↗</span></a>
+        <button type="button" id="qgo" class="search-go">検索</button>
       </div>
 
       <div class="format-tabs" id="formatTabs" role="group" aria-label="記事の種類">
@@ -116,7 +116,8 @@
 
         <div class="results">
           <div class="results-top">
-            <p id="resultCount" class="sr" role="status" aria-live="polite"></p>
+            <p id="resultCount" class="result-count" role="status" aria-live="polite"></p>
+            <a class="random-link" data-act="random" href="#" target="_blank" rel="noopener noreferrer" aria-label="いまの条件の記事から、ランダムに1つ開く">ランダムに読む <span aria-hidden="true">↗</span></a>
             <label class="sort-label">並び順 <select id="sort">
               <option value="new">新しい順</option>
               <option value="old">古い順</option>
