@@ -132,9 +132,13 @@ function mvSongs() {
   const item = (e, v, j, name, label, tag = MV_TAB) => ({ y: e.y, m: e.m, d: e.d, ey: 0, em: 0, ed: 0, cat: MV_TAB,
     cats: [tag, ...e.cats.filter((c) => c.person)], title: `「${name}」`, note: e.title, i: e.i * 100 + j,
     site: "", tower: "", videos: [{ label, id: v.id }] });
-  const mvs = [], lives = [];
+  const mvs = [], lives = [], seen = new Set();
   for (const e of events) e.videos.forEach((v, j) => {
-    if (/^MV/.test(v.label)) mvs.push(item(e, v, j, nameOf(e, v.label, "MV"), "MV を見る"));
+    if (/^MV/.test(v.label)) {
+      // 同じ MV がいくつかの行にあるときは、いちばん早い行の1つだけ（例：先に公開した MV と、それを収めたアルバム）
+      if (seen.has(v.id)) return;
+      seen.add(v.id); mvs.push(item(e, v, j, nameOf(e, v.label, "MV"), "MV を見る"));
+    }
     else if (MV_LIVE.test(v.label)) { const p = v.label.match(MV_LIVE)[1]; lives.push(item(e, v, j, nameOf(e, v.label, p), `${p}を見る`, { ...MV_TAB, name: p })); }
   });
   const have = new Set(mvs.map((x) => songKey(x.title.slice(1, -1))));
