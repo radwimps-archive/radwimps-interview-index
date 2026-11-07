@@ -54,7 +54,7 @@ function renderTimeline() {
   const box = $("#timeline");
   const list = current === "all" ? events : current === "mv" ? mvSongs() : events.filter((e) => e.cats.some((c) => c.slug === current));
   // 今見ているカテゴリの名前と件数（スマホではタブに件数を出さないので、ここに出す）
-  const view = current === "all" ? "すべての出来事" : current === "mv" ? "MV（ない曲は公式のライブ映像）" : CATS.find((c) => c.slug === current).name;
+  const view = current === "all" ? "すべての出来事" : current === "mv" ? "MV（ない曲は公式のライブ映像など）" : CATS.find((c) => c.slug === current).name;
   $("#view").replaceChildren(el("b", { text: view }), el("span", { text: `${list.length} 件` }));
   // 年表の点の色：カテゴリのタブでは、そのカテゴリの色。「すべて」では、はじめに書いたカテゴリの色
   const dot = (e) => e.cats?.find((c) => c.slug === current) || e.cat;
@@ -83,9 +83,9 @@ function renderTimeline() {
 
 // MV のある曲を1曲ずつの行にする。曲名は、ラベルの「」の中（MV「光」→ 光）か、ラベルが「MV」だけなら出来事の「」の中の名前。
 // 下の小さな文字に、もとの出来事（シングル・アルバムなど）を出す。
-// MV が見当たらない曲は、公式のライブ映像（ラベルが「ライブ映像」「スタジオライブ」で始まるもの）を代わりに並べる。
+// MV が見当たらない曲は、公式のライブ映像など（ラベルが「ライブ映像」「スタジオライブ」「リリックビデオ」で始まるもの）を代わりに並べる。
 //   その曲の MV がどこかの行にあれば並べない。同じ曲のライブ映像がいくつかあれば、いちばん早い行の1つだけ。
-const MV_LIVE = /^(ライブ映像|スタジオライブ)/;
+const MV_LIVE = /^(ライブ映像|スタジオライブ|リリックビデオ)/;
 let mvCache = null;
 function mvSongs() {
   if (mvCache) return mvCache;
