@@ -115,6 +115,19 @@ test("parseArticles：最小限の行を読み、YouTube の URL には種類の
   assert.ok(r.warnings.some((w) => w.line === 3 && /YouTube の URL です/.test(w.msg)));
 });
 
+test("parseArticles：種類で、どのタブに出るかが決まる（ラジオは YouTube の URL でも注意を出さない）", () => {
+  const head = "状態,年,月,日,媒体,種類,カテゴリ,タイトル,URL";
+  const r = parseArticles([head,
+    "公開,2025,11,15,TOKYO FM / YouTube,ラジオ,人物・素顔,ラジオの放送回,https://www.youtube.com/watch?v=pt_KQPp1MIc",
+    "公開,2025,11,16,YouTube,動画,人物・素顔,動画,https://youtu.be/XRnX65LDRoU",
+    "公開,2025,11,17,TOKYO FM,番組・会見,人物・素顔,放送の文字のレポート,https://www.tfm.co.jp/",
+    "公開,2025,11,18,RADWIMPS公式,お知らせ,新作リリース,発売のお知らせ,https://radwimps.jp/"
+  ].join("\n"));
+  assert.deepEqual(r.errors, []);
+  assert.deepEqual(r.warnings, []);
+  assert.deepEqual(r.items.map((it) => [it.kind, it.format]), [["ラジオ", "radio"], ["動画", "video"], ["番組・会見", "text"], ["リリース情報", "release"]]);
+});
+
 test("parseArticles：見出しに必要な列がないとエラー", () => {
   const r = parseArticles("状態,年\n公開,2024");
   assert.ok(r.errors.some((e) => /「タイトル」の列がありません/.test(e.msg)));

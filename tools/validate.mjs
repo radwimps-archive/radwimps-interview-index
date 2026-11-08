@@ -54,13 +54,14 @@ const history = await check("data/history.csv", parseHistory, { required: false 
 
 if (articles) {
   const count = { "公開": 0, "非表示": 0, "リンク切れ": 0 };
-  let videos = 0;
+  let videos = 0, radio = 0;
   for (const it of articles.items) {
     count[it.state]++;
     if (it.state === "公開" && it.format === "video") videos++;
+    if (it.state === "公開" && it.format === "radio") radio++;
   }
   console.log(`\n記事：${articles.items.length} 件を読み込みました（公開 ${count["公開"]}・非表示 ${count["非表示"]}・リンク切れ ${count["リンク切れ"]}）`);
-  console.log(`サイトに出るのは、記事 ${count["公開"] - videos} 件・動画 ${videos} 件です`);
+  console.log(`サイトに出るのは、記事 ${count["公開"] - videos - radio} 件・動画 ${videos} 件・ラジオ ${radio} 件です`);
 }
 if (history) {
   const videos = history.events.reduce((n, e) => n + e.videos.length, 0);

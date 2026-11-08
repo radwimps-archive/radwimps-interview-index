@@ -11,7 +11,7 @@
 import config from "./config.js";
 import {
   parseArticles, parseReleases, KIND_ORDER, MEMBERS, MEMBER_ORDER, CATEGORIES, SUPPORT_MEMBERS, WORKS, QUICK_WORKS,
-  VIDEO_KIND, LIVE_KIND, INTERVIEW_KIND, OTHERS_KIND, LANG_BADGE, youtubeId
+  VIDEO_KIND, RADIO_KIND, LIVE_KIND, INTERVIEW_KIND, OTHERS_KIND, LANG_BADGE, youtubeId, formatOf
 } from "./data.js";
 import { h, isAdminDevice, setAdminDevice, setupMenu, downloadFile } from "./ui.js";
 
@@ -53,7 +53,7 @@ const F_DEFAULT = {
   year: "",     // 記事が公開された年
   tour: "",     // ライブ名（ツアー・イベント）
   q: "",        // キーワード
-  format: "text", // 種類のタブ：text＝記事・資料　video＝動画インタビュー　release＝リリース情報　all＝すべて
+  format: "text", // 種類のタブ：text＝記事・資料　video＝動画インタビュー　radio＝ラジオ　release＝リリース情報　all＝すべて
   cat: "",      // 内容（カテゴリ）
   media: "",    // 掲載メディア
   lang: "",     // 言語（ja / en / es / other）
@@ -94,7 +94,7 @@ const saveMarks = () => save(STORE_MARKS, S.marks);
 /* ---------- URL と絞り込みの条件 ---------- */
 
 const VALID = {
-  entry: ["", "people", "works", "years", "live"], scope: ["", "any", "about"], format: ["text", "video", "release", "all"],
+  entry: ["", "people", "works", "years", "live"], scope: ["", "any", "about"], format: ["text", "video", "radio", "release", "all"],
   status: ["", "later", "unread", "read"], sort: ["new", "old", "media"]
 };
 function readURL() {
@@ -385,17 +385,19 @@ function whoLine(it) {
   if (it.kind === OTHERS_KIND && it.guests.length) return `<p class="mention-context"><span>語り手</span>${names(it.guests)}</p>`;
   if (it.kind === "対談・鼎談" && it.guests.length) return `<p class="mention-context"><span>対談</span>${names([...it.members.filter((k) => k !== "band").map((k) => MEMBERS[k].name), ...it.guests])}</p>`;
   if (it.kind === LIVE_KIND && it.guests.length) return `<p class="mention-context"><span>共演</span>${names(it.guests)}</p>`;
+  if (it.kind === RADIO_KIND && it.guests.length) return `<p class="mention-context"><span>出演</span>${names([...it.members.filter((k) => k !== "band").map((k) => MEMBERS[k].name), ...it.guests])}</p>`;
   return "";
 }
 function card(it) {
   const saved = !!S.marks.lt[it.id], read = !!S.marks.rd[it.id];
-  const isVideo = it.kind === VIDEO_KIND, isLive = it.kind === LIVE_KIND;
-  const category = [isVideo ? "▶ 動画" : "", it.categories.join("・"), it.kind !== INTERVIEW_KIND && !isVideo ? it.kind : ""].filter(Boolean).join(" · ");
+  const isVideo = it.kind === VIDEO_KIND, isRadio = it.kind === RADIO_KIND, isLive = it.kind === LIVE_KIND;
+  const category = [isVideo ? "▶ 動画" : isRadio ? "ラジオ" : "", it.categories.join("・"), it.kind !== INTERVIEW_KIND && !isVideo && !isRadio ? it.kind : ""].filter(Boolean).join(" · ");
+  const verb = isVideo ? "見る" : isRadio ? "聴く" : "読む"; // 掲載元のリンクの読み上げ（○○で見る・聴く・読む）
   const date = it.date ? dotDate(it.date) : "日付不明";
   const hasMore = it.summary || it.note || it.tags.length;
   const isReference = /^参考資料/.test(it.note);
   const report = REPO ? `<a class="card-report" href="${esc(issueUrl("記事の誤り・リンク切れ：" + it.title, `記事：${it.title}\nURL：${it.url}\nid：${it.id}\n\n気づいたこと：\n`))}" target="_blank" rel="noopener noreferrer">この記事の誤り・リンク切れを知らせる ↗</a>` : "";
-  return `<article class="article-card${isVideo ? " is-video" : ""}${read ? " is-read" : ""}" data-id="${esc(it.id)}" aria-label="${esc(it.title)}">`
+  return `<article class="article-card${isVideo ? " is-video" : isRadio ? " is-radio" : ""}${read ? " is-read" : ""}" data-id="${esc(it.id)}" aria-label="${esc(it.title)}">`
     + (read ? '<span class="read-label">✓ 既読</span>' : "")
     + `<div class="card-top"><time class="card-date"${it.date ? ` datetime="${esc(it.date)}"` : ""}>${isLive && it.date ? "記事公開：" : ""}${esc(date)}</time>`
     + `<div class="card-actions"><button type="button" class="save-button" data-act="later" aria-pressed="${saved}" aria-label="${esc(it.title)}を${saved ? "あとで読むから外す" : "あとで読むに保存"}">${BOOKMARK}</button></div></div>`
@@ -410,7 +412,7 @@ function card(it) {
       + (it.tags.length ? `<ul class="card-tags" aria-label="タグ">${it.tags.map((t) => `<li><button type="button" data-tag="${esc(t)}">#${esc(t)}</button></li>`).join("")}</ul>` : "")
       + report + `</div></details>` : "")
     + `<div class="card-bottom"><button type="button" class="read-button" data-act="read" aria-pressed="${read}"><span aria-hidden="true">${read ? "✓" : "○"}</span>${read ? "既読" : "既読にする"}</button>`
-    + `<a class="source-link" href="${esc(it.url)}" target="_blank" rel="noopener noreferrer" data-open aria-label="${esc(it.media)}で読む（新しいタブで開きます）"><span class="source-name">${esc(it.media)}</span>${LANG_BADGE[it.lang] ? `<span class="lang-tag">${LANG_BADGE[it.lang]}</span>` : ""}<span class="arrow" aria-hidden="true">↗</span></a></div>`
+    + `<a class="source-link" href="${esc(it.url)}" target="_blank" rel="noopener noreferrer" data-open aria-label="${esc(it.media)}で${verb}（新しいタブで開きます）"><span class="source-name">${esc(it.media)}</span>${LANG_BADGE[it.lang] ? `<span class="lang-tag">${LANG_BADGE[it.lang]}</span>` : ""}<span class="arrow" aria-hidden="true">↗</span></a></div>`
     + `</article>`;
 }
 
@@ -443,6 +445,7 @@ function headingText() {
   if (F.cat) return F.cat;
   if (F.q) return `「${F.q}」の検索結果`;
   if (F.format === "video") return "動画インタビュー";
+  if (F.format === "radio") return "ラジオ";
   if (F.format === "release") return "リリース情報";
   return "新しく掲載された記事";
 }
@@ -450,6 +453,7 @@ function viewNote() {
   if (F.status === "later") return "「あとで読む」に保存した記事です。このブラウザに保存しています。";
   if (F.cat) return CATEGORIES.find((c) => c.name === F.cat)?.desc || "";
   if (F.format === "video" && !isLiveView()) return "インタビュー・対談の映像です。リンクから YouTube などを新しいタブで開きます。";
+  if (F.format === "radio" && !isLiveView()) return "メンバーが出演したラジオ番組の放送回です。リンクから YouTube などを新しいタブで開いて聴けます。";
   if (F.format === "release" && !isLiveView()) return "発売・公開のお知らせや、雑誌の掲載号の案内です。インタビュー本文ではありません。";
   return "";
 }
@@ -646,6 +650,8 @@ for (const [id, key] of Object.entries(SELECT_KEYS)) {
   $("#" + id).addEventListener("change", (e) => {
     F[key] = e.target.value;
     if (key === "person" && !F.person) F.scope = "";
+    // 資料の種類で「動画」「ラジオ」などを選んだら、その種類が出るタブに切り替える（「すべて」のタブのときはそのまま）
+    if (key === "kind" && F.kind && F.format !== "all" && F.kind !== LIVE_KIND) F.format = formatOf(F.kind);
     apply();
   });
 }
@@ -864,10 +870,10 @@ function renderAdmin() {
   if (!S.parsed) { stats.replaceChildren(h("li", { text: "記事データを読み込んでいます…" })); return; }
   const all = S.parsed.items;
   const n = (state) => all.filter((it) => it.state === state).length;
-  const pub = S.items.length, vids = S.items.filter((it) => it.kind === VIDEO_KIND).length;
+  const pub = S.items.length, vids = S.items.filter((it) => it.kind === VIDEO_KIND).length, radio = S.items.filter((it) => it.kind === RADIO_KIND).length;
   const withSummary = S.items.filter((it) => it.summary).length;
   stats.replaceChildren(
-    h("li", null, h("span", { text: "公開" }), h("b", { text: `${pub} 件` }), h("small", { text: `記事 ${pub - vids}・動画 ${vids}` })),
+    h("li", null, h("span", { text: "公開" }), h("b", { text: `${pub} 件` }), h("small", { text: `記事 ${pub - vids - radio}・動画 ${vids}・ラジオ ${radio}` })),
     h("li", null, h("span", { text: "非表示" }), h("b", { text: `${n("非表示")} 件` })),
     h("li", null, h("span", { text: "リンク切れ" }), h("b", { text: `${n("リンク切れ")} 件` })),
     h("li", null, h("span", { text: "説明あり" }), h("b", { text: `${withSummary} 件` }), h("small", { text: `公開中の記事のうち` })));

@@ -182,6 +182,14 @@ body::before { content: ""; position: fixed; inset: 0 0 auto; height: env(safe-a
 .format-tabs button { flex: 1 1 auto; min-height: 40px; padding: 9px 7px; border: 0; border-radius: 4px; background: transparent; color: var(--ink); font-size: 10px; white-space: nowrap; }
 .format-tabs button:hover { background: var(--sunk); }
 .format-tabs button[aria-pressed="true"] { background: var(--green); color: var(--green-ink); }
+/* 幅のせまいスマホ（360px など）でも、5つのタブが1段に収まるように少しつめる */
+@media (max-width: 389px) {
+  .format-tabs { gap: 2px; }
+  .format-tabs button { padding-inline: 5px; }
+}
+@media (max-width: 359px) {
+  .format-tabs button { padding-inline: 4px; font-size: 9px; }
+}
 
 /* ---------- 一覧の左（パソコン）／上（スマホ）の「さらに絞り込む」 ---------- */
 .archive-layout { display: flex; flex-direction: column; gap: 10px; }
@@ -244,6 +252,7 @@ body::before { content: ""; position: fixed; inset: 0 0 auto; height: env(safe-a
 .thumbnail-fallback strong { display: -webkit-box; max-width: 90%; overflow: hidden; -webkit-box-orient: vertical; -webkit-line-clamp: 3; font-size: 14px; font-weight: 600; line-height: 1.4; overflow-wrap: anywhere; }
 .thumbnail-fallback.long strong { font-size: 11px; }
 .is-video .thumbnail-fallback { background: linear-gradient(120deg, #DEDFEF, #EEEAF4); }
+.is-radio .thumbnail-fallback { background: linear-gradient(120deg, #EFE6D6, #F4EEE4); }
 .is-read .thumbnail-fallback { background: linear-gradient(120deg, #D5DAEA, #E6E9F2); }
 .card-copy { min-width: 0; }
 .card-category { margin: 0 0 4px; font-size: 10px; line-height: 1.5; color: var(--muted); }
