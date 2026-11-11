@@ -223,11 +223,7 @@
 
 <div id="toast" class="toast" role="status" aria-live="polite"></div>
 
-<script>
-  // パソコンでこのファイルを直接開いたときの案内（ブラウザの制限で、このときは記事を表示できません）
-  if (location.protocol === "file:") {
-    document.getElementById("loading").textContent = "このファイルをパソコンで直接開いても、記事は表示されません。公開したサイトの URL で開くか、運用マニュアルの「付録D」の方法で確かめてください。";
-  }
-</script>
+<!-- パソコンでこのファイルを直接開いたときの案内（中身は assets/localfile.js） -->
+<script src="assets/localfile.js"></script>
 </body>
 </html>

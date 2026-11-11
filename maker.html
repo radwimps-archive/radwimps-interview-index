@@ -7,125 +7,8 @@
 <meta name="robots" content="noindex">
 <link rel="icon" href="assets/icon.svg" type="image/svg+xml">
 <link rel="stylesheet" href="assets/style.css">
-<style>
-  /* このページだけで使う見た目 */
-  .form { display: grid; grid-template-columns: minmax(0, 1fr); gap: 14px; padding-bottom: 48px; }
-  .form label, .form legend { font-size: 12.5px; color: var(--ink-2); }
-  .form label { display: grid; gap: 4px; min-width: 0; }
-  .form input[type="text"], .form input[type="url"], .form select, .form textarea {
-    width: 100%; min-width: 0; min-height: 44px; padding: 8px 10px; border: 1px solid var(--rule); border-radius: 8px; background: var(--surface); font-size: 16px;
-  }
-  .form textarea { font-family: var(--f-mono); font-size: 13px; line-height: 1.5; min-height: 110px; resize: vertical; }
-  .grid2 { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 210px), 1fr)); gap: 14px; }
-  fieldset { margin: 0; padding: 0; border: 0; min-width: 0; }
-  legend { padding: 0; margin-bottom: 4px; }
-  .drow { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; }
-  .drow span { font-size: 14px; color: var(--ink-2); }
-  .form .drow input[type="text"] { width: 5.2em; text-align: center; font-family: var(--f-mono); }
-  .form .drow select { width: auto; min-width: 4.6em; }
-  .mem { display: flex; flex-wrap: wrap; gap: 4px 16px; }
-  .mem label { display: inline-flex; align-items: center; gap: 6px; font-size: 14px; color: var(--ink); min-height: 36px; }
-  .mem input { width: 18px; height: 18px; accent-color: var(--accent); }
-  .out { display: grid; gap: 8px; padding: 14px; border: 1px solid var(--rule); border-radius: 12px; background: var(--surface); }
-  .out h2 { margin: 0; font-size: 18px; }
-  .issues { margin: 0; padding-left: 1.2em; font-size: 13px; }
-  .issues .e { color: var(--danger); }
-  .issues .w { color: var(--ink-2); }
-  .ok { margin: 0; font-size: 13px; color: var(--done); }
-  code { font-family: var(--f-mono); font-size: 12px; background: var(--chip); padding: 1px 5px; border-radius: 4px; overflow-wrap: anywhere; }
-</style>
-<script type="module">
-  import { KIND_ORDER, MEMBERS, MEMBER_ORDER, LANGS, STATES, CATEGORIES, ARTICLE_HEADER, VIDEO_KIND, INTERVIEW_KIND, toCSVLine, parseArticles, youtubeId } from "./assets/data.js";
-
-  const $ = (s) => document.querySelector(s);
-  const opt = (sel, values, first) => {
-    if (first !== undefined) sel.append(new Option(first, ""));
-    for (const v of values) sel.append(new Option(v, v));
-  };
-  opt($("#state"), STATES);
-  opt($("#m"), Array.from({ length: 12 }, (_, i) => String(i + 1)), "—");
-  opt($("#d"), Array.from({ length: 31 }, (_, i) => String(i + 1)), "—");
-  opt($("#kind"), KIND_ORDER);
-  opt($("#lang"), Object.keys(LANGS));
-  for (const key of MEMBER_ORDER) {
-    const label = document.createElement("label");
-    const box = Object.assign(document.createElement("input"), { type: "checkbox", value: MEMBERS[key].name, id: "w-" + key });
-    label.htmlFor = box.id;
-    label.append(box, MEMBERS[key].name);
-    $("#members").append(label);
-  }
-  // カテゴリ（記事が生まれたきっかけ）はいくつでも選べる
-  for (const c of CATEGORIES) {
-    const label = document.createElement("label");
-    const box = Object.assign(document.createElement("input"), { type: "checkbox", value: c.name, id: "c-" + c.slug });
-    label.htmlFor = box.id;
-    label.title = c.desc;
-    label.append(box, c.name);
-    $("#cats").append(label);
-  }
-  $("#header").textContent = toCSVLine(ARTICLE_HEADER);
-
-  // 月を選ぶまで日は選べない／その月にない日は選べない
-  function syncDays() {
-    const m = Number($("#m").value);
-    $("#d").disabled = !m;
-    if (!m) { $("#d").value = ""; return; }
-    const y = /^\d{4}$/.test($("#y").value) ? Number($("#y").value) : 2000;
-    const max = new Date(y, m, 0).getDate();
-    for (const o of $("#d").options) if (o.value) o.disabled = Number(o.value) > max;
-    if (Number($("#d").value) > max) $("#d").value = "";
-  }
-
-  function update() {
-    const y = $("#y").value.normalize("NFKC").replace(/\D/g, "").slice(0, 4);
-    if (y !== $("#y").value) $("#y").value = y;
-    syncDays();
-    const members = [...document.querySelectorAll("#members input:checked")].map((b) => b.value).join("、");
-    const cats = [...document.querySelectorAll("#cats input:checked")].map((b) => b.value).join("、");
-    const tags = $("#tags").value.trim();
-    const cells = [$("#state").value, y, $("#m").value, $("#d").disabled ? "" : $("#d").value, $("#media").value.trim(), $("#kind").value, cats,
-      $("#title").value.trim(), $("#url").value.trim(), members, $("#guests").value.trim(), tags, $("#lang").value, $("#note").value.trim(),
-      $("#summary").value.replace(/\s*\n\s*/g, " ").trim(), $("#eventDate").value.trim(), $("#eventName").value.trim(), $("#venue").value.trim(), $("#id").value.trim()];
-    const line = toCSVLine(cells);
-    $("#line").value = line;
-    // サイトと同じルールでチェックする
-    const res = parseArticles(toCSVLine(ARTICLE_HEADER) + "\n" + line + "\n");
-    const list = $("#issues");
-    list.replaceChildren(
-      ...res.errors.map((e) => Object.assign(document.createElement("li"), { className: "e", textContent: "直してください：" + e.msg })),
-      ...res.warnings.map((w) => Object.assign(document.createElement("li"), { className: "w", textContent: "注意：" + w.msg }))
-    );
-    $("#ok").hidden = !!res.errors.length;
-    $("#copy").disabled = !!res.errors.length;
-  }
-
-  // YouTube の URL を入れたら、種類を「動画」に、媒体が空なら「YouTube」にする（あとから変えられます）
-  $("#url").addEventListener("input", () => {
-    if (!youtubeId($("#url").value.trim())) return;
-    if ($("#kind").value === INTERVIEW_KIND) $("#kind").value = VIDEO_KIND;
-    if (!$("#media").value.trim()) $("#media").value = "YouTube";
-  });
-
-  // 日本語入力の変換中は待ってから更新する
-  document.querySelector(".form").addEventListener("input", (e) => { if (!e.isComposing) update(); });
-  document.querySelector(".form").addEventListener("compositionend", update);
-  document.querySelector(".form").addEventListener("change", update);
-  $("#copy").addEventListener("click", async () => {
-    try {
-      await navigator.clipboard.writeText($("#line").value);
-      $("#copyMsg").textContent = "コピーしました。articles.csv の2行目（見出しのすぐ下）に貼り付けてください。";
-    } catch {
-      $("#line").select();
-      $("#copyMsg").textContent = "自動でコピーできませんでした。選択された文字をコピーしてください。";
-    }
-  });
-  $("#clear").addEventListener("click", () => {
-    $(".form").reset();
-    $("#copyMsg").textContent = "";
-    update();
-  });
-  update();
-</script>
+<link rel="stylesheet" href="assets/maker.css">
+<script type="module" src="assets/maker.js"></script>
 </head>
 <body>
 <header class="mast wrap">
@@ -136,7 +19,7 @@
 </header>
 
 <main class="wrap">
-  <form class="form" onsubmit="return false" novalidate>
+  <form class="form" novalidate>
     <label for="url">記事の URL（必須）<input id="url" type="url" inputmode="url" autocomplete="off" placeholder="https://"></label>
     <label for="title">タイトル（必須）<input id="title" type="text" autocomplete="off"></label>
     <div class="grid2">
@@ -163,7 +46,7 @@
     </fieldset>
     <label for="guests">対談相手・関連する人（「、」で区切る）<input id="guests" type="text" autocomplete="off" placeholder="例：藤井道人、n-buna（ヨルシカ）"></label>
     <label for="tags">タグ（1つずつ # を付ける）<input id="tags" type="text" autocomplete="off" placeholder="例：#汝、星のごとく #夕星 #映画"></label>
-    <label for="summary">説明（任意。「説明を開く」で出る紹介文。本文の書き写しではなく、自分の言葉で）<textarea id="summary" rows="3" style="font-family: var(--f-body); font-size: 16px; min-height: 88px;"></textarea></label>
+    <label for="summary">説明（任意。「説明を開く」で出る紹介文。本文の書き写しではなく、自分の言葉で）<textarea id="summary" class="prose" rows="3"></textarea></label>
     <label for="note">メモ（任意）<input id="note" type="text" autocomplete="off" placeholder="例：日付は公式サイトMEDIA欄の掲載日"></label>
     <fieldset>
       <legend>ライブの情報（ライブレポートのとき。同じ公演の記事が、まとめて表示されます）</legend>

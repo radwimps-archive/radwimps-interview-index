@@ -185,6 +185,16 @@ async function connect(token, repo) {
     const res = await gh(`/repos/${repo}`);
     if (!res.ok) throw await ghFail(res, "リポジトリ");
     A.branch = (await res.json()).default_branch || "main";
+    // 保存したときの記録（コミット）に、個人のメールアドレスが出ないようにする：GitHub の「noreply」のアドレスを使う
+    // （リポジトリは誰でも見られるので。取れないときは、GitHub の設定のままで保存します）
+    A.committer = null;
+    try {
+      const u = await gh("/user");
+      if (u.ok) {
+        const me = await u.json();
+        if (me.login && me.id) A.committer = { name: me.login, email: `${me.id}+${me.login}@users.noreply.github.com` };
+      }
+    } catch { /* 取れなくても保存はできる */ }
     const { text, sha } = await fetchFile();
     loadWithCarry(text);
     A.sha = sha;
@@ -215,7 +225,7 @@ async function save() {
   const message = `記事データを更新（運営管理から：追加 ${sum.added}・修正 ${sum.edited}・削除 ${sum.deleted}）`;
   const put = () => gh(`/repos/${A.repo}/contents/${FILE}`, {
     method: "PUT", headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ message, content: encodeBase64Utf8(serialize()), sha: A.sha, branch: A.branch })
+    body: JSON.stringify({ message, content: encodeBase64Utf8(serialize()), sha: A.sha, branch: A.branch, ...(A.committer ? { committer: A.committer, author: A.committer } : {}) })
   });
   let merged = false, keyLost = false;
   try {

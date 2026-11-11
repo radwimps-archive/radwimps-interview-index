@@ -848,8 +848,18 @@ function repoUrl() {
 const REPO = repoUrl();
 const issueUrl = (title, body) => `${REPO}/issues/new?title=${encodeURIComponent(title)}&body=${encodeURIComponent(body)}`;
 
+// ほかのサイトの中に埋め込まれて（iframe で）表示されているか。
+// そのときは運営管理を動かしません（見えない枠の上から、保存のボタンを押させる手口を防ぐため）。
+const FRAMED = (() => { try { return window.self !== window.top; } catch { return true; } })();
+
 let adminEditor = null, adminLoading = false, adminOpenNew = false;
 function renderAdmin() {
+  if (FRAMED) {
+    $("#adminOnView").hidden = true;
+    $("#adminOffView").hidden = false;
+    $("#adminOffView").replaceChildren(h("p", { class: "msg err", text: "運営管理は、ほかのサイトの中に表示されているときは使えません。このサイトを直接開いてください。" }));
+    return;
+  }
   $("#adminOffView").hidden = S.admin;
   $("#adminOnView").hidden = !S.admin;
   if (!S.admin) return;
