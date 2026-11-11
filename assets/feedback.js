@@ -1,5 +1,5 @@
 // assets/feedback.js
-// β版の表示（ロゴ横の「β版」と、閉じられる案内バー）と、ご意見・不具合の受付先（Google フォーム）へのリンクを作ります。
+// ベータ版の表示（ロゴ横の「ベータ版」と、閉じられる案内バー）と、ご意見・不具合の受付先（Google フォーム）へのリンクを作ります。
 // 記事一覧（app.js）と年表（history.js）で使います。
 //
 // 受付先の決め方（上から順に、設定してあるものを使います）：
@@ -74,24 +74,24 @@ export function feedbackUrl({ kind = "", page = "", content = "", title = "" } =
   return `${REPO}/issues/new?title=${encodeURIComponent(title || kind || "お知らせ")}&body=${encodeURIComponent(body + "\n")}`;
 }
 
-/* ---------- β版の表示 ---------- */
+/* ---------- ベータ版の表示 ---------- */
 
 const STORE_BAR = "radwimps-interview-index:beta-bar-closed";
 
-// ロゴ横の「β版」と、ページ上部の案内バーを出します（config.js の beta が true のときだけ）。
+// ロゴ横の「ベータ版」と、ページ上部の案内バーを出します（config.js の beta が true のときだけ）。
 //   before：案内バーを入れる場所（この部品の前に入れます）
 export function setupBeta(before) {
   if (!config.beta) return;
   for (const brand of document.querySelectorAll(".brand")) {
-    if (!brand.querySelector(".beta-badge")) brand.append(h("span", { class: "beta-badge", text: "β版" }));
+    if (!brand.querySelector(".beta-badge")) brand.append(h("span", { class: "beta-badge", text: "ベータ版" }));
   }
   let closed = false;
   try { closed = localStorage.getItem(STORE_BAR) === "1"; } catch { /* 保存できない環境では毎回出す */ }
   if (closed || !before) return;
-  const url = feedbackUrl({ kind: KIND.bug, title: "β版の感想・不具合", page: location.href });
+  const url = feedbackUrl({ kind: KIND.bug, title: "ベータ版の感想・不具合", page: location.href });
   const close = h("button", { type: "button", class: "beta-close", "aria-label": "この案内を閉じる", text: "✕" });
-  const bar = h("aside", { class: "beta-bar", "aria-label": "β版のお知らせ" },
-    h("p", null, h("strong", { text: "β版で公開中です。" }), "表示のおかしなところや使いにくいところがあれば、",
+  const bar = h("aside", { class: "beta-bar", "aria-label": "ベータ版のお知らせ" },
+    h("p", null, h("strong", { text: "ベータ版で公開中です。" }), "表示のおかしなところや使いにくいところがあれば、",
       url ? h("a", { href: url, target: "_blank", rel: "noopener noreferrer", text: usesForm ? "フォームから教えてください" : "教えてください" }) : "お知らせください",
       "。"),
     close);

@@ -44,13 +44,13 @@ assets/
   app.js              画面の動き（探す入口・検索・絞り込み・あとで読む・既読）
   history.js          「RADWIMPSの歩み」（年表）の動き
   admin.js            運営管理の「記事の管理」（記事の編集と GitHub への保存。運営管理を開いたときだけ読み込み）
-  feedback.js         β版の表示と、ご意見・不具合の送信フォーム（Web3Forms 経由でメールに届く。未設定なら Google フォーム／GitHub の Issue）
+  feedback.js         ベータ版の表示と、ご意見・不具合の送信フォーム（Web3Forms 経由でメールに届く。未設定なら Google フォーム／GitHub の Issue）
   maker.js・maker.css 記事データ作成ツールの動きと見た目
   localfile.js        index.html をパソコンで直接開いたときの案内
   ogp.png             SNS でリンクを貼ったときの画像
   ui.js               画面の共通部品（メニュー・管理者モード・ファイルの書き出しなど。3つの画面で共通）
   data.js             CSV の読み方と「書ける値」の決まり（記事・年表）、「曲・作品から探す」の作品の一覧（サイトとチェック用プログラムで共通。画面の処理は入れない）
-  config.js           設定（β版の表示・報告メールの鍵・独自ドメイン・タワーレコードのアフィリエイト）
+  config.js           設定（ベータ版の表示・報告メールの鍵・独自ドメイン・タワーレコードのアフィリエイト）
   icon.svg            ブラウザのタブのアイコン
 data/
   articles.csv        記事の一覧
