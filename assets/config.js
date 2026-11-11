@@ -21,7 +21,7 @@ export default {
   // ご意見・不具合をメールで受け取る設定（Web3Forms という無料のメール転送サービスを使います。マニュアル13-2）。
   // key：Web3Forms から届いた「Access Key」（英数字とハイフン）。書くと、サイトの中の送信フォームから運営者のメールに届きます。
   //      メールアドレスはサイトに出ません。空欄のあいだは、下の Google フォーム → GitHub の Issue の順に使います。
-  mail: { key: "" },
+  mail: { key: "628ca03d-a20e-4519-87c5-05ffcd8de239" },
 
   // ご意見・不具合の受付先（Google フォーム）。
   // url：フォームの「送信」→ リンクの URL（https://docs.google.com/forms/… か https://forms.gle/…）。
