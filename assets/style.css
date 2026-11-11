@@ -729,10 +729,10 @@ dialog.modal::backdrop { background: rgba(23, 32, 24, .5); -webkit-backdrop-filt
 .person-card h3 span { display: block; margin-top: 2px; font-size: 11px; font-weight: 400; letter-spacing: .08em; color: var(--muted); }
 .person-body { margin: 0; font-size: 13px; line-height: 1.85; color: var(--ink-2); }
 .person-nosns { margin: 0; font-size: 11px; color: var(--muted-2); }
-.person-sns { display: flex; flex-wrap: wrap; gap: 8px; }
-.sns { display: inline-flex; align-items: center; gap: 6px; min-height: 44px; padding: 0 14px; border-radius: 22px; background: var(--ink); color: var(--white); font-size: 13px; font-weight: 700; text-decoration: none; }
-.sns span { font-size: 11px; font-weight: 400; opacity: .8; }
-.sns-ig { background: var(--accent); }
-.sns:hover { opacity: .88; }
+.person-sns { display: flex; flex-wrap: wrap; gap: 6px; }
+.sns { display: inline-flex; align-items: center; gap: 4px; min-height: 30px; padding: 0 10px; border: 1px solid var(--line-input); border-radius: 15px; background: var(--white); color: var(--ink); font-size: 11px; font-weight: 700; text-decoration: none; }
+.sns span { font-size: 10px; font-weight: 400; color: var(--muted); }
+.sns:hover { border-color: var(--accent); color: var(--accent); }
+.person-band { border-color: var(--accent-soft); background: var(--accent-tint); }
 .person-articles { align-self: flex-start; display: inline-flex; align-items: center; gap: 6px; min-height: 40px; color: var(--accent); font-size: 13px; font-weight: 600; text-decoration: none; }
 .person-articles:hover { text-decoration: underline; }

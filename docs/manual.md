@@ -442,10 +442,10 @@ Google スプレッドシートを使う場合も同じ流れです：「ファ�
 
 ### 7-4. 「メンバー・人物紹介」を更新する
 
-メニューの「**メンバー・人物紹介**」（`members.html`）は、メンバー・元メンバー・サポートメンバーの紹介と、本人の公式 SNS へのリンクを並べたページです。紹介文やリンクは `members.html` に直接書いてあります。
+メニューの「**メンバー・人物紹介**」（`members.html`）は、バンド（RADWIMPS）・メンバー・元メンバー・サポートメンバーの紹介と、本人の公式 SNS へのリンクを並べたページです。紹介文やリンクは `members.html` に直接書いてあります。
 
 - **紹介文を直す**：`members.html` を GitHub で開いて鉛筆のボタンを押し、`<p class="person-body">…</p>` の中の文を書き換えます。
-- **SNS のリンクを足す・直す**：`<div class="person-sns" …>` の中の `<a class="sns sns-x" href="https://x.com/アカウント名" …>X <span>@アカウント名</span></a>` を写して書き換えます。Instagram は `sns-ig` で `https://www.instagram.com/アカウント名/` です。URL の後ろの `?s=11` などは付けません（どこから開いたかの印なので）。
+- **SNS のリンクを足す・直す**：`<div class="person-sns" …>` の中の `<a class="sns sns-x" href="https://x.com/アカウント名" …>X <span>@アカウント名</span></a>` を写して書き換えます。Instagram は `sns-ig`（`https://www.instagram.com/アカウント名/`）、Threads は `sns-th`、TikTok は `sns-tt` です。URL の後ろの `?s=11` などは付けません（どこから開いたかの印なので）。
 - **人を足す**：`<article class="person-card">` から `</article>` までをひとまとまりで写して、「メンバー」「元メンバー」「サポートメンバー」の入れたい場所に貼り、名前・読み・担当・紹介文・リンクを書き換えます。
 - 「〇〇の記事を見る」は `./?person=名前` で、記事一覧をその人で絞り込みます。記事がない人（TAIKING など）には付けていません。サポートメンバーで記事を載せたい人は、`assets/data.js` の `SUPPORT_MEMBERS` にも名前を足します。
 - HTML の中に `style="…"` や `<script>` は書けません（安全のための決まり。13章）。
