@@ -98,7 +98,7 @@ body::before { content: ""; position: fixed; inset: 0 0 auto; height: env(safe-a
 .hamburger[aria-expanded="true"] span:nth-child(2) { opacity: 0; }
 .hamburger[aria-expanded="true"] span:nth-child(3) { transform: translateY(-8px) rotate(-45deg); }
 
-/* ロゴ：朱色の「r.」と、RADWIMPS / INTERVIEW ARCHIVE */
+/* ロゴ：朱色の「r.」と、RADWIMPS / INTERVIEW ARCHIVES */
 .brand { display: flex; align-items: center; gap: 10px; color: var(--ink); text-decoration: none; }
 .brand-symbol { font-family: var(--f-logo); font-size: 45px; font-style: italic; font-weight: 800; line-height: 1; letter-spacing: -9px; color: var(--accent); padding-right: 9px; }
 .brand-symbol span { font-style: normal; }

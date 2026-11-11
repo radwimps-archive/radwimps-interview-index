@@ -18,8 +18,8 @@ const PAGE = 40; // 一覧に一度に出す件数
 // 持ち主（Resource owner：リポジトリの持ち主。Organization ならその Organization）を入れた状態で開く
 function tokenUrl() {
   const q = {
-    name: "RADWIMPS Archive 運営管理",
-    description: "RADWIMPS Archive の運営管理から、記事データ（data/articles.csv）を保存するための合鍵",
+    name: "RADWIMPS Archives 運営管理",
+    description: "RADWIMPS Archives の運営管理から、記事データ（data/articles.csv）を保存するための合鍵",
     expires_in: "90",
     contents: "write"
   };
