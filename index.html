@@ -3,11 +3,26 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<!-- 安全のための決まり（CSP）：このサイトと、決めた所（YouTube の埋め込み・サムネイル、GitHub の API）以外からは、プログラムや画像を読み込みません。
+     HTML の中に直接 <script> や style="…" を書くと動かなくなるので、assets フォルダのファイルに書いてください。 -->
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data: https://i.ytimg.com; font-src 'self'; connect-src 'self' https://api.github.com; frame-src https://www.youtube-nocookie.com https://www.youtube.com; object-src 'none'; base-uri 'self'; form-action 'self'; upgrade-insecure-requests">
+<meta name="referrer" content="strict-origin-when-cross-origin">
 <title>RADWIMPS Archive — 好きな曲から、気になる人から。</title>
 <meta name="description" content="RADWIMPS とメンバーのインタビュー・対談・ライブレポートを、人・曲や作品・年代・ライブから探せる、非公式の索引サイトです。">
 <meta property="og:title" content="RADWIMPS Archive">
 <meta property="og:description" content="RADWIMPS とメンバーのインタビュー・対談・ライブレポートを、人・曲や作品・年代・ライブから探せる、非公式の索引サイトです。">
 <meta property="og:type" content="website">
+<meta property="og:url" content="https://radwimps-archive.github.io/radwimps-interview-index/">
+<meta property="og:site_name" content="RADWIMPS Archive">
+<meta property="og:locale" content="ja_JP">
+<meta property="og:image" content="https://radwimps-archive.github.io/radwimps-interview-index/assets/ogp.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:image:alt" content="RADWIMPS Archive：好きな曲から、気になる人から。インタビュー・対談・ライブレポートの非公式索引">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="RADWIMPS Archive">
+<meta name="twitter:description" content="RADWIMPS とメンバーのインタビュー・対談・ライブレポートを、人・曲や作品・年代・ライブから探せる、非公式の索引サイトです。">
+<meta name="twitter:image" content="https://radwimps-archive.github.io/radwimps-interview-index/assets/ogp.png">
 <meta name="theme-color" content="#FFFFFF">
 <link rel="icon" href="assets/icon.svg" type="image/svg+xml">
 <link rel="stylesheet" href="assets/style.css">
@@ -219,6 +234,7 @@
   <p>リンク先でインタビューやライブレポートの内容が読める・見られる・聴けるものを載せています。有料会員限定のもの（ファンクラブ「ボクンチ」など）は載せていません。ラジオ番組の放送回は「ラジオ」のタブに、雑誌の掲載号の案内や発売のお知らせなど、本文が読めない資料は「リリース情報」のタブに分けています。</p>
   <p>「説明」は、記事の内容がわかるように運営が書いた紹介文で、掲載元の文章の転載ではありません。掲載日が「年」や「年・月」までのものは、確認できた範囲で記載しています。掲載元のタイトルを確認できなかった記事には、内容がわかる見出しを付けています。</p>
   <p>リンクは定期的に確認し、開けなくなった記事は一覧から外しています。主な出典は、RADWIMPS 公式サイトの MEDIA 欄と、各媒体の記事ページです。</p>
+  <p>このサイトでは、アクセス解析（訪問者の記録）や広告のための追跡はしていません。「あとで読む」「既読」は、このブラウザの中だけに保存され、運営を含めほかの人には送られません（ブラウザのデータを消すと消えます。「保存データの管理」から書き出して残せます）。動画のサムネイル画像と再生には YouTube（Google）のしくみを使っているため、その部分には YouTube と Google の決まりが適用されます。</p>
 </template>
 
 <div id="toast" class="toast" role="status" aria-live="polite"></div>

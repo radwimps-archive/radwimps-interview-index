@@ -38,14 +38,19 @@ RADWIMPS とメンバーのインタビュー・対談・ライブレポート�
 index.html            サイトの骨組みと文章
 maker.html            記事データ作成ツール
 history.html          「RADWIMPSの歩み」（年表）のページ
+404.html              ない URL を開いたときのページ
 assets/
   style.css           見た目（色など）
   app.js              画面の動き（探す入口・検索・絞り込み・あとで読む・既読）
   history.js          「RADWIMPSの歩み」（年表）の動き
   admin.js            運営管理の「記事の管理」（記事の編集と GitHub への保存。運営管理を開いたときだけ読み込み）
+  feedback.js         β版の表示と、ご意見・不具合の受付先（Google フォーム、未設定なら GitHub の Issue）へのリンク
+  maker.js・maker.css 記事データ作成ツールの動きと見た目
+  localfile.js        index.html をパソコンで直接開いたときの案内
+  ogp.png             SNS でリンクを貼ったときの画像
   ui.js               画面の共通部品（メニュー・管理者モード・ファイルの書き出しなど。3つの画面で共通）
   data.js             CSV の読み方と「書ける値」の決まり（記事・年表）、「曲・作品から探す」の作品の一覧（サイトとチェック用プログラムで共通。画面の処理は入れない）
-  config.js           設定（独自ドメインのとき・タワーレコードのアフィリエイトを始めるとき）
+  config.js           設定（β版の表示・ご意見フォームの URL・独自ドメイン・タワーレコードのアフィリエイト）
   icon.svg            ブラウザのタブのアイコン
 data/
   articles.csv        記事の一覧
@@ -56,6 +61,7 @@ tools/
   check-links.mjs     リンク確認
 tests/
   data.test.mjs       data.js（CSV の読み取り）のテスト
+  html.test.mjs       各ページが安全の決まり（CSP）を守っているかのテスト
 .github/workflows/    自動公開・自動チェックの設定
 docs/manual.md        運用マニュアル
 ```
@@ -63,6 +69,10 @@ docs/manual.md        運用マニュアル
 ビルドの手順や `npm install` は必要ありません。ファイルはそのまま公開されます。
 チェック用プログラムとテストは Node.js だけで動きます（`node tools/validate.mjs`、`node --test`）。
 `assets` に新しいファイルを足すときは、名前を小文字の英字だけにします（例：`ui.js`）。公開時に古いファイルが残らないようにする仕組み（`.github/workflows/deploy.yml`）が、その形の名前にだけ効くためです。
+
+## 安全対策
+
+各ページに CSP（Content-Security-Policy）を書いています。HTML の中に直接スクリプトや `style="…"` を書かず、`assets` の js・css に書いてください（くわしくはマニュアル13章）。
 
 ## 合鍵（アクセストークン）について
 

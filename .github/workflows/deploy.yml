@@ -44,12 +44,12 @@ jobs:
       - name: 公開するファイルをまとめる
         run: |
           mkdir _site
-          cp -r index.html maker.html history.html assets data _site/
+          cp -r index.html maker.html history.html 404.html assets data _site/
 
       - name: 古い表示が残らないように、読み込むファイルに版の番号を付ける
         run: |
           V="${GITHUB_SHA::8}"
-          sed -i -E "s#(assets/[a-z]+\.(js|css))\"#\1?v=${V}\"#g" _site/index.html _site/maker.html _site/history.html
+          sed -i -E "s#(assets/[a-z]+\.(js|css))\"#\1?v=${V}\"#g" _site/index.html _site/maker.html _site/history.html _site/404.html
           sed -i -E "s#(\"\./[a-z]+\.js)\"#\1?v=${V}\"#g" _site/assets/*.js
 
       - name: GitHub Pages の準備

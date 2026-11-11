@@ -6,6 +6,7 @@
 import { parseHistory, HISTORY_CATEGORIES } from "./data.js";
 import { h as el, setupMenu, isAdminDevice } from "./ui.js";
 import config from "./config.js";
+import { feedbackUrl, hasFeedback, setupBeta, KIND } from "./feedback.js";
 
 const $ = (s) => document.querySelector(s);
 
@@ -282,6 +283,11 @@ toTop.addEventListener("click", () => scrollTo({ top: 0, behavior: "smooth" }));
 
 // メニュー（記事一覧のページと同じ動き。ui.js）
 setupMenu();
+setupBeta($("#main").firstElementChild);
+// フッターの「誤りを知らせる」（受付先は feedback.js で決まります）
+if (hasFeedback) {
+  $(".site-footer .footer-links").append(el("a", { href: feedbackUrl({ kind: KIND.error, title: "年表の誤りのお知らせ", page: "RADWIMPSの歩み（年表）" }), target: "_blank", rel: "noopener noreferrer", text: "年表の誤りを知らせる ↗" }));
+}
 if (isAdminDevice()) $("#adminLink").hidden = false;
 
 // 読み込み

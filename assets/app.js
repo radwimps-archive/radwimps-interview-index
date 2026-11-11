@@ -14,6 +14,7 @@ import {
   VIDEO_KIND, RADIO_KIND, LIVE_KIND, INTERVIEW_KIND, OTHERS_KIND, LANG_BADGE, youtubeId, formatOf
 } from "./data.js";
 import { h, isAdminDevice, setAdminDevice, setupMenu, downloadFile } from "./ui.js";
+import { feedbackUrl, hasFeedback, usesForm, repoUrl, setupBeta, KIND } from "./feedback.js";
 
 /* ---------- 共通の道具 ---------- */
 
@@ -396,7 +397,7 @@ function card(it) {
   const date = it.date ? dotDate(it.date) : "日付不明";
   const hasMore = it.summary || it.note || it.tags.length;
   const isReference = /^参考資料/.test(it.note);
-  const report = REPO ? `<a class="card-report" href="${esc(issueUrl("記事の誤り・リンク切れ：" + it.title, `記事：${it.title}\nURL：${it.url}\nid：${it.id}\n\n気づいたこと：\n`))}" target="_blank" rel="noopener noreferrer">この記事の誤り・リンク切れを知らせる ↗</a>` : "";
+  const report = hasFeedback ? `<a class="card-report" href="${esc(feedbackUrl({ kind: KIND.error, title: "記事の誤り・リンク切れ：" + it.title, page: `${it.title}\n${it.url}\n（id：${it.id}）` }))}" target="_blank" rel="noopener noreferrer">この記事の誤り・リンク切れを知らせる ↗</a>` : "";
   return `<article class="article-card${isVideo ? " is-video" : isRadio ? " is-radio" : ""}${read ? " is-read" : ""}" data-id="${esc(it.id)}" aria-label="${esc(it.title)}">`
     + (read ? '<span class="read-label">✓ 既読</span>' : "")
     + `<div class="card-top"><time class="card-date"${it.date ? ` datetime="${esc(it.date)}"` : ""}>${isLive && it.date ? "記事公開：" : ""}${esc(date)}</time>`
@@ -795,7 +796,7 @@ function showAbout() {
     h("h2", { id: "modalTitle", text: "収録方針と出典について" }),
     ...$("#aboutText").content.cloneNode(true).children // 文章は index.html の <template id="aboutText"> にあります
   ];
-  if (REPO) nodes.push(h("p", null, "記事の誤りやリンク切れに気づいたら、", h("a", { href: issueUrl("記事の誤り・リンク切れのお知らせ", "記事のタイトルか URL：\n\n気づいたこと：\n"), target: "_blank", rel: "noopener noreferrer", text: "こちらから知らせてください" }), "（GitHub のアカウントが必要です）。"));
+  if (hasFeedback) nodes.push(h("p", null, "記事の誤りやリンク切れ、掲載についてのお問い合わせ（削除のご依頼など）は、", h("a", { href: feedbackUrl({ kind: KIND.error, title: "記事の誤り・リンク切れのお知らせ" }), target: "_blank", rel: "noopener noreferrer", text: "こちらから知らせてください" }), usesForm ? "（アカウントは不要です）。" : "（GitHub のアカウントが必要です）。"));
   if (S.updated) nodes.push(h("p", { class: "small-note", text: `最終更新：${S.updated}` }));
   openModal(nodes);
 }
@@ -805,17 +806,17 @@ function showAdd() {
   const url = h("input", { id: "addUrl", type: "url", inputmode: "url", autocomplete: "off", placeholder: "https://" });
   const title = h("input", { id: "addTitle", type: "text", autocomplete: "off" });
   const note = h("textarea", { id: "addNote", rows: "3" });
-  const send = h("a", { class: "btn primary", target: "_blank", rel: "noopener noreferrer", "aria-disabled": "true", text: "GitHub で送る" });
+  const send = h("a", { class: "btn primary", target: "_blank", rel: "noopener noreferrer", "aria-disabled": "true", text: usesForm ? "フォームで送る" : "GitHub で送る" });
   const hint = h("p", { class: "hint" });
   const update = () => {
     const u = url.value.trim(), t = title.value.trim(), n = note.value.trim();
     send.removeAttribute("href");
     send.setAttribute("aria-disabled", "true");
-    if (!REPO) { hint.textContent = "このページから送るには、サイトを GitHub Pages で公開している必要があります。"; return; }
-    if (!/^https?:\/\/\S+$/i.test(u)) { hint.textContent = u ? "URL は https:// から始まる形で入れてください。" : "記事の URL を入れると、送れるようになります。送るには GitHub のアカウント（無料）が必要です。"; return; }
-    send.href = issueUrl("記事の追加のお願い：" + (t || u), `記事の URL：${u}\nタイトル：${t || "（不明）"}\n\nひとこと：\n${n}\n`);
+    if (!hasFeedback) { hint.textContent = "このページから送るには、サイトを GitHub Pages で公開している必要があります。"; return; }
+    if (!/^https?:\/\/\S+$/i.test(u)) { hint.textContent = u ? "URL は https:// から始まる形で入れてください。" : usesForm ? "記事の URL を入れると、送れるようになります。" : "記事の URL を入れると、送れるようになります。送るには GitHub のアカウント（無料）が必要です。"; return; }
+    send.href = feedbackUrl({ kind: KIND.add, title: "記事の追加のお願い：" + (t || u), page: `${t || "（タイトル不明）"}\n${u}`, content: n });
     send.removeAttribute("aria-disabled");
-    hint.textContent = "押すと GitHub の画面が開きます。内容を確かめて「Submit new issue」を押すと送られます（GitHub のアカウントが必要です）。";
+    hint.textContent = usesForm ? "押すとフォームが開きます。内容を確かめて「送信」を押すと送られます（アカウントは不要です）。" : "押すと GitHub の画面が開きます。内容を確かめて「Submit new issue」を押すと送られます（GitHub のアカウントが必要です）。";
   };
   for (const el of [url, title, note]) el.addEventListener("input", update);
   send.addEventListener("click", (e) => { if (send.getAttribute("aria-disabled") === "true") e.preventDefault(); });
@@ -836,17 +837,8 @@ function showAdd() {
 
 /* ---------- 運営管理（#admin） ---------- */
 
-// GitHub のリポジトリの URL（config.js に書いたもの。なければ ○○.github.io の URL から見つける）
-function repoUrl() {
-  if (config.repoUrl) return config.repoUrl.replace(/\/+$/, "");
-  const m = location.hostname.match(/^([a-z0-9-]+)\.github\.io$/i);
-  if (!m) return "";
-  const first = location.pathname.split("/").filter(Boolean)[0];
-  const repo = first && !/\.html?$/i.test(first) ? first : location.hostname;
-  return `https://github.com/${m[1]}/${repo}`;
-}
+// GitHub のリポジトリの URL（運営管理のリンクに使います。見つけ方は feedback.js の repoUrl）
 const REPO = repoUrl();
-const issueUrl = (title, body) => `${REPO}/issues/new?title=${encodeURIComponent(title)}&body=${encodeURIComponent(body)}`;
 
 // ほかのサイトの中に埋め込まれて（iframe で）表示されているか。
 // そのときは運営管理を動かしません（見えない枠の上から、保存のボタンを押させる手口を防ぐため）。
@@ -952,10 +944,11 @@ function onHash() {
 }
 window.addEventListener("hashchange", () => { if (location.hash !== "#archive") onHash(); });
 
-if (REPO) {
-  $("#report").href = issueUrl("記事の誤り・リンク切れのお知らせ", "記事のタイトルか URL：\n\n気づいたこと：\n");
+if (hasFeedback) {
+  $("#report").href = feedbackUrl({ kind: KIND.error, title: "記事の誤り・リンク切れのお知らせ" });
   $("#report").hidden = false;
 }
+setupBeta($("#listView"));
 saveMarks(); // 以前の「お気に入り」を「あとで読む」にまとめた結果を保存
 readURL();
 S.lastEntry = entryOfState();
