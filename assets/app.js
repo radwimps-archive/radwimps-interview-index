@@ -14,6 +14,7 @@ import {
   VIDEO_KIND, RADIO_KIND, LIVE_KIND, INTERVIEW_KIND, OTHERS_KIND, LANG_BADGE, youtubeId, formatOf
 } from "./data.js";
 import { h, isAdminDevice, setAdminDevice, setupMenu, downloadFile } from "./ui.js";
+import { encodeMarks, decodeMarks, PREFIX as TRANSFER } from "./transfer.js";
 import { feedbackUrl, hasFeedback, usesForm, repoUrl, setupBeta, KIND } from "./feedback.js";
 
 /* ---------- 共通の道具 ---------- */
@@ -754,8 +755,9 @@ function showBackup() {
     h("ul", { class: "counts" },
       h("li", null, h("span", { text: "あとで読む" }), h("b", { text: `${count("lt")} 件` })),
       h("li", null, h("span", { text: "既読" }), h("b", { text: `${count("rd")} 件` }))),
-    h("p", { text: "「あとで読む」と「既読」は、このブラウザだけに保存しています。ほかの端末やブラウザには共有されません。機種変更やブラウザのデータ消去の前に、ファイルに書き出しておくと、あとで読み込めます。" }),
-    h("div", { class: "panelbtns" }, exportBtn, importBtn), file, msg
+    h("p", { text: "「あとで読む」と「既読」は、このブラウザだけに保存しています。ほかの端末で使いたいときは、下の「ほかの端末に引き継ぐ」でリンク（QR コード）を作ってください。機種変更やブラウザのデータ消去の前に、ファイルに書き出しておくこともできます。" }),
+    h("div", { class: "panelbtns" }, exportBtn, importBtn), file, msg,
+    transferBox()
   ];
   if (S.admin) {
     const off = h("button", { type: "button", class: "btn plain", text: "管理者モードをオフにする" });
@@ -763,6 +765,82 @@ function showBackup() {
     nodes.push(h("p", { class: "small-note", text: "この端末は管理者モードです。メニューに「運営管理」が出ています。" }), off);
   }
   openModal(nodes);
+}
+
+/* ---------- ほかの端末に引き継ぐ（リンク・QR コード。会員登録なし。しくみは transfer.js） ---------- */
+
+function transferBox() {
+  const make = h("button", { type: "button", class: "btn primary", text: "引き継ぎ用のリンクを作る" });
+  const out = h("div", { class: "transfer-out", hidden: true });
+  const tmsg = h("p", { class: "msg", role: "status" });
+  make.addEventListener("click", async () => {
+    const later = Object.keys(S.marks.lt), read = Object.keys(S.marks.rd);
+    tmsg.classList.remove("err");
+    if (!later.length && !read.length) { tmsg.textContent = "まだ「あとで読む」も「既読」もありません。"; return; }
+    const url = location.origin + location.pathname + TRANSFER + await encodeMarks({ later, read });
+    const copy = h("button", { type: "button", class: "btn", text: "リンクをコピー" });
+    const field = h("input", { type: "text", readonly: true, class: "transfer-url", "aria-label": "引き継ぎ用のリンク", value: url });
+    copy.addEventListener("click", async () => {
+      try { await navigator.clipboard.writeText(url); tmsg.textContent = "コピーしました。メモやメールで、引き継ぎたい端末に送ってください。"; }
+      catch { field.select(); tmsg.textContent = "上のリンクを長押しして、コピーしてください。"; }
+    });
+    const kids = [];
+    if (url.length <= 2200) {
+      try {
+        const { qrcode } = await import("./qrcode.js");
+        const qr = qrcode(0, "L");
+        qr.addData(url);
+        qr.make();
+        kids.push(h("img", { class: "transfer-qr", src: qr.createDataURL(4, 4), alt: "引き継ぎ用の QR コード" }),
+          h("p", { class: "hint", text: "引き継ぎたい端末のカメラで、この QR コードを読み取ってください。" }));
+      } catch { /* QR コードが作れなくても、リンクは使える */ }
+    } else {
+      kids.push(h("p", { class: "hint", text: "記録が多いので、QR コードは出せません。リンクをコピーして送ってください。" }));
+    }
+    kids.push(field, h("div", { class: "panelbtns" }, copy));
+    out.replaceChildren(...kids);
+    out.hidden = false;
+    tmsg.textContent = `あとで読む ${later.length} 件・既読 ${read.length} 件のリンクを作りました。`;
+  });
+  return h("section", { class: "transfer" },
+    h("h3", { text: "ほかの端末に引き継ぐ" }),
+    h("p", { text: "スマホとパソコンなど、ほかの端末でも同じ記録を使いたいときに。リンク（QR コード）を作って、引き継ぎたい端末で開くと、そのブラウザに追加されます。会員登録は不要です。" }),
+    h("p", { class: "small-note", text: "リンクに入っているのは記事の番号だけで、名前などの個人情報は入っていません。リンクの中身はサーバーに送られず、運営にも記録されません。ただし、リンクを知っている人は同じ記録を読み込めます。" }),
+    h("div", { class: "panelbtns" }, make), tmsg, out);
+}
+
+// 引き継ぎ用のリンクから開いたとき：このブラウザに追加してよいかを確かめてから読み込む
+async function receiveTransfer() {
+  const code = location.hash.slice(TRANSFER.length);
+  history.replaceState(null, "", location.pathname + location.search);
+  const data = await decodeMarks(code);
+  if (!data) {
+    openModal([h("p", { class: "modal-eyebrow", text: "TRANSFER" }), h("h2", { id: "modalTitle", text: "引き継ぎ" }),
+      h("p", { text: "このリンクは読み込めませんでした。リンクが途中で切れていないか確かめてください。古いブラウザでは読み込めないことがあります。" })]);
+    return;
+  }
+  const yes = h("button", { type: "button", class: "btn primary", text: "このブラウザに追加する" });
+  const no = h("button", { type: "button", class: "btn", text: "やめる" });
+  const msg = h("p", { class: "msg", role: "status" });
+  no.addEventListener("click", closeModal);
+  yes.addEventListener("click", () => {
+    const add = (kind, list) => { let n = 0; for (const id of list) if (!S.marks[kind][id]) { S.marks[kind][id] = 1; n++; } return n; };
+    const nl = add("lt", data.later), nr = add("rd", data.read);
+    saveMarks();
+    renderMenu();
+    render();
+    yes.remove(); no.textContent = "閉じる";
+    msg.textContent = `追加しました（あとで読む ${nl} 件・既読 ${nr} 件）。今ある記録はそのまま残ります。`;
+  });
+  openModal([
+    h("p", { class: "modal-eyebrow", text: "TRANSFER" }),
+    h("h2", { id: "modalTitle", text: "記録を引き継ぐ" }),
+    h("ul", { class: "counts" },
+      h("li", null, h("span", { text: "あとで読む" }), h("b", { text: `${data.later.length} 件` })),
+      h("li", null, h("span", { text: "既読" }), h("b", { text: `${data.read.length} 件` }))),
+    h("p", { text: "ほかの端末の「あとで読む」「既読」を、このブラウザに追加しますか？ 今ある記録は消えません。" }),
+    h("div", { class: "panelbtns" }, yes, no), msg
+  ]);
 }
 
 function exportMarks(msg) {
@@ -942,7 +1020,7 @@ function onHash() {
   if (r.dialog === "add") { history.replaceState(null, "", location.pathname + location.search); showAdd(); }
   if (r.dialog === "backup") { history.replaceState(null, "", location.pathname + location.search); showBackup(); }
 }
-window.addEventListener("hashchange", () => { if (location.hash !== "#archive") onHash(); });
+window.addEventListener("hashchange", () => { if (location.hash.startsWith(TRANSFER)) receiveTransfer(); else if (location.hash !== "#archive") onHash(); });
 
 if (hasFeedback) {
   $("#report").href = feedbackUrl({ kind: KIND.error, title: "記事の誤り・リンク切れのお知らせ" });
@@ -950,8 +1028,9 @@ if (hasFeedback) {
 }
 setupBeta($("#listView"));
 saveMarks(); // 以前の「お気に入り」を「あとで読む」にまとめた結果を保存
+const transferOpen = location.hash.startsWith(TRANSFER);
 readURL();
 S.lastEntry = entryOfState();
 syncFilterPanel();
-onHash();
+if (transferOpen) { render(); receiveTransfer(); } else onHash();
 loadData();
