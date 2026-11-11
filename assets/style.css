@@ -705,3 +705,66 @@ dialog.modal::backdrop { background: rgba(23, 32, 24, .5); -webkit-backdrop-filt
 /* ---------- 送信フォーム（feedback.js。運営者のメールに届きます） ---------- */
 .addform select { width: 100%; min-width: 0; min-height: 44px; padding: 9px 12px; border: 1px solid #CFD2C5; border-radius: 3px; background: var(--white); color: var(--ink); font-size: 16px; }
 .fb-trap { position: absolute; left: -9999px; width: 1px; height: 1px; opacity: 0; }
+
+/* ---------- ライブのセトリ（setlist.html） ----------
+   年表の見た目（.hist-…）を土台に、セットリストのカード（.sl-live）と曲名の札（.sl-chip）を足しています。 */
+.sl-tab { min-width: 92px; justify-content: center; font-size: 14px; }
+.sl-tab::before { display: none; }
+.sl-legend { display: grid; gap: 6px; margin: 14px 0 0; font-size: 11px; line-height: 1.6; color: var(--muted); }
+.sl-legend span { display: flex; align-items: baseline; gap: 8px; }
+.sl-legend .sl-conf { flex: none; }
+/* 確かさの札（確認済み・未確認・一部・映像） */
+.sl-conf { display: inline-block; padding: 1px 7px; border: 1px solid; border-radius: 10px; font-size: 10.5px; line-height: 1.6; white-space: nowrap; }
+.conf-ok { border-color: var(--accent); background: var(--accent); color: var(--white); }
+.conf-fan { border-color: #C9A24A; background: #FBF4E2; color: #6E5418; }
+.conf-part { border-color: var(--line-input); background: var(--card); color: var(--ink-2); }
+.conf-video { border-color: var(--accent-soft); background: var(--accent-tint); color: var(--accent); }
+/* ライブ：公演のカード */
+.sl-lives { padding-block: 8px 24px; }
+.sl-view { padding-bottom: 10px; }
+.sl-live { margin: 0 0 10px; border: 1px solid var(--line-card); border-radius: 10px; background: var(--card); }
+.sl-live summary { position: relative; display: block; padding: 14px 44px 14px 16px; cursor: pointer; list-style: none; }
+.sl-live summary::-webkit-details-marker { display: none; }
+.sl-live summary::after { content: "＋"; position: absolute; right: 16px; top: 50%; transform: translateY(-50%); color: var(--muted); font-size: 16px; }
+.sl-live[open] summary::after { content: "−"; }
+.sl-live summary:hover { background: var(--accent-tint); border-radius: 10px; }
+.sl-live-name { margin: 2px 0 2px; font-size: 15px; font-weight: 700; line-height: 1.55; text-wrap: pretty; }
+.sl-live-venue { display: flex; flex-wrap: wrap; gap: 2px 10px; margin: 0; font-size: 12px; color: var(--muted); }
+.sl-count { font-family: var(--f-mono); }
+.sl-live-body { padding: 0 16px 16px; border-top: 1px solid var(--rule); }
+.sl-songs { margin: 12px 0 0; padding-left: 2.4em; font-size: 14px; line-height: 1.5; }
+.sl-songs li { padding: 2px 0; }
+.sl-songs li::marker { font-family: var(--f-mono); font-size: 11px; color: var(--muted); }
+.sl-song { padding: 2px 0; border: 0; background: none; color: var(--ink); font: inherit; text-align: left; text-decoration: underline dotted var(--line-input); text-underline-offset: 4px; cursor: pointer; }
+.sl-song:hover { color: var(--accent); }
+.sl-memo { margin-left: 8px; font-size: 11px; color: var(--muted); }
+.sl-encore { margin: 14px 0 0; font-size: 12px; font-weight: 700; letter-spacing: .08em; color: var(--accent); }
+.sl-info { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 4px 12px; margin: 16px 0 0; padding-top: 12px; border-top: 1px dashed var(--rule); font-size: 12px; line-height: 1.7; }
+.sl-info dt { color: var(--muted); }
+.sl-info dd { margin: 0; color: var(--ink-2); overflow-wrap: anywhere; }
+.sl-info a { color: var(--accent); }
+/* 年表：曲名で探す欄と、曲名の札 */
+.sl-nenpyo { padding-block: 14px 24px; }
+.sl-finder { padding: 14px 16px; border: 1px solid var(--line-card); border-radius: 10px; background: var(--card); }
+.sl-finder-row { display: flex; gap: 8px; margin-top: 6px; }
+.sl-finder input { flex: 1; min-width: 0; max-width: 440px; padding: 11px 14px; border: 1px solid var(--line-input); border-radius: 8px; background: var(--field); color: var(--ink); font-size: 16px; }
+.sl-clear { flex: none; padding: 0 16px; border: 1px solid var(--line-input); border-radius: 8px; background: var(--white); color: var(--ink); font-size: 13px; }
+.sl-song-info { margin-top: 10px; }
+.sl-song-head { margin: 0; font-size: 14px; line-height: 1.7; }
+.sl-song-head b { color: var(--accent); }
+.sl-song-sub { margin: 4px 0 0; font-size: 12px; line-height: 1.7; color: var(--muted); }
+.sl-chips { display: flex; flex-wrap: wrap; align-items: center; gap: 5px; margin-top: 8px; }
+.sl-chip { padding: 4px 9px; border: 1px solid var(--line-entry); border-radius: 14px; background: var(--card); color: var(--ink); font-size: 12px; line-height: 1.4; cursor: pointer; }
+.sl-chip small { font-family: var(--f-mono); font-size: 10.5px; color: var(--muted); }
+.sl-chip:hover { background: var(--accent-tint); }
+.sl-chip.on { border-color: var(--accent); background: var(--accent); color: var(--white); }
+.sl-enc-mark { padding: 0 2px 0 6px; font-size: 10.5px; color: var(--accent); letter-spacing: .05em; }
+.sl-enc-mark::before { content: "／ "; color: var(--muted); }
+.hist-title .sl-to-live { color: inherit; text-decoration: underline dotted var(--line-input); text-underline-offset: 4px; }
+.hist-title .sl-to-live:hover { color: var(--accent); }
+@media (min-width: 701px) {
+  .sl-legend { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .setlist-page .hist-view.sl-view { position: static; width: auto; height: auto; margin: 0; overflow: visible; clip-path: none; white-space: normal; }
+  .sl-live-name { font-size: 17px; }
+  .setlist-page .sl-chips { grid-column: 2; }
+}

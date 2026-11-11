@@ -337,7 +337,8 @@ function renderEntry() {
     }
     const list = [...tours.entries()].sort((a, b) => (a[1] < b[1] ? 1 : a[1] > b[1] ? -1 : ja(a[0], b[0])));
     html = `<label class="panel-label">ツアー・イベントを選ぶ<select id="tourChoice"><option value="">すべてのツアー・イベント</option>${list.map(([n]) => `<option${F.tour === n ? " selected" : ""}>${esc(n)}</option>`).join("")}</select></label>`
-      + `<p class="browse-note">${ENTRY_NOTES.live}</p>`;
+      + `<p class="browse-note">${ENTRY_NOTES.live}</p>`
+      + `<p class="browse-note"><a href="setlist.html">ライブで演奏した曲（セットリスト・年表）を見る →</a></p>`;
   }
   panel.innerHTML = html;
   if (keepSearch) filterPeople(keepSearch);

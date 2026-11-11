@@ -466,6 +466,73 @@ export function parseHistory(text) {
   return { events, errors, warnings };
 }
 
+/* ---------- ライブのセトリ（setlists.csv） ---------- */
+
+// 「ライブのセトリ」のページ（setlist.html）のデータです。1行が1つの公演です。
+//   本編・アンコール：曲名を「／」で区切って、演奏した順に書きます（例：DADA／有心論）。
+//   曲名のうしろの（　）は、その曲のメモです（例：25コ目の染色体（アコースティック）、Tokyo（feat. iri））。
+//   （　）の前までが曲名として数えられるので、同じ曲は同じ書き方にそろえてください。
+//   確かさ：SETLIST_CONFIDENCE のどれか（ページでは、色のちがう札で表示します）
+export const SETLIST_CONFIDENCE = [
+  { name: "確認済み", slug: "ok", label: "確認済み", desc: "報道のライブレポートに載ったセットリスト" },
+  { name: "未確認", slug: "fan", label: "未確認（ファンの投稿）", desc: "ファンが投稿するサイト（LiveFans など）の情報。まちがいがあるかもしれません" },
+  { name: "一部", slug: "part", label: "一部だけ", desc: "ライブレポートの本文に出てくる曲を順に並べたもの。全曲ではない可能性があります" },
+  { name: "映像", slug: "video", label: "映像の収録曲", desc: "ライブ映像の作品に収められた曲。ツアーのいくつかの公演から選んだもので、1つの公演の曲順ではありません" }
+];
+const SETLIST_COLUMNS = {
+  "公演日": "date", "ライブ名": "name", "会場": "venue", "本編": "main", "アンコール": "encore", "ゲスト": "guests",
+  "確かさ": "conf", "出典": "source", "出典URL": "url", "メモ": "note"
+};
+const SETLIST_REQUIRED = ["公演日", "ライブ名", "本編", "確かさ"];
+
+// 曲名（（　）の前まで）と、メモ（（　）の中）に分けます：「25コ目の染色体（アコースティック）」→ { title: "25コ目の染色体", memo: "アコースティック" }
+export function splitSong(text) {
+  const m = String(text).trim().match(/^(.*?)\s*（([^（）]*)）$/);
+  return m && m[1] ? { title: m[1].trim(), memo: m[2].trim() } : { title: String(text).trim(), memo: "" };
+}
+// 同じ曲かどうかを見るための名前（全角・半角、空白、大文字・小文字のちがいは気にしない）
+export const songKey = (title) => nfkc(title).replace(/\s+/g, "").toLowerCase();
+
+// 戻り値：{ lives: 公演の一覧（古い順）, errors: 直す必要がある問題, warnings: 気をつけたい点 }
+export function parseSetlists(text) {
+  const lives = [], errors = [], warnings = [];
+  const err = (line, msg) => errors.push({ line, msg });
+  const warn = (line, msg) => warnings.push({ line, msg });
+  const { rows, lines, unclosedQuote, lastLine } = parseCSV(text);
+  if (unclosedQuote) err(lastLine, "「\"」で始めた項目が閉じられていません。\" の数を確かめてください");
+  if (!rows.length || rows.every((r) => r.every((c) => !c.trim()))) { err(1, "ファイルが空です"); return { lives, errors, warnings }; }
+  const col = readHeader(rows, SETLIST_COLUMNS, SETLIST_REQUIRED, errors, warnings);
+  if (errors.length) return { lives, errors, warnings };
+  const confNames = SETLIST_CONFIDENCE.map((c) => c.name).join("・");
+
+  for (let r = 1; r < rows.length; r++) {
+    const cells = rows[r], line = lines[r];
+    if (cells.every((c) => !c.trim())) continue;
+    const get = (key) => (col[key] === undefined ? "" : String(cells[col[key]] ?? "").trim());
+    const before = errors.length;
+    const name = get("name");
+    if (!name) err(line, "ライブ名が空欄です");
+    if (!get("date")) err(line, "公演日が空欄です（「2019-08-29」のように書きます。日にちがわからないときは「2019-08」）");
+    const date = readDateCell(get("date"), line, err);
+    const songs = (s) => splitList(s, /[／]/).map(splitSong);
+    const main = songs(get("main")), encore = songs(get("encore"));
+    if (!main.length) err(line, "本編の曲が空欄です（曲名を「／」で区切って書きます）");
+    // 曲の区切りは全角の「／」だけ（半角の「/」は曲名の一部として読む）
+    if (/\//.test(get("main") + get("encore"))) warn(line, "曲の区切りは全角の「／」です。半角の「/」は曲名の一部として読みます");
+    const conf = SETLIST_CONFIDENCE.find((c) => c.name === nfkc(get("conf")));
+    if (!conf) err(line, `確かさ「${get("conf")}」は使えません。${confNames} のどれかを書いてください`);
+    let url = get("url");
+    if (url && !/^https:\/\/[^\s"<>]+$/.test(url)) { warn(line, "出典URL は https:// で始まるものだけ使えます（このリンクは出ません）"); url = ""; }
+    if (!url && conf && conf.slug !== "video") warn(line, "出典URL が空欄です（どこで確かめたかを残しておくと、あとで見直せます）");
+    if (errors.length > before) continue;
+    const [y, m = 0, d = 0] = date.split("-").map((v) => +v || 0);
+    lives.push({ line, i: lives.length, date, y, m, d, name, venue: get("venue"), main, encore,
+      guests: splitList(get("guests"), /[、,]/), conf, source: get("source"), url, note: get("note") });
+  }
+  lives.sort((a, b) => a.y - b.y || a.m - b.m || a.d - b.d || a.i - b.i);
+  return { lives, errors, warnings };
+}
+
 /* ---------- CSV の1行を作る（記事データ作成ツール用） ---------- */
 
 export const ARTICLE_HEADER = ["状態", "年", "月", "日", "媒体", "種類", "カテゴリ", "タイトル", "URL", "メンバー", "対談相手", "タグ", "言語", "メモ", "説明", "公演日", "ライブ名", "会場", "id"];
