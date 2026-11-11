@@ -108,9 +108,12 @@ body::before { content: ""; position: fixed; inset: 0 0 auto; height: env(safe-a
 /* メニュー：帯のすぐ下から 0.3 秒で降りてくる（帯より上には出ない） */
 .menu-clip { position: absolute; top: 60px; left: 0; right: 0; overflow: hidden; pointer-events: none; }
 .menu-clip.open { pointer-events: auto; box-shadow: var(--shadow); }
-.menu-panel { display: flex; flex-direction: column; padding-bottom: 8px; background: var(--white); transform: translateY(-100%); transition: transform .3s var(--ease); }
+.menu-panel { display: flex; flex-direction: column; padding: 6px 0 14px; background: var(--white); transform: translateY(-100%); transition: transform .3s var(--ease); }
 .menu-clip.open .menu-panel { transform: none; }
-.nav-item { display: flex; align-items: center; justify-content: space-between; min-height: 38px; margin: 0 24px; padding: 6px 0 0; border: 0; border-bottom: 1px solid var(--rule); background: none; color: var(--ink); font-size: 12px; text-align: left; text-decoration: none; white-space: nowrap; }
+.nav-item { display: flex; align-items: center; justify-content: space-between; gap: 12px; min-height: 60px; margin: 0 20px; padding: 0 4px; border: 0; border-bottom: 1px solid var(--rule); background: none; color: var(--ink); font-size: 17px; font-weight: 600; letter-spacing: .02em; text-align: left; text-decoration: none; white-space: nowrap; }
+.nav-item:last-child { border-bottom: 0; }
+.nav-item span { font-size: 15px; font-weight: 500; color: var(--muted); }
+.nav-item:active { background: var(--accent-tint); }
 .nav-item[aria-current="page"], .nav-item:hover { color: var(--accent); }
 .nav-item span { font-variant-numeric: tabular-nums; }
 
