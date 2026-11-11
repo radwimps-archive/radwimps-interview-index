@@ -18,6 +18,11 @@ export default {
   // 正式に公開するときは false にします。
   beta: true,
 
+  // ご意見・不具合をメールで受け取る設定（Web3Forms という無料のメール転送サービスを使います。マニュアル13-2）。
+  // key：Web3Forms から届いた「Access Key」（英数字とハイフン）。書くと、サイトの中の送信フォームから運営者のメールに届きます。
+  //      メールアドレスはサイトに出ません。空欄のあいだは、下の Google フォーム → GitHub の Issue の順に使います。
+  mail: { key: "" },
+
   // ご意見・不具合の受付先（Google フォーム）。
   // url：フォームの「送信」→ リンクの URL（https://docs.google.com/forms/… か https://forms.gle/…）。
   //      空欄（""）のあいだは、今までどおり GitHub の Issue に送る形になります（GitHub のアカウントが必要）。
