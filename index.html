@@ -40,6 +40,7 @@
   <div class="menu-clip" id="menuClip" inert aria-hidden="true">
     <nav class="menu-panel" aria-label="メニュー">
       <a class="nav-item" href="./" data-go="list">記事一覧 <span aria-hidden="true">↗</span></a>
+      <a class="nav-item" href="./?status=fav" data-go="fav">お気に入り <span id="favCount">0</span></a>
       <a class="nav-item" href="./?status=later" data-go="later">あとで読む <span id="laterCount">0</span></a>
       <a class="nav-item" href="history.html">RADWIMPSの歩み <span aria-hidden="true">↗</span></a>
       <a class="nav-item" href="members.html">メンバー・人物紹介 <span aria-hidden="true">↗</span></a>
@@ -124,7 +125,7 @@
               <div class="sidebar-note">
                 <span class="small-symbol" aria-hidden="true">＊</span>
                 <p>気になる言葉を、少しずつ。</p>
-                <span>あとで読む・既読は、このブラウザに記録されます。</span>
+                <span>お気に入り・あとで読む・既読は、このブラウザに記録されます。</span>
                 <button type="button" data-act="backup">保存データの管理 ↗</button>
               </div>
             </div>
@@ -238,7 +239,7 @@
   <p>リンク先でインタビューやライブレポートの内容が読める・見られる・聴けるものを載せています。有料会員限定のもの（ファンクラブ「ボクンチ」など）は載せていません。ラジオ番組の放送回は「ラジオ」のタブに、雑誌の掲載号の案内や発売のお知らせなど、本文が読めない資料は「リリース情報」のタブに分けています。</p>
   <p>「説明」は、記事の内容がわかるように運営が書いた紹介文で、掲載元の文章の転載ではありません。掲載日が「年」や「年・月」までのものは、確認できた範囲で記載しています。掲載元のタイトルを確認できなかった記事には、内容がわかる見出しを付けています。</p>
   <p>リンクは定期的に確認し、開けなくなった記事は一覧から外しています。主な出典は、RADWIMPS 公式サイトの MEDIA 欄と、各媒体の記事ページです。</p>
-  <p><span data-analytics="off">このサイトでは、アクセス解析（訪問者の記録）や広告のための追跡はしていません。</span><span data-analytics="on" hidden>このサイトでは、どのページがどれくらい見られているかを知るために、Cloudflare Web Analytics でアクセス数を数えています。Cookie は使わず、名前やメールアドレスなどの個人を特定できる情報は集めていません。広告のための追跡はしていません。</span>「あとで読む」「既読」は、このブラウザの中だけに保存され、運営を含めほかの人には送られません（ブラウザのデータを消すと消えます。「保存データの管理」から、ファイルに書き出したり、引き継ぎ用のリンクでほかの端末に移したりできます。リンクの中身もサーバーには送られません）。動画のサムネイル画像と再生には YouTube（Google）のしくみを使っているため、その部分には YouTube と Google の決まりが適用されます。</p>
+  <p><span data-analytics="off">このサイトでは、アクセス解析（訪問者の記録）や広告のための追跡はしていません。</span><span data-analytics="on" hidden>このサイトでは、どのページがどれくらい見られているかを知るために、Cloudflare Web Analytics でアクセス数を数えています。Cookie は使わず、名前やメールアドレスなどの個人を特定できる情報は集めていません。広告のための追跡はしていません。</span>「お気に入り」「あとで読む」「既読」は、このブラウザの中だけに保存され、運営を含めほかの人には送られません（ブラウザのデータを消すと消えます。「保存データの管理」から、ファイルに書き出したり、引き継ぎ用のリンクでほかの端末に移したりできます。リンクの中身もサーバーには送られません）。動画のサムネイル画像と再生には YouTube（Google）のしくみを使っているため、その部分には YouTube と Google の決まりが適用されます。</p>
 </template>
 
 <div id="toast" class="toast" role="status" aria-live="polite"></div>

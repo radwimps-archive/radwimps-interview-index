@@ -37,6 +37,8 @@
   --read-text: #5D6580;
   --read-label: #113584;
   --save-off: #87907B;     /* 「あとで読む」をまだ押していない印 */
+  --fav: #B23F5C;          /* 「お気に入り」を押した印（ハート） */
+  --fav-tint: #F7E8EC;
   --live: #2457B2;         /* 公演日・ライブの情報 */
   --note-ink: #755D38;     /* 参考資料などの注意書き */
   --note-line: #C4AB79;
@@ -243,6 +245,7 @@ body::before { content: ""; position: fixed; inset: 0 0 auto; height: env(safe-a
 .save-button svg { width: 20px; height: 20px; }
 .save-button[aria-pressed="true"] { background: var(--accent-tint); color: var(--accent); }
 .save-button[aria-pressed="true"] svg path { fill: currentColor; }
+.fav-button[aria-pressed="true"] { background: var(--fav-tint); color: var(--fav); }
 
 .card-main { display: grid; grid-template-columns: 64px minmax(0, 1fr); gap: 11px; align-items: start; }
 .card-thumbnail { position: relative; width: 64px; height: 64px; overflow: hidden; border-radius: 5px; background: #E9E9DE; }
