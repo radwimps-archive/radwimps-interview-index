@@ -55,7 +55,7 @@
   <section class="hero wrap" aria-labelledby="songsTitle">
     <p class="eyebrow">SONGS <span id="songCount"></span></p>
     <h1 id="songsTitle">楽曲一覧</h1>
-    <p class="hero-description">RADWIMPS の曲を、初めて世に出た順に並べました。曲名・初めて出た作品（シングル・アルバムなど）・発売日・タイアップがわかります。「歌詞を見る」を押すと、歌詞の掲載を許諾されている歌詞サイト（歌ネット・UtaTen）が新しいタブで開きます。「記事」を押すと、その曲にふれたインタビューの一覧が開きます。</p>
+    <p class="hero-description">RADWIMPS の曲を、初めて世に出た順（「50音順」に切り替えもできます）に並べました。曲名・初めて出た作品（シングル・アルバムなど）・発売日・タイアップがわかります。「歌詞を見る」を押すと、歌詞の掲載を許諾されている歌詞サイト（歌ネット・UtaTen）が新しいタブで開きます。「記事」を押すと、その曲にふれたインタビューの一覧が開きます。</p>
     <p class="song-lyric-note">歌詞には著作権があるため、このサイトには歌詞を載せていません。歌詞は、各歌詞サイトや配信サービスでご覧ください。</p>
   </section>
 
@@ -63,6 +63,11 @@
     <div class="search-row">
       <label class="search-box"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
         <input id="songQ" type="search" placeholder="曲名・作品名・タイアップで探す" aria-label="曲を探す" autocomplete="off" enterkeyhint="search"></label>
+    </div>
+    <div class="song-order" role="group" aria-label="並び順" id="songOrder">
+      <span class="song-order-label">並び順</span>
+      <button type="button" class="song-order-btn" data-order="date" aria-pressed="true">発売順</button>
+      <button type="button" class="song-order-btn" data-order="kana" aria-pressed="false">50音順</button>
     </div>
     <div class="hist-tabs song-kinds" role="group" aria-label="種類で絞り込む" id="songKinds"></div>
   </div>

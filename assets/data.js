@@ -477,7 +477,7 @@ export const LYRIC_HOSTS = ["www.uta-net.com", "uta-net.com", "utaten.com", "www
 export const SONG_NOTE_MAX = 120;
 
 const SONG_COLUMNS = {
-  "曲名": "title", "初めて出た作品": "work", "種類": "kind", "年": "y", "月": "m", "日": "d",
+  "曲名": "title", "読み": "yomi", "初めて出た作品": "work", "種類": "kind", "年": "y", "月": "m", "日": "d",
   "アルバム": "album", "タイアップ": "tieup", "歌詞URL": "lyrics", "メモ": "note"
 };
 const SONG_REQUIRED = ["曲名", "年"];
@@ -512,6 +512,8 @@ export function parseSongs(text) {
       warn(line, `歌詞URL は、許諾を受けた歌詞サイトか公式の配信の https:// の URL だけ使えます（${LYRIC_HOSTS.filter((h) => !h.startsWith("www.")).join("・")}）。このリンクは出ません`);
       lyrics = "";
     }
+    const yomi = nfkc(get("yomi")).replace(/\s+/g, "");
+    if (yomi && !/^[ぁ-ゖァ-ヺー]+$/.test(yomi)) warn(line, `読み「${yomi}」は、ひらがなで書いてください（50音順の並びに使います）`);
     const note = get("note");
     if ([...note].length > SONG_NOTE_MAX) err(line, `メモが長すぎます（${SONG_NOTE_MAX}文字まで）。歌詞の本文は、このサイトには書けません`);
     for (const k of ["title", "work", "album", "tieup"]) {
@@ -519,7 +521,7 @@ export function parseSongs(text) {
     }
     if (errors.length > before) continue;
     const [y, m, d] = date.split("-").map((v) => (v ? +v : 0));
-    songs.push({ line, i: songs.length, title, work: get("work"), kind: kind || "アルバム", y, m, d,
+    songs.push({ line, i: songs.length, title, yomi, work: get("work"), kind: kind || "アルバム", y, m, d,
       album: get("album"), tieup: get("tieup"), lyrics, note });
   }
   songs.sort((a, b) => a.y - b.y || a.m - b.m || a.d - b.d || a.i - b.i);

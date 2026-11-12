@@ -807,3 +807,9 @@ dialog.modal::backdrop { background: rgba(23, 32, 24, .5); -webkit-backdrop-filt
   .song-items { display: grid; grid-template-columns: 1fr 1fr; column-gap: 28px; }
   .song-item:nth-last-child(2):nth-child(odd) { border-bottom: 0; }
 }
+.song-order { display: flex; align-items: center; gap: 6px; margin-bottom: 10px; }
+.song-order-label { margin-right: 4px; font-size: 12px; color: var(--muted); }
+.song-order-btn { min-height: 36px; padding: 0 14px; border: 1px solid var(--line-entry); border-radius: 5px; background: var(--card); color: var(--ink); font-size: 13px; }
+.song-order-btn[aria-pressed="true"] { border-color: var(--accent); background: var(--accent-tint); color: var(--accent); font-weight: 700; }
+.song-row .hist-year-head span { font-family: var(--f-body); font-size: 26px; font-weight: 700; }
+@media (min-width: 701px) { .song-row .hist-year-head span { font-size: 30px; } }

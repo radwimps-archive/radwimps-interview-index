@@ -30,7 +30,19 @@ const siteSearch = (host, title) => `https://www.google.com/search?q=${encodeURI
 const youtube = (id) => `https://www.youtube.com/watch?v=${id}`;
 
 const FILTERS = [{ slug: "all", name: "すべて" }, ...SONG_KINDS.map((k) => ({ slug: k, name: k })), { slug: "tieup", name: "タイアップ" }];
-let songs = [], current = "all", query = "";
+let songs = [], current = "all", query = "", order = "date";
+
+// 50音順：「読み」の列（なければ曲名）を、ひらがなにそろえて並べます。英語や数字で始まる曲は、最後の「英数字」にまとめます
+const ROWS = [["あ", "ぁ", "お"], ["か", "か", "ご"], ["さ", "さ", "ぞ"], ["た", "た", "ど"], ["な", "な", "の"], ["は", "は", "ぽ"],
+  ["ま", "ま", "も"], ["や", "ゃ", "よ"], ["ら", "ら", "ろ"], ["わ", "ゎ", "ん"]];
+const ABC = "英数字";
+const kanaKey = (s) => String(s || "").normalize("NFKC").toLowerCase()
+  .replace(/[ァ-ヶ]/g, (c) => String.fromCharCode(c.charCodeAt(0) - 0x60)).replace(/ゔ/g, "う").replace(STRIP, "");
+function rowOf(key) {
+  const c = key[0] || "";
+  const r = ROWS.find(([, a, b]) => c >= a && c <= b);
+  return r ? `${r[0]}行` : ABC;
+}
 
 const pad = (n) => String(n).padStart(2, "0");
 const dateLabel = (s) => `${s.y}${s.m ? "." + pad(s.m) : ""}${s.d ? "." + pad(s.d) : ""}`;
@@ -72,7 +84,8 @@ function load(songText, articleText, historyText) {
   const videos = historyText ? videoMap(parseHistory(historyText).events) : new Map();
   return parsed.songs.map((s) => {
     const base = baseTitle(s.title);
-    return { ...s, base, articles: count(base), video: videos.get(norm(base)) || null,
+    const sortKey = kanaKey(s.yomi || base);
+    return { ...s, base, sortKey, row: rowOf(sortKey), articles: count(base), video: videos.get(norm(base)) || null,
       _h: norm([s.title, s.work, s.album, s.tieup, s.note, s.kind].join(" ")) };
   });
 }
@@ -131,11 +144,16 @@ function render() {
   const box = $("#songs");
   box.replaceChildren();
   if (!list.length) { box.append(el("p", { class: "hist-loading", text: "見つかりませんでした。言葉を変えて探してみてください。" })); return; }
-  const years = new Map();
-  for (const s of list) (years.get(s.y) || years.set(s.y, []).get(s.y)).push(s);
-  for (const [y, items] of years) {
-    box.append(el("section", { class: "hist-year", "aria-labelledby": `sy${y}` },
-      el("h2", { id: `sy${y}`, class: "hist-year-head" }, el("span", { text: String(y) }), el("small", { text: `${items.length} 曲` })),
+  // 発売順は年ごと、50音順は「あ行」「か行」…「英数字」ごとにまとめる
+  const kana = order === "kana";
+  const sorted = kana ? [...list].sort((a, b) => (a.row === ABC) - (b.row === ABC) || a.sortKey.localeCompare(b.sortKey, "ja") || a.title.localeCompare(b.title, "ja")) : list;
+  const groups = new Map();
+  for (const s of sorted) { const g = kana ? s.row : s.y; (groups.get(g) || groups.set(g, []).get(g)).push(s); }
+  let n = 0;
+  for (const [g, items] of groups) {
+    const id = `sg${n++}`;
+    box.append(el("section", { class: `hist-year${kana ? " song-row" : ""}`, "aria-labelledby": id },
+      el("h2", { id, class: "hist-year-head" }, el("span", { text: String(g) }), el("small", { text: `${items.length} 曲` })),
       el("ol", { class: "song-items" }, ...items.map(songItem))));
   }
 }
@@ -147,6 +165,16 @@ $("#songKinds").addEventListener("click", (e) => {
   for (const x of document.querySelectorAll("#songKinds [data-kind]")) x.setAttribute("aria-pressed", String(x === b));
   render();
 });
+// 並び順（発売順・50音順）。URL の ?sort=kana で、50音順で開けます
+function setOrder(o) {
+  order = o === "kana" ? "kana" : "date";
+  for (const b of document.querySelectorAll("#songOrder [data-order]")) b.setAttribute("aria-pressed", String(b.dataset.order === order));
+  const u = new URL(location.href);
+  if (order === "kana") u.searchParams.set("sort", "kana"); else u.searchParams.delete("sort");
+  try { history.replaceState(null, "", u.pathname + u.search + u.hash); } catch { /* 変えられない環境 */ }
+  render();
+}
+$("#songOrder").addEventListener("click", (e) => { const b = e.target.closest("[data-order]"); if (b) setOrder(b.dataset.order); });
 let timer;
 $("#songQ").addEventListener("input", (e) => { clearTimeout(timer); timer = setTimeout(() => { query = e.target.value; render(); }, 150); });
 
@@ -168,7 +196,7 @@ if (isAdminDevice()) document.getElementById("adminLink").hidden = false;
     const p = new URLSearchParams(location.search);
     if (p.get("q")) { query = p.get("q").slice(0, 100); $("#songQ").value = query; }
     renderFilters();
-    render();
+    setOrder(p.get("sort"));
   } catch (e) {
     console.error(e);
     $("#songs").replaceChildren(el("p", { class: "hist-loading", text: "曲の一覧を読み込めませんでした。時間をおいて、もう一度開いてください。" }));
