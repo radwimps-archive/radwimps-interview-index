@@ -736,3 +736,5 @@ dialog.modal::backdrop { background: rgba(23, 32, 24, .5); -webkit-backdrop-filt
 .person-band { border-color: var(--accent-soft); background: var(--accent-tint); }
 .person-articles { align-self: flex-start; display: inline-flex; align-items: center; gap: 6px; min-height: 40px; color: var(--accent); font-size: 13px; font-weight: 600; text-decoration: none; }
 .person-articles:hover { text-decoration: underline; }
+.empty-alt { display: flex; flex-wrap: wrap; justify-content: center; gap: 8px; margin: 4px 0 14px; }
+.empty-alt:empty { display: none; }

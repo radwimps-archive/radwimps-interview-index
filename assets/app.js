@@ -164,6 +164,8 @@ function ingest(text) {
   S.parsed = parsed;
   S.items = parsed.items.filter((it) => it.state === "公開").map(prep);
   buildChoices();
+  // 人物紹介などから ?person=… で開いたとき（タブの指定がなければ）、記事のあるタブに合わせる
+  if (!new URLSearchParams(location.search).has("format") && (F.person || F.work || F.year)) fitFormat();
 }
 
 async function loadData() {
@@ -274,6 +276,28 @@ function passes(it, ts) {
   if (F.kind && it.kind !== F.kind) return false;
   for (const t of ts) if (!it._h.includes(t)) return false;
   return true;
+}
+
+// 種類のタブごとの件数（今のタブ以外の条件はそのまま）。今のタブに1件もないときに、ほかのタブへ案内するのに使います
+const FORMAT_NAMES = { text: "記事・資料", video: "動画インタビュー", radio: "ラジオ", release: "リリース情報" };
+function formatCounts() {
+  const keep = F.format, ts = terms(), counts = { text: 0, video: 0, radio: 0, release: 0 };
+  F.format = "all";
+  for (const it of S.items) if (passes(it, ts)) counts[it.format]++;
+  F.format = keep;
+  return counts;
+}
+// 人・作品・年を選んだとき、今のタブに1件もなければ、記事のあるタブに切り替える（1つのタブだけならそのタブ、いくつかなら「すべて」）
+//   ここで切り替えたタブは、次に選び直したとき「記事・資料」に戻してから合わせ直す（自分で選んだタブはそのまま）
+let autoFormat = "";
+function fitFormat() {
+  if (autoFormat && F.format === autoFormat) F.format = "text";
+  autoFormat = "";
+  if (F.format === "all" || isLiveView()) return;
+  const c = formatCounts();
+  if (c[F.format]) return;
+  const has = Object.keys(c).filter((k) => c[k]);
+  if (has.length) F.format = autoFormat = has.length === 1 ? has[0] : "all";
 }
 
 function filtered() {
@@ -526,6 +550,14 @@ function render() {
   $("#emptyText").textContent = F.status === "later" && !list.length && !F.q
     ? "まだ「あとで読む」に保存した記事はありません。カードの右上のしおりを押すと、ここに集まります。"
     : "条件を変えて、もう一度探してみてください。";
+  // 今のタブには無くても、ほかのタブにあるときは、そのタブへのボタンを出す
+  const alt = $("#emptyAlt");
+  alt.replaceChildren();
+  if (!list.length && F.format !== "all" && !isLiveView()) {
+    const c = formatCounts();
+    for (const k of Object.keys(c)) if (c[k] && k !== F.format) alt.append(h("button", { type: "button", class: "btn", "data-format-jump": k, text: `「${FORMAT_NAMES[k]}」に ${c[k]} 件あります` }));
+    if (alt.children.length) $("#emptyText").textContent = "このタブにはありませんが、ほかのタブにあります。";
+  }
   $("#resultCount").textContent = `${list.length} 件の記事`;
   writeURL();
 }
@@ -586,9 +618,9 @@ $("#entryTabs").addEventListener("click", (e) => {
 });
 $("#entryPanel").addEventListener("click", (e) => {
   const p = e.target.closest("[data-pick-person]"), w = e.target.closest("[data-pick-work]"), y = e.target.closest("[data-pick-year]");
-  if (p) { const v = p.dataset.pickPerson; F.person = F.person === v ? "" : v; if (!F.person) F.scope = ""; apply(); }
-  else if (w) { const v = w.dataset.pickWork; F.work = F.work === v ? "" : v; apply(); }
-  else if (y) { const v = y.dataset.pickYear; F.year = F.year === v ? "" : v; apply(); }
+  if (p) { const v = p.dataset.pickPerson; F.person = F.person === v ? "" : v; if (!F.person) F.scope = ""; fitFormat(); apply(); }
+  else if (w) { const v = w.dataset.pickWork; F.work = F.work === v ? "" : v; fitFormat(); apply(); }
+  else if (y) { const v = y.dataset.pickYear; F.year = F.year === v ? "" : v; fitFormat(); apply(); }
 });
 $("#entryPanel").addEventListener("change", (e) => {
   const t = e.target;
@@ -597,6 +629,7 @@ $("#entryPanel").addEventListener("change", (e) => {
   else if (t.id === "yearChoice") F.year = t.value;
   else if (t.id === "tourChoice") F.tour = t.value;
   else return;
+  fitFormat();
   apply();
 });
 $("#entryPanel").addEventListener("input", (e) => { if (e.target.id === "personSearch") filterPeople(e.target.value); });
@@ -610,7 +643,7 @@ $("#entryPanel").addEventListener("keydown", (e) => {
   const chips = $$("#entryPanel [data-pick-person]:not([hidden])");
   const pick = chips.find((b) => norm(b.dataset.pickPerson) === n) || (chips.length === 1 ? chips[0] : null);
   if (!pick) return;
-  if (F.person !== pick.dataset.pickPerson) { F.person = pick.dataset.pickPerson; apply(); }
+  if (F.person !== pick.dataset.pickPerson) { F.person = pick.dataset.pickPerson; fitFormat(); apply(); }
   $("#personSearch")?.blur();
   scrollToList();
 });
@@ -640,6 +673,10 @@ document.addEventListener("keydown", (e) => {
   $("#q").focus();
 });
 
+$("#emptyAlt").addEventListener("click", (e) => {
+  const b = e.target.closest("[data-format-jump]");
+  if (b) { F.format = b.dataset.formatJump; apply(); }
+});
 $("#formatTabs").addEventListener("click", (e) => {
   const b = e.target.closest("[data-format]");
   if (!b) return;
