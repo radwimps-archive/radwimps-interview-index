@@ -164,6 +164,7 @@ $("#songKinds").addEventListener("click", (e) => {
   current = b.dataset.kind;
   for (const x of document.querySelectorAll("#songKinds [data-kind]")) x.setAttribute("aria-pressed", String(x === b));
   render();
+  backToList();
 });
 // 並び順（発売順・50音順）。URL の ?sort=kana で、50音順で開けます
 function setOrder(o) {
@@ -173,10 +174,30 @@ function setOrder(o) {
   if (order === "kana") u.searchParams.set("sort", "kana"); else u.searchParams.delete("sort");
   try { history.replaceState(null, "", u.pathname + u.search + u.hash); } catch { /* 変えられない環境 */ }
   render();
+  backToList();
+}
+// 並び替え・絞り込みをしたとき、一覧の途中まで下りていたら、一覧のはじめに戻す（帯に隠れない位置）
+function backToList() {
+  const box = $("#songView");
+  const top = box.getBoundingClientRect().top + scrollY - 60 - bar.offsetHeight;
+  if (scrollY > top) scrollTo({ top });
 }
 $("#songOrder").addEventListener("click", (e) => { const b = e.target.closest("[data-order]"); if (b) setOrder(b.dataset.order); });
 let timer;
-$("#songQ").addEventListener("input", (e) => { clearTimeout(timer); timer = setTimeout(() => { query = e.target.value; render(); }, 150); });
+$("#songQ").addEventListener("input", (e) => { clearTimeout(timer); timer = setTimeout(() => { query = e.target.value; render(); backToList(); }, 150); });
+
+// 検索と並び順の帯：スクロールして上に張りついたら、少し小さくする
+const bar = $("#songBar");
+if ("IntersectionObserver" in window) {
+  new IntersectionObserver(([x]) => bar.classList.toggle("stuck", !x.isIntersecting), { rootMargin: `-${60 + 1}px 0px 0px 0px` }).observe($("#songSentinel"));
+}
+// いちばん上へ戻るボタン：下へスクロールを始めたら出す
+const toTop = $("#toTop");
+addEventListener("scroll", () => { toTop.hidden = scrollY < 200; }, { passive: true });
+toTop.addEventListener("click", () => {
+  scrollTo({ top: 0, behavior: matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth" });
+  $("#songQ").blur();
+});
 
 setupMenu();
 setupBeta(document.querySelector("#main").firstElementChild);

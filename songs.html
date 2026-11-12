@@ -59,16 +59,19 @@
     <p class="song-lyric-note">歌詞には著作権があるため、このサイトには歌詞を載せていません。歌詞は、各歌詞サイトや配信サービスでご覧ください。</p>
   </section>
 
+  <!-- 検索と並び順（スクロールしても上に残ります。スクロールすると少し小さくなります） -->
+  <div class="song-sentinel" id="songSentinel" aria-hidden="true"></div>
+  <div class="song-bar" id="songBar">
+    <div class="song-bar-inner wrap">
+      <label class="search-box song-search"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
+        <input id="songQ" type="search" placeholder="曲名などで探す" aria-label="曲を探す（曲名・作品名・タイアップ）" autocomplete="off" enterkeyhint="search"></label>
+      <div class="song-order" role="group" aria-label="並び順" id="songOrder">
+        <button type="button" class="song-order-btn" data-order="date" aria-pressed="true">発売順</button>
+        <button type="button" class="song-order-btn" data-order="kana" aria-pressed="false">50音順</button>
+      </div>
+    </div>
+  </div>
   <div class="song-tools wrap">
-    <div class="search-row">
-      <label class="search-box"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
-        <input id="songQ" type="search" placeholder="曲名・作品名・タイアップで探す" aria-label="曲を探す" autocomplete="off" enterkeyhint="search"></label>
-    </div>
-    <div class="song-order" role="group" aria-label="並び順" id="songOrder">
-      <span class="song-order-label">並び順</span>
-      <button type="button" class="song-order-btn" data-order="date" aria-pressed="true">発売順</button>
-      <button type="button" class="song-order-btn" data-order="kana" aria-pressed="false">50音順</button>
-    </div>
     <div class="hist-tabs song-kinds" role="group" aria-label="種類で絞り込む" id="songKinds"></div>
   </div>
 
@@ -86,5 +89,7 @@
   <p>UNOFFICIAL FAN ARCHIVE · 本人・所属事務所・各媒体とは関係ありません。</p>
   <div class="footer-links"><a href="./">記事一覧へ ↗</a><a href="history.html">RADWIMPSの歩みへ ↗</a></div>
 </footer>
+
+<button type="button" class="hist-top" id="toTop" aria-label="いちばん上へ" hidden>↑</button>
 </body>
 </html>
