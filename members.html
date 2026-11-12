@@ -1,0 +1,162 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<!-- 安全のための決まり（CSP）：このサイトと、決めた所（YouTube の埋め込み・サムネイル、GitHub の API）以外からは、プログラムや画像を読み込みません。
+     HTML の中に直接 <script> や style="…" を書くと動かなくなるので、assets フォルダのファイルに書いてください。 -->
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' https://static.cloudflareinsights.com; style-src 'self'; img-src 'self' data: https://i.ytimg.com; font-src 'self'; connect-src 'self' https://api.github.com https://api.web3forms.com https://cloudflareinsights.com; frame-src https://www.youtube-nocookie.com https://www.youtube.com; object-src 'none'; base-uri 'self'; form-action 'self'; upgrade-insecure-requests">
+<meta name="referrer" content="strict-origin-when-cross-origin">
+<title>メンバー・人物紹介｜RADWIMPS Archives</title>
+<meta name="description" content="RADWIMPS のメンバー（野田洋次郎・武田祐介・山口智史）と、元メンバーの桑原彰、ライブを支えるサポートメンバーの紹介と、公式の SNS へのリンクです。">
+<meta property="og:title" content="メンバー・人物紹介｜RADWIMPS Archives">
+<meta property="og:description" content="RADWIMPS のメンバー（野田洋次郎・武田祐介・山口智史）と、元メンバーの桑原彰、ライブを支えるサポートメンバーの紹介と、公式の SNS へのリンクです。">
+<meta property="og:type" content="website">
+<meta property="og:url" content="https://radwimps-archive.github.io/radwimps-interview-index/members.html">
+<meta property="og:site_name" content="RADWIMPS Archives">
+<meta property="og:locale" content="ja_JP">
+<meta property="og:image" content="https://radwimps-archive.github.io/radwimps-interview-index/assets/ogp.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:image:alt" content="RADWIMPS Archives：好きな曲から、気になる人から。インタビュー・対談・ライブレポートの非公式索引">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="メンバー・人物紹介｜RADWIMPS Archives">
+<meta name="twitter:description" content="RADWIMPS のメンバー（野田洋次郎・武田祐介・山口智史）と、元メンバーの桑原彰、ライブを支えるサポートメンバーの紹介と、公式の SNS へのリンクです。">
+<meta name="twitter:image" content="https://radwimps-archive.github.io/radwimps-interview-index/assets/ogp.png">
+<meta name="theme-color" content="#FFFFFF">
+<link rel="icon" href="assets/icon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="assets/style.css">
+<script type="module" src="assets/members.js"></script>
+</head>
+<body class="members-page">
+<a href="#people" class="skip">人物紹介へ移動</a>
+
+<!-- いちばん上の帯（記事一覧のページと同じ。左上のボタンでメニューが開きます） -->
+<header class="header" id="header">
+  <div class="header-inner">
+    <button id="menuBtn" class="hamburger" type="button" aria-expanded="false" aria-controls="menuClip" aria-label="メニューを開く"><span></span><span></span><span></span></button>
+    <a href="./" class="brand" aria-label="RADWIMPS Archives トップへ"><span class="brand-symbol" aria-hidden="true">r<span>．</span></span><span class="brand-text">RADWIMPS<span>INTERVIEW ARCHIVES</span></span></a>
+  </div>
+  <div class="menu-clip" id="menuClip" inert aria-hidden="true">
+    <nav class="menu-panel" aria-label="メニュー">
+      <a class="nav-item" href="./">記事一覧 <span aria-hidden="true">↗</span></a>
+      <a class="nav-item" href="./?status=later">あとで読む <span aria-hidden="true">↗</span></a>
+      <a class="nav-item" href="history.html">RADWIMPSの歩み <span aria-hidden="true">↗</span></a>
+      <a class="nav-item" href="setlist.html">ライブのセトリ <span aria-hidden="true">↗</span></a>
+      <a class="nav-item" href="members.html" aria-current="page">メンバー・人物紹介 <span aria-hidden="true">↗</span></a>
+      <a class="nav-item" href="./#admin" id="adminLink" hidden>運営管理 <span aria-hidden="true">↗</span></a>
+    </nav>
+  </div>
+</header>
+
+<!-- 人物を足すときは、<article class="person-card"> … </article> をひとまとまりで写して、名前・紹介文・リンクを書き換えます（マニュアル 7-4） -->
+<main id="main">
+  <section class="hero wrap" aria-labelledby="membersTitle">
+    <p class="eyebrow">MEMBERS &amp; SUPPORT</p>
+    <h1 id="membersTitle">メンバー・人物紹介</h1>
+    <p class="hero-description">RADWIMPS のメンバーと、ライブを支えるサポートメンバーの紹介です。「X」「Instagram」などを押すと、本人の公式アカウントが開きます。「記事を見る」を押すと、その人のインタビューや対談の一覧が開きます。</p>
+  </section>
+
+  <div class="people wrap" id="people">
+    <section class="people-group" aria-labelledby="gBand">
+      <h2 id="gBand">バンド</h2>
+      <div class="people-grid">
+    <article class="person-card person-band">
+      <p class="person-role">ロックバンド</p>
+      <h3>RADWIMPS<span>らっどうぃんぷす</span></h3>
+      <p class="person-body">2001年に横浜で結成。2005年にメジャーデビュー。メンバーは野田洋次郎・武田祐介・山口智史で、ライブではサポートメンバーを迎えて活動している。映画『君の名は。』『天気の子』『すずめの戸締まり』の音楽でも知られる。</p>
+      <div class="person-sns" aria-label="RADWIMPS の SNS"><a class="sns sns-x" href="https://x.com/radwimps" target="_blank" rel="noopener noreferrer">X <span>@radwimps</span></a><a class="sns sns-ig" href="https://www.instagram.com/radwimps_jp/" target="_blank" rel="noopener noreferrer">Instagram <span>@radwimps_jp</span></a><a class="sns sns-tt" href="https://www.tiktok.com/@radwimps_official" target="_blank" rel="noopener noreferrer">TikTok <span>@radwimps_official</span></a></div>
+      <a class="person-articles" href="./?person=RADWIMPS">RADWIMPS（バンド名義）の記事を見る <span aria-hidden="true">→</span></a>
+    </article>
+      </div>
+    </section>
+    <section class="people-group" aria-labelledby="gMembers">
+      <h2 id="gMembers">メンバー</h2>
+      <div class="people-grid">
+    <article class="person-card">
+      <p class="person-role">ボーカル・ギター・ピアノ</p>
+      <h3>野田洋次郎<span>のだ ようじろう</span></h3>
+      <p class="person-body">RADWIMPS のほとんどの曲の作詞・作曲を手がける。2012年からはソロプロジェクト「illion」でも活動。映画『君の名は。』『天気の子』『すずめの戸締まり』の音楽を担当したほか、俳優として NHK 連続テレビ小説「エール」などにも出演。</p>
+      <div class="person-sns" aria-label="野田洋次郎の SNS"><a class="sns sns-x" href="https://x.com/yojinoda1" target="_blank" rel="noopener noreferrer">X <span>@yojinoda1</span></a><a class="sns sns-ig" href="https://www.instagram.com/yoji_noda/" target="_blank" rel="noopener noreferrer">Instagram <span>@yoji_noda</span></a><a class="sns sns-th" href="https://www.threads.com/@yoji_noda" target="_blank" rel="noopener noreferrer">Threads <span>@yoji_noda</span></a><a class="sns sns-tt" href="https://www.tiktok.com/@yoji_noda1" target="_blank" rel="noopener noreferrer">TikTok <span>@yoji_noda1</span></a></div>
+      <a class="person-articles" href="./?person=野田洋次郎">野田洋次郎の記事を見る <span aria-hidden="true">→</span></a>
+    </article>
+    <article class="person-card">
+      <p class="person-role">ベース</p>
+      <h3>武田祐介<span>たけだ ゆうすけ</span></h3>
+      <p class="person-body">2004年、山口智史とともに加わり、4人の RADWIMPS に。バンドを支える低音とコーラスを担当する。</p>
+      <div class="person-sns" aria-label="武田祐介の SNS"><a class="sns sns-ig" href="https://www.instagram.com/yusuke_takeda_/" target="_blank" rel="noopener noreferrer">Instagram <span>@yusuke_takeda_</span></a></div>
+      <a class="person-articles" href="./?person=武田祐介">武田祐介の記事を見る <span aria-hidden="true">→</span></a>
+    </article>
+    <article class="person-card">
+      <p class="person-role">ドラム</p>
+      <h3>山口智史<span>やまぐち さとし</span></h3>
+      <p class="person-body">2004年に加入。2015年、ミュージシャンズ・ジストニアのため無期限休養に。その後は研究者としてジストニアの研究に取り組み、ヤマハと、声でバスドラムを鳴らす「VXD」を開発。ふたたびステージで演奏している。</p>
+      <div class="person-sns" aria-label="山口智史の SNS"><a class="sns sns-x" href="https://x.com/satoshi_y21" target="_blank" rel="noopener noreferrer">X <span>@satoshi_y21</span></a><a class="sns sns-ig" href="https://www.instagram.com/satoshi_y21/" target="_blank" rel="noopener noreferrer">Instagram <span>@satoshi_y21</span></a></div>
+      <a class="person-articles" href="./?person=山口智史">山口智史の記事を見る <span aria-hidden="true">→</span></a>
+    </article>
+      </div>
+    </section>
+    <section class="people-group" aria-labelledby="gFormer">
+      <h2 id="gFormer">元メンバー</h2>
+      <div class="people-grid">
+    <article class="person-card">
+      <p class="person-role">ギター（元メンバー）</p>
+      <h3>桑原彰<span>くわはら あきら</span></h3>
+      <p class="person-body">2001年、野田洋次郎の弾き語りの録音を聴いてバンドに誘い、RADWIMPS が始まった。2021年9月から活動を休み、2022年10月に復帰。2024年10月に脱退した。</p>
+      <div class="person-sns" aria-label="桑原彰の SNS"><a class="sns sns-x" href="https://x.com/kuwakuwakuwa444" target="_blank" rel="noopener noreferrer">X <span>@kuwakuwakuwa444</span></a><a class="sns sns-ig" href="https://www.instagram.com/kuwakuwakuwakuwa0404/" target="_blank" rel="noopener noreferrer">Instagram <span>@kuwakuwakuwakuwa0404</span></a></div>
+      <a class="person-articles" href="./?person=桑原彰">桑原彰の記事を見る <span aria-hidden="true">→</span></a>
+    </article>
+      </div>
+    </section>
+    <section class="people-group" aria-labelledby="gSupport">
+      <h2 id="gSupport">サポートメンバー</h2>
+      <div class="people-grid">
+    <article class="person-card">
+      <p class="person-role">サポートドラム</p>
+      <h3>森瑞希<span>もり みずき</span></h3>
+      <p class="person-body">2015年、山口智史の休養を受けて、初の海外ツアー「RADWIMPS 2015 Asia-Europe Live Tour」からサポートドラマーとして参加。</p>
+      <div class="person-sns" aria-label="森瑞希の SNS"><a class="sns sns-x" href="https://x.com/mimizu031" target="_blank" rel="noopener noreferrer">X <span>@mimizu031</span></a><a class="sns sns-ig" href="https://www.instagram.com/mizuki_mori_/" target="_blank" rel="noopener noreferrer">Instagram <span>@mizuki_mori_</span></a></div>
+      <a class="person-articles" href="./?person=森瑞希">森瑞希の記事を見る <span aria-hidden="true">→</span></a>
+    </article>
+    <article class="person-card">
+      <p class="person-role">サポートドラム</p>
+      <h3>エノマサフミ<span>えの まさふみ</span></h3>
+      <p class="person-body">2020年からサポートドラマーとして参加。森瑞希とともに、2人のドラムでライブを支える。</p>
+      <div class="person-sns" aria-label="エノマサフミの SNS"><a class="sns sns-x" href="https://x.com/elvaila" target="_blank" rel="noopener noreferrer">X <span>@elvaila</span></a></div>
+      <a class="person-articles" href="./?person=エノマサフミ">エノマサフミの記事を見る <span aria-hidden="true">→</span></a>
+    </article>
+    <article class="person-card">
+      <p class="person-role">サポートギター</p>
+      <h3>TAIKING<span>たいきんぐ</span></h3>
+      <p class="person-body">Suchmos のギタリスト。桑原彰が活動を休んでいた「FOREVER IN THE DAZE TOUR 2021-2022」で、マスダミズキとともにギターを担当した。</p>
+      <div class="person-sns" aria-label="TAIKINGの SNS"><a class="sns sns-x" href="https://x.com/totsukataiki" target="_blank" rel="noopener noreferrer">X <span>@totsukataiki</span></a></div>
+      
+    </article>
+    <article class="person-card">
+      <p class="person-role">サポートギター</p>
+      <h3>マスダミズキ<span>ますだ みずき</span></h3>
+      <p class="person-body">ギタリスト。「FOREVER IN THE DAZE TOUR 2021-2022」で、TAIKING とともにギターを担当した。</p>
+      <div class="person-sns" aria-label="マスダミズキの SNS"><a class="sns sns-x" href="https://x.com/miida_official" target="_blank" rel="noopener noreferrer">X <span>@miida_official</span></a></div>
+      
+    </article>
+    <article class="person-card">
+      <p class="person-role">サポートギター</p>
+      <h3>白川詢<span>しらかわ じゅん</span></h3>
+      <p class="person-body">2025年6月に公開したスタジオライブ「Special Live Sessions -賜物-」からギターで参加。ライブだけでなく、レコーディングにも加わっている。</p>
+      <div class="person-sns" aria-label="白川詢の SNS"><a class="sns sns-x" href="https://x.com/junjulyboi" target="_blank" rel="noopener noreferrer">X <span>@junjulyboi</span></a><a class="sns sns-ig" href="https://www.instagram.com/junjulyboi/" target="_blank" rel="noopener noreferrer">Instagram <span>@junjulyboi</span></a></div>
+      <a class="person-articles" href="./?person=白川詢">白川詢の記事を見る <span aria-hidden="true">→</span></a>
+    </article>
+      </div>
+    </section>
+  </div>
+
+  <p class="hist-note wrap">公式サイト・各媒体の発表をもとに、運営がまとめた非公式の紹介です。SNS のリンクは、本人の公式アカウントです。誤りに気づいたら、お知らせください。</p>
+</main>
+
+<footer class="site-footer wrap">
+  <div class="footer-brand">RADWIMPS <span>INTERVIEW ARCHIVES</span></div>
+  <p>UNOFFICIAL FAN ARCHIVE · 本人・所属事務所・各媒体とは関係ありません。</p>
+  <div class="footer-links"><a href="./">記事一覧へ ↗</a><a href="history.html">RADWIMPSの歩みへ ↗</a></div>
+</footer>
+</body>
+</html>

@@ -5,22 +5,22 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <!-- 安全のための決まり（CSP）：このサイトと、決めた所（YouTube の埋め込み・サムネイル、GitHub の API）以外からは、プログラムや画像を読み込みません。
      HTML の中に直接 <script> や style="…" を書くと動かなくなるので、assets フォルダのファイルに書いてください。 -->
-<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data: https://i.ytimg.com; font-src 'self'; connect-src 'self' https://api.github.com https://api.web3forms.com; frame-src https://www.youtube-nocookie.com https://www.youtube.com; object-src 'none'; base-uri 'self'; form-action 'self'; upgrade-insecure-requests">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' https://static.cloudflareinsights.com; style-src 'self'; img-src 'self' data: https://i.ytimg.com; font-src 'self'; connect-src 'self' https://api.github.com https://api.web3forms.com https://cloudflareinsights.com; frame-src https://www.youtube-nocookie.com https://www.youtube.com; object-src 'none'; base-uri 'self'; form-action 'self'; upgrade-insecure-requests">
 <meta name="referrer" content="strict-origin-when-cross-origin">
-<title>RADWIMPS Archive — 好きな曲から、気になる人から。</title>
+<title>RADWIMPS Archives — 好きな曲から、気になる人から。</title>
 <meta name="description" content="RADWIMPS とメンバーのインタビュー・対談・ライブレポートを、人・曲や作品・年代・ライブから探せる、非公式の索引サイトです。">
-<meta property="og:title" content="RADWIMPS Archive">
+<meta property="og:title" content="RADWIMPS Archives">
 <meta property="og:description" content="RADWIMPS とメンバーのインタビュー・対談・ライブレポートを、人・曲や作品・年代・ライブから探せる、非公式の索引サイトです。">
 <meta property="og:type" content="website">
 <meta property="og:url" content="https://radwimps-archive.github.io/radwimps-interview-index/">
-<meta property="og:site_name" content="RADWIMPS Archive">
+<meta property="og:site_name" content="RADWIMPS Archives">
 <meta property="og:locale" content="ja_JP">
 <meta property="og:image" content="https://radwimps-archive.github.io/radwimps-interview-index/assets/ogp.png">
 <meta property="og:image:width" content="1200">
 <meta property="og:image:height" content="630">
-<meta property="og:image:alt" content="RADWIMPS Archive：好きな曲から、気になる人から。インタビュー・対談・ライブレポートの非公式索引">
+<meta property="og:image:alt" content="RADWIMPS Archives：好きな曲から、気になる人から。インタビュー・対談・ライブレポートの非公式索引">
 <meta name="twitter:card" content="summary_large_image">
-<meta name="twitter:title" content="RADWIMPS Archive">
+<meta name="twitter:title" content="RADWIMPS Archives">
 <meta name="twitter:description" content="RADWIMPS とメンバーのインタビュー・対談・ライブレポートを、人・曲や作品・年代・ライブから探せる、非公式の索引サイトです。">
 <meta name="twitter:image" content="https://radwimps-archive.github.io/radwimps-interview-index/assets/ogp.png">
 <meta name="theme-color" content="#FFFFFF">
@@ -35,7 +35,7 @@
 <header class="header" id="header">
   <div class="header-inner">
     <button id="menuBtn" class="hamburger" type="button" aria-expanded="false" aria-controls="menuClip" aria-label="メニューを開く"><span></span><span></span><span></span></button>
-    <a href="./" class="brand" id="brand" aria-label="RADWIMPS Archive トップへ"><span class="brand-symbol" aria-hidden="true">r<span>．</span></span><span class="brand-text">RADWIMPS<span>INTERVIEW ARCHIVE</span></span></a>
+    <a href="./" class="brand" id="brand" aria-label="RADWIMPS Archives トップへ"><span class="brand-symbol" aria-hidden="true">r<span>．</span></span><span class="brand-text">RADWIMPS<span>INTERVIEW ARCHIVES</span></span></a>
   </div>
   <div class="menu-clip" id="menuClip" inert aria-hidden="true">
     <nav class="menu-panel" aria-label="メニュー">
@@ -43,6 +43,7 @@
       <a class="nav-item" href="./?status=later" data-go="later">あとで読む <span id="laterCount">0</span></a>
       <a class="nav-item" href="history.html">RADWIMPSの歩み <span aria-hidden="true">↗</span></a>
       <a class="nav-item" href="setlist.html">ライブのセトリ <span aria-hidden="true">↗</span></a>
+      <a class="nav-item" href="members.html">メンバー・人物紹介 <span aria-hidden="true">↗</span></a>
       <button class="nav-item" type="button" data-act="add">記事を追加 <span aria-hidden="true">＋</span></button>
       <a class="nav-item" href="#admin" id="adminLink" hidden>運営管理 <span aria-hidden="true">↗</span></a>
     </nav>
@@ -53,7 +54,7 @@
   <!-- 記事一覧（いつもの画面） -->
   <div id="listView">
     <section class="hero wrap" aria-labelledby="heroTitle">
-      <p class="eyebrow">RADWIMPS INTERVIEW ARCHIVE</p>
+      <p class="eyebrow">RADWIMPS INTERVIEW ARCHIVES</p>
       <h1 id="heroTitle">好きな曲から、<span>気になる人から。</span></h1>
       <p class="hero-description">RADWIMPSの音楽と歩みを、語られた言葉からたどる。</p>
     </section>
@@ -152,6 +153,7 @@
             <div class="empty-mark" aria-hidden="true">∅</div>
             <h3>該当する記事がありません</h3>
             <p id="emptyText">条件を変えて、もう一度探してみてください。</p>
+            <div class="empty-alt" id="emptyAlt"></div>
             <button type="button" class="primary-flat" data-act="reset">条件をクリア</button>
           </div>
           <div class="collection-note"><span class="i" aria-hidden="true">i</span><p>インタビュー本文、誌面掲載情報、公式記録・関連記事を区別して収録しています。全記事の網羅は保証していません。本文の公開状況・閲覧条件は掲載元でご確認ください。</p></div>
@@ -187,6 +189,8 @@
       <div id="admIssues"></div>
       <h2>記事の管理</h2>
       <div id="adminEditor" class="admeditor"><p class="hint">読み込んでいます…</p></div>
+      <h2>アクセス状況</h2>
+      <div id="admAnalytics"></div>
       <h2>よく使う操作</h2>
       <ul class="admlinks" id="admLinks"></ul>
       <p class="hint" id="admRepoNote" hidden>GitHub Pages（○○.github.io）で公開すると、ここに GitHub の画面へのリンクが出ます。独自ドメインのときは、assets/config.js の repoUrl に GitHub の URL を書いてください。</p>
@@ -197,7 +201,7 @@
 
 <!-- フッター -->
 <footer class="site-footer wrap">
-  <div class="footer-brand">RADWIMPS <span>INTERVIEW ARCHIVE</span></div>
+  <div class="footer-brand">RADWIMPS <span>INTERVIEW ARCHIVES</span></div>
   <p>UNOFFICIAL FAN ARCHIVE · 本人・所属事務所・各媒体とは関係ありません。</p>
   <div class="footer-links">
     <button type="button" data-act="backup">保存データの管理 ↗</button>
@@ -235,7 +239,7 @@
   <p>リンク先でインタビューやライブレポートの内容が読める・見られる・聴けるものを載せています。有料会員限定のもの（ファンクラブ「ボクンチ」など）は載せていません。ラジオ番組の放送回は「ラジオ」のタブに、雑誌の掲載号の案内や発売のお知らせなど、本文が読めない資料は「リリース情報」のタブに分けています。</p>
   <p>「説明」は、記事の内容がわかるように運営が書いた紹介文で、掲載元の文章の転載ではありません。掲載日が「年」や「年・月」までのものは、確認できた範囲で記載しています。掲載元のタイトルを確認できなかった記事には、内容がわかる見出しを付けています。</p>
   <p>リンクは定期的に確認し、開けなくなった記事は一覧から外しています。主な出典は、RADWIMPS 公式サイトの MEDIA 欄と、各媒体の記事ページです。</p>
-  <p>このサイトでは、アクセス解析（訪問者の記録）や広告のための追跡はしていません。「あとで読む」「既読」は、このブラウザの中だけに保存され、運営を含めほかの人には送られません（ブラウザのデータを消すと消えます。「保存データの管理」から書き出して残せます）。動画のサムネイル画像と再生には YouTube（Google）のしくみを使っているため、その部分には YouTube と Google の決まりが適用されます。</p>
+  <p><span data-analytics="off">このサイトでは、アクセス解析（訪問者の記録）や広告のための追跡はしていません。</span><span data-analytics="on" hidden>このサイトでは、どのページがどれくらい見られているかを知るために、Cloudflare Web Analytics でアクセス数を数えています。Cookie は使わず、名前やメールアドレスなどの個人を特定できる情報は集めていません。広告のための追跡はしていません。</span>「あとで読む」「既読」は、このブラウザの中だけに保存され、運営を含めほかの人には送られません（ブラウザのデータを消すと消えます。「保存データの管理」から、ファイルに書き出したり、引き継ぎ用のリンクでほかの端末に移したりできます。リンクの中身もサーバーには送られません）。動画のサムネイル画像と再生には YouTube（Google）のしくみを使っているため、その部分には YouTube と Google の決まりが適用されます。</p>
 </template>
 
 <div id="toast" class="toast" role="status" aria-live="polite"></div>

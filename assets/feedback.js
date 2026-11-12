@@ -164,8 +164,8 @@ export function openReport({ kind = "", page = "", content = "" } = {}) {
         method: "POST", headers: { "Content-Type": "application/json", Accept: "application/json" },
         body: JSON.stringify({
           access_key: MAIL_KEY,
-          subject: `【RADWIMPS Archive】${sel.value}`,
-          from_name: "RADWIMPS Archive の報告フォーム",
+          subject: `【RADWIMPS Archives】${sel.value}`,
+          from_name: "RADWIMPS Archives の報告フォーム",
           "種類": sel.value, "内容": body.value.trim(), "記事やページ": where.value.trim(),
           "端末": device.value.trim(), "連絡先": reply.value.trim(), "送ったページ": location.href,
           botcheck: false

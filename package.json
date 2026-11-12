@@ -2,7 +2,7 @@
   "name": "radwimps-interview-index",
   "private": true,
   "type": "module",
-  "description": "RADWIMPS Archive。npm install は不要です（Node.js があれば tools フォルダのスクリプトが動きます）。",
+  "description": "RADWIMPS Archives。npm install は不要です（Node.js があれば tools フォルダのスクリプトが動きます）。",
   "scripts": {
     "check": "node tools/validate.mjs",
     "links": "node tools/check-links.mjs"

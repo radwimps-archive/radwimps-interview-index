@@ -29,5 +29,10 @@ export default {
   // kind・page・content・device：フォームの質問「種類」「記事やページ」「内容」「使っている端末・ブラウザ」の entry 番号。
   //      フォームの「︙」→「事前入力した URL を取得」で作ったリンクの「entry.123456789=」の数字です（わからなければ空欄でも動きます）。
   //      書くと、記事ごとの「誤りを知らせる」から開いたときに、記事のタイトルと URL・端末が最初から入ります。
-  feedback: { url: "", kind: "", page: "", content: "", device: "" }
+  feedback: { url: "", kind: "", page: "", content: "", device: "" },
+
+  // アクセス数の集計（Cloudflare Web Analytics という無料のサービスを使います。マニュアル13-5）。
+  // cloudflare：Cloudflare の画面で出る「token」（英数字32文字）。書くと、記事一覧・年表・人物紹介のページが見られた回数を数え始めます。
+  //      Cookie は使わず、個人情報も集めません。空欄（""）のあいだは、何も数えません。
+  analytics: { cloudflare: "aa44802ff1184f02a35106a09d079ba2" }
 };

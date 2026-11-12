@@ -1,4 +1,4 @@
-# RADWIMPS Archive
+# RADWIMPS Archives
 
 RADWIMPS とメンバーのインタビュー・対談・ライブレポートを、人・曲や作品・年代・ライブから探せる索引サイトです。
 記事の本文は載せず、タイトル・掲載日・媒体名・短い説明と、掲載元へのリンクをまとめています。
@@ -40,6 +40,7 @@ index.html            サイトの骨組みと文章
 maker.html            記事データ作成ツール
 history.html          「RADWIMPSの歩み」（年表）のページ
 setlist.html          「ライブのセトリ」（公演ごとのセットリストと、曲の年表）のページ
+members.html          「メンバー・人物紹介」のページ
 404.html              ない URL を開いたときのページ
 assets/
   style.css           見た目（色など）
@@ -49,6 +50,8 @@ assets/
   admin.js            運営管理の「記事の管理」（記事の編集と GitHub への保存。運営管理を開いたときだけ読み込み）
   feedback.js         ベータ版の表示と、ご意見・不具合の送信フォーム（Web3Forms 経由でメールに届く。未設定なら Google フォーム／GitHub の Issue）
   maker.js・maker.css 記事データ作成ツールの動きと見た目
+  transfer.js         「あとで読む」「既読」をほかの端末に引き継ぐリンク（会員登録なし）
+  qrcode.js           QR コードを作る部品（MIT ライセンス、Kazuhiko Arase さん作）
   localfile.js        index.html をパソコンで直接開いたときの案内
   ogp.png             SNS でリンクを貼ったときの画像
   ui.js               画面の共通部品（メニュー・管理者モード・ファイルの書き出しなど。3つの画面で共通）
@@ -65,6 +68,7 @@ tools/
   check-links.mjs     リンク確認
 tests/
   data.test.mjs       data.js（CSV の読み取り）のテスト
+  transfer.test.mjs   引き継ぎリンクのテスト
   html.test.mjs       各ページが安全の決まり（CSP）を守っているかのテスト
 .github/workflows/    自動公開・自動チェックの設定
 docs/manual.md        運用マニュアル

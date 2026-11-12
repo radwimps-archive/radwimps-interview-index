@@ -8,12 +8,14 @@
 // 記事を増やしたり直したりするときは、このファイルではなく data/articles.csv を編集します。
 // 絞り込みの状態は URL（例：?person=野田洋次郎&format=all）に入るので、そのままブックマークや共有ができます。
 
+import { analyticsOn, DASHBOARD_URL } from "./analytics.js";
 import config from "./config.js";
 import {
   parseArticles, parseReleases, KIND_ORDER, MEMBERS, MEMBER_ORDER, CATEGORIES, SUPPORT_MEMBERS, WORKS, QUICK_WORKS,
   VIDEO_KIND, RADIO_KIND, LIVE_KIND, INTERVIEW_KIND, OTHERS_KIND, LANG_BADGE, youtubeId, formatOf
 } from "./data.js";
 import { h, isAdminDevice, setAdminDevice, setupMenu, downloadFile } from "./ui.js";
+import { encodeMarks, decodeMarks, PREFIX as TRANSFER } from "./transfer.js";
 import { feedbackUrl, hasFeedback, usesForm, repoUrl, setupBeta, KIND } from "./feedback.js";
 
 /* ---------- 共通の道具 ---------- */
@@ -162,6 +164,8 @@ function ingest(text) {
   S.parsed = parsed;
   S.items = parsed.items.filter((it) => it.state === "公開").map(prep);
   buildChoices();
+  // 人物紹介などから ?person=… で開いたとき（タブの指定がなければ）、記事のあるタブに合わせる
+  if (!new URLSearchParams(location.search).has("format") && (F.person || F.work || F.year)) fitFormat();
 }
 
 async function loadData() {
@@ -272,6 +276,28 @@ function passes(it, ts) {
   if (F.kind && it.kind !== F.kind) return false;
   for (const t of ts) if (!it._h.includes(t)) return false;
   return true;
+}
+
+// 種類のタブごとの件数（今のタブ以外の条件はそのまま）。今のタブに1件もないときに、ほかのタブへ案内するのに使います
+const FORMAT_NAMES = { text: "記事・資料", video: "動画インタビュー", radio: "ラジオ", release: "リリース情報" };
+function formatCounts() {
+  const keep = F.format, ts = terms(), counts = { text: 0, video: 0, radio: 0, release: 0 };
+  F.format = "all";
+  for (const it of S.items) if (passes(it, ts)) counts[it.format]++;
+  F.format = keep;
+  return counts;
+}
+// 人・作品・年を選んだとき、今のタブに1件もなければ、記事のあるタブに切り替える（1つのタブだけならそのタブ、いくつかなら「すべて」）
+//   ここで切り替えたタブは、次に選び直したとき「記事・資料」に戻してから合わせ直す（自分で選んだタブはそのまま）
+let autoFormat = "";
+function fitFormat() {
+  if (autoFormat && F.format === autoFormat) F.format = "text";
+  autoFormat = "";
+  if (F.format === "all" || isLiveView()) return;
+  const c = formatCounts();
+  if (c[F.format]) return;
+  const has = Object.keys(c).filter((k) => c[k]);
+  if (has.length) F.format = autoFormat = has.length === 1 ? has[0] : "all";
 }
 
 function filtered() {
@@ -525,6 +551,14 @@ function render() {
   $("#emptyText").textContent = F.status === "later" && !list.length && !F.q
     ? "まだ「あとで読む」に保存した記事はありません。カードの右上のしおりを押すと、ここに集まります。"
     : "条件を変えて、もう一度探してみてください。";
+  // 今のタブには無くても、ほかのタブにあるときは、そのタブへのボタンを出す
+  const alt = $("#emptyAlt");
+  alt.replaceChildren();
+  if (!list.length && F.format !== "all" && !isLiveView()) {
+    const c = formatCounts();
+    for (const k of Object.keys(c)) if (c[k] && k !== F.format) alt.append(h("button", { type: "button", class: "btn", "data-format-jump": k, text: `「${FORMAT_NAMES[k]}」に ${c[k]} 件あります` }));
+    if (alt.children.length) $("#emptyText").textContent = "このタブにはありませんが、ほかのタブにあります。";
+  }
   $("#resultCount").textContent = `${list.length} 件の記事`;
   writeURL();
 }
@@ -585,9 +619,9 @@ $("#entryTabs").addEventListener("click", (e) => {
 });
 $("#entryPanel").addEventListener("click", (e) => {
   const p = e.target.closest("[data-pick-person]"), w = e.target.closest("[data-pick-work]"), y = e.target.closest("[data-pick-year]");
-  if (p) { const v = p.dataset.pickPerson; F.person = F.person === v ? "" : v; if (!F.person) F.scope = ""; apply(); }
-  else if (w) { const v = w.dataset.pickWork; F.work = F.work === v ? "" : v; apply(); }
-  else if (y) { const v = y.dataset.pickYear; F.year = F.year === v ? "" : v; apply(); }
+  if (p) { const v = p.dataset.pickPerson; F.person = F.person === v ? "" : v; if (!F.person) F.scope = ""; fitFormat(); apply(); }
+  else if (w) { const v = w.dataset.pickWork; F.work = F.work === v ? "" : v; fitFormat(); apply(); }
+  else if (y) { const v = y.dataset.pickYear; F.year = F.year === v ? "" : v; fitFormat(); apply(); }
 });
 $("#entryPanel").addEventListener("change", (e) => {
   const t = e.target;
@@ -596,6 +630,7 @@ $("#entryPanel").addEventListener("change", (e) => {
   else if (t.id === "yearChoice") F.year = t.value;
   else if (t.id === "tourChoice") F.tour = t.value;
   else return;
+  fitFormat();
   apply();
 });
 $("#entryPanel").addEventListener("input", (e) => { if (e.target.id === "personSearch") filterPeople(e.target.value); });
@@ -609,7 +644,7 @@ $("#entryPanel").addEventListener("keydown", (e) => {
   const chips = $$("#entryPanel [data-pick-person]:not([hidden])");
   const pick = chips.find((b) => norm(b.dataset.pickPerson) === n) || (chips.length === 1 ? chips[0] : null);
   if (!pick) return;
-  if (F.person !== pick.dataset.pickPerson) { F.person = pick.dataset.pickPerson; apply(); }
+  if (F.person !== pick.dataset.pickPerson) { F.person = pick.dataset.pickPerson; fitFormat(); apply(); }
   $("#personSearch")?.blur();
   scrollToList();
 });
@@ -639,6 +674,10 @@ document.addEventListener("keydown", (e) => {
   $("#q").focus();
 });
 
+$("#emptyAlt").addEventListener("click", (e) => {
+  const b = e.target.closest("[data-format-jump]");
+  if (b) { F.format = b.dataset.formatJump; apply(); }
+});
 $("#formatTabs").addEventListener("click", (e) => {
   const b = e.target.closest("[data-format]");
   if (!b) return;
@@ -725,6 +764,9 @@ function openRandom(e, link) {
   toast(`開きました：${it.title.length > 28 ? it.title.slice(0, 27) + "…" : it.title}`);
 }
 
+// 「収録方針」の、アクセス解析についての文を、集計しているかどうかで切り替える
+for (const p of $("#aboutText").content.querySelectorAll("[data-analytics]")) p.hidden = (p.dataset.analytics === "on") !== analyticsOn;
+
 /* ---------- 小窓（保存データの管理・収録方針・記事を追加） ---------- */
 
 let modalBack = null;
@@ -755,8 +797,9 @@ function showBackup() {
     h("ul", { class: "counts" },
       h("li", null, h("span", { text: "あとで読む" }), h("b", { text: `${count("lt")} 件` })),
       h("li", null, h("span", { text: "既読" }), h("b", { text: `${count("rd")} 件` }))),
-    h("p", { text: "「あとで読む」と「既読」は、このブラウザだけに保存しています。ほかの端末やブラウザには共有されません。機種変更やブラウザのデータ消去の前に、ファイルに書き出しておくと、あとで読み込めます。" }),
-    h("div", { class: "panelbtns" }, exportBtn, importBtn), file, msg
+    h("p", { text: "「あとで読む」と「既読」は、このブラウザだけに保存しています。ほかの端末で使いたいときは、下の「ほかの端末に引き継ぐ」でリンク（QR コード）を作ってください。機種変更やブラウザのデータ消去の前に、ファイルに書き出しておくこともできます。" }),
+    h("div", { class: "panelbtns" }, exportBtn, importBtn), file, msg,
+    transferBox()
   ];
   if (S.admin) {
     const off = h("button", { type: "button", class: "btn plain", text: "管理者モードをオフにする" });
@@ -764,6 +807,82 @@ function showBackup() {
     nodes.push(h("p", { class: "small-note", text: "この端末は管理者モードです。メニューに「運営管理」が出ています。" }), off);
   }
   openModal(nodes);
+}
+
+/* ---------- ほかの端末に引き継ぐ（リンク・QR コード。会員登録なし。しくみは transfer.js） ---------- */
+
+function transferBox() {
+  const make = h("button", { type: "button", class: "btn primary", text: "引き継ぎ用のリンクを作る" });
+  const out = h("div", { class: "transfer-out", hidden: true });
+  const tmsg = h("p", { class: "msg", role: "status" });
+  make.addEventListener("click", async () => {
+    const later = Object.keys(S.marks.lt), read = Object.keys(S.marks.rd);
+    tmsg.classList.remove("err");
+    if (!later.length && !read.length) { tmsg.textContent = "まだ「あとで読む」も「既読」もありません。"; return; }
+    const url = location.origin + location.pathname + TRANSFER + await encodeMarks({ later, read });
+    const copy = h("button", { type: "button", class: "btn", text: "リンクをコピー" });
+    const field = h("input", { type: "text", readonly: true, class: "transfer-url", "aria-label": "引き継ぎ用のリンク", value: url });
+    copy.addEventListener("click", async () => {
+      try { await navigator.clipboard.writeText(url); tmsg.textContent = "コピーしました。メモやメールで、引き継ぎたい端末に送ってください。"; }
+      catch { field.select(); tmsg.textContent = "上のリンクを長押しして、コピーしてください。"; }
+    });
+    const kids = [];
+    if (url.length <= 2200) {
+      try {
+        const { qrcode } = await import("./qrcode.js");
+        const qr = qrcode(0, "L");
+        qr.addData(url);
+        qr.make();
+        kids.push(h("img", { class: "transfer-qr", src: qr.createDataURL(4, 4), alt: "引き継ぎ用の QR コード" }),
+          h("p", { class: "hint", text: "引き継ぎたい端末のカメラで、この QR コードを読み取ってください。" }));
+      } catch { /* QR コードが作れなくても、リンクは使える */ }
+    } else {
+      kids.push(h("p", { class: "hint", text: "記録が多いので、QR コードは出せません。リンクをコピーして送ってください。" }));
+    }
+    kids.push(field, h("div", { class: "panelbtns" }, copy));
+    out.replaceChildren(...kids);
+    out.hidden = false;
+    tmsg.textContent = `あとで読む ${later.length} 件・既読 ${read.length} 件のリンクを作りました。`;
+  });
+  return h("section", { class: "transfer" },
+    h("h3", { text: "ほかの端末に引き継ぐ" }),
+    h("p", { text: "スマホとパソコンなど、ほかの端末でも同じ記録を使いたいときに。リンク（QR コード）を作って、引き継ぎたい端末で開くと、そのブラウザに追加されます。会員登録は不要です。" }),
+    h("p", { class: "small-note", text: "リンクに入っているのは記事の番号だけで、名前などの個人情報は入っていません。リンクの中身はサーバーに送られず、運営にも記録されません。ただし、リンクを知っている人は同じ記録を読み込めます。" }),
+    h("div", { class: "panelbtns" }, make), tmsg, out);
+}
+
+// 引き継ぎ用のリンクから開いたとき：このブラウザに追加してよいかを確かめてから読み込む
+async function receiveTransfer() {
+  const code = location.hash.slice(TRANSFER.length);
+  history.replaceState(null, "", location.pathname + location.search);
+  const data = await decodeMarks(code);
+  if (!data) {
+    openModal([h("p", { class: "modal-eyebrow", text: "TRANSFER" }), h("h2", { id: "modalTitle", text: "引き継ぎ" }),
+      h("p", { text: "このリンクは読み込めませんでした。リンクが途中で切れていないか確かめてください。古いブラウザでは読み込めないことがあります。" })]);
+    return;
+  }
+  const yes = h("button", { type: "button", class: "btn primary", text: "このブラウザに追加する" });
+  const no = h("button", { type: "button", class: "btn", text: "やめる" });
+  const msg = h("p", { class: "msg", role: "status" });
+  no.addEventListener("click", closeModal);
+  yes.addEventListener("click", () => {
+    const add = (kind, list) => { let n = 0; for (const id of list) if (!S.marks[kind][id]) { S.marks[kind][id] = 1; n++; } return n; };
+    const nl = add("lt", data.later), nr = add("rd", data.read);
+    saveMarks();
+    renderMenu();
+    render();
+    yes.remove(); no.textContent = "閉じる";
+    msg.textContent = `追加しました（あとで読む ${nl} 件・既読 ${nr} 件）。今ある記録はそのまま残ります。`;
+  });
+  openModal([
+    h("p", { class: "modal-eyebrow", text: "TRANSFER" }),
+    h("h2", { id: "modalTitle", text: "記録を引き継ぐ" }),
+    h("ul", { class: "counts" },
+      h("li", null, h("span", { text: "あとで読む" }), h("b", { text: `${data.later.length} 件` })),
+      h("li", null, h("span", { text: "既読" }), h("b", { text: `${data.read.length} 件` }))),
+    h("p", { text: "ほかの端末の「あとで読む」「既読」を、このブラウザに追加しますか？ 今ある記録は消えません。" }),
+    h("div", { class: "panelbtns" }, yes, no), msg
+  ]);
 }
 
 function exportMarks(msg) {
@@ -897,6 +1016,23 @@ function renderAdmin() {
     REPO ? L(`${REPO}/blob/main/docs/manual.md`, "運用マニュアル", "記事の追加や、困ったときの手順", true) : null
   ].filter(Boolean));
   $("#admRepoNote").hidden = !!REPO;
+  renderAnalytics();
+}
+// 運営管理の「アクセス状況」（集計のしくみは assets/analytics.js。数字は Cloudflare の画面で見ます）
+function renderAnalytics() {
+  const box = $("#admAnalytics");
+  if (analyticsOn) {
+    box.replaceChildren(
+      h("p", { class: "ok", text: "アクセス数を集計しています（Cloudflare Web Analytics）。" }),
+      h("ul", { class: "admlinks" }, h("li", null, h("a", { href: DASHBOARD_URL, target: "_blank", rel: "noopener noreferrer" },
+        h("span", { text: "アクセス状況を見る" }), h("small", { text: "見られた回数・よく見られたページ・どこから来たか・端末の種類など（Cloudflare へのログインが必要）" })))),
+      h("p", { class: "hint", text: "この端末は管理者モードなので、ここからのアクセスは数えていません。数字が画面に出るまで、数分かかることがあります。" }));
+  } else {
+    box.replaceChildren(
+      h("p", { text: "まだ集計していません。無料の Cloudflare Web Analytics に登録して、出てきた「token」を assets/config.js の analytics に書くと、集計が始まります（Cookie は使わず、個人情報も集めません）。" }),
+      REPO ? h("ul", { class: "admlinks" }, h("li", null, h("a", { href: `${REPO}/blob/main/docs/manual.md#13-5-アクセス数を集計するcloudflare-web-analytics`, target: "_blank", rel: "noopener noreferrer" },
+        h("span", { text: "集計の始め方（マニュアル13-5）" }), h("small", { text: "登録から設定まで、10分ほどです" })))) : null);
+  }
 }
 function setAdmin(on) {
   S.admin = on;
@@ -943,7 +1079,7 @@ function onHash() {
   if (r.dialog === "add") { history.replaceState(null, "", location.pathname + location.search); showAdd(); }
   if (r.dialog === "backup") { history.replaceState(null, "", location.pathname + location.search); showBackup(); }
 }
-window.addEventListener("hashchange", () => { if (location.hash !== "#archive") onHash(); });
+window.addEventListener("hashchange", () => { if (location.hash.startsWith(TRANSFER)) receiveTransfer(); else if (location.hash !== "#archive") onHash(); });
 
 if (hasFeedback) {
   $("#report").href = feedbackUrl({ kind: KIND.error, title: "記事の誤り・リンク切れのお知らせ" });
@@ -951,8 +1087,9 @@ if (hasFeedback) {
 }
 setupBeta($("#listView"));
 saveMarks(); // 以前の「お気に入り」を「あとで読む」にまとめた結果を保存
+const transferOpen = location.hash.startsWith(TRANSFER);
 readURL();
 S.lastEntry = entryOfState();
 syncFilterPanel();
-onHash();
+if (transferOpen) { render(); receiveTransfer(); } else onHash();
 loadData();

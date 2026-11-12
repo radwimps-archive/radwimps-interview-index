@@ -7,6 +7,7 @@
 import { parseSetlists, songKey, SETLIST_CONFIDENCE } from "./data.js";
 import { h as el, setupMenu, isAdminDevice } from "./ui.js";
 import { feedbackUrl, hasFeedback, setupBeta, KIND } from "./feedback.js";
+import "./analytics.js";
 
 const $ = (s) => document.querySelector(s);
 const VIEWS = ["live", "nenpyo"];
