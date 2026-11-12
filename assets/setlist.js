@@ -6,6 +6,7 @@
 //   年表　：年ごとに、ツアーと、そのツアーで演奏した曲を並べたもの。古いツアーが上。
 //           曲名を押すと、その曲を演奏したツアーと日付だけになる（?song=曲名 でも開けます）
 //           楽曲一覧（data/songs.csv）があれば、どの公演でも演奏していない曲（ライブで未演奏の曲）も出します
+//   ライブ未演奏：楽曲一覧にあって、どの公演のセトリにも出てこない曲（#unplayed。songs.csv がないときはタブごと出しません）
 
 import { parseCSV, parseSetlists, songKey, SETLIST_CONFIDENCE } from "./data.js";
 import { h as el, setupMenu, isAdminDevice } from "./ui.js";
@@ -13,7 +14,8 @@ import { feedbackUrl, hasFeedback, setupBeta, KIND } from "./feedback.js";
 import "./analytics.js";
 
 const $ = (s) => document.querySelector(s);
-const VIEWS = ["live", "nenpyo"];
+const VIEWS = ["live", "nenpyo", "unplayed"];
+const startHash = location.hash; // 開いたときの #live・#nenpyo・#unplayed
 
 let lives = [];          // 公演（古い順）
 let tours = [];          // ツアー（古い順）：{ id, name, lives: [公演], y }
@@ -149,20 +151,35 @@ function renderSongInfo() {
 
 // ライブで未演奏の曲：楽曲一覧にあって、このページのどの公演のセトリにも出てこない曲（発売の古い順）
 const playedKeys = () => new Set([...songs.values()].map((r) => catalogKey(r.title)));
-function renderUnplayed() {
-  const box = $("#unplayed");
-  if (!catalog.length) { box.hidden = true; return; }
+const UNPLAYED_NOTE = "楽曲一覧（アルバム・シングル・配信の曲）のうち、このページに載っている公演のセトリに一度も出てこない曲です。フェスやイベントなど、載せていないライブで演奏したことがある曲も入っています。";
+function unplayedList() {
   const played = playedKeys();
-  const list = catalog.filter((c) => !played.has(c.k));
+  return catalog.filter((c) => !played.has(c.k));
+}
+// 年ごとの曲の並び（年表の欄と「ライブ未演奏」のタブで共通）
+function unplayedYears(list) {
   const years = new Map();
   for (const c of list) (years.get(c.y) || years.set(c.y, []).get(c.y)).push(c);
+  return [...years].map(([y, cs]) => el("div", { class: "sl-unplayed-year" },
+    el("span", { class: "sl-unplayed-y", text: y || "" }),
+    el("ul", { class: "sl-unplayed-list" }, ...cs.map((c) => el("li", {}, c.title, c.work && c.work !== c.title ? el("small", { text: `（${c.work}）` }) : null)))));
+}
+function renderUnplayed() {
+  const box = $("#unplayed"), panel = $("#unplayedBody"), tab = $("#tabUnplayed");
+  if (!catalog.length) { box.hidden = true; tab.hidden = true; return; }
+  const list = unplayedList();
+  // 年表の中の、開いたり閉じたりする欄
   box.replaceChildren(
     el("summary", {}, el("b", { text: "ライブで未演奏の曲" }), el("small", { text: ` ${list.length} 曲（全 ${catalog.length} 曲のうち）` })),
-    el("p", { class: "sl-song-sub", text: "楽曲一覧（アルバム・シングル・配信の曲）のうち、このページに載っている公演のセトリに一度も出てこない曲です。フェスやイベントなど、載せていないライブで演奏したことがある曲も入っています。" }),
-    ...[...years].map(([y, cs]) => el("div", { class: "sl-unplayed-year" },
-      el("span", { class: "sl-unplayed-y", text: y || "" }),
-      el("ul", { class: "sl-unplayed-list" }, ...cs.map((c) => el("li", {}, c.title, c.work && c.work !== c.title ? el("small", { text: `（${c.work}）` }) : null))))));
+    el("p", { class: "sl-song-sub", text: UNPLAYED_NOTE }),
+    ...unplayedYears(list));
   box.hidden = false;
+  // 「ライブ未演奏」のタブ
+  panel.replaceChildren(
+    el("p", { class: "sl-unplayed-head" }, el("b", { text: `${list.length} 曲` }), `（全 ${catalog.length} 曲のうち）・発売の古い順`),
+    el("p", { class: "sl-song-sub", text: UNPLAYED_NOTE }),
+    ...unplayedYears(list));
+  tab.hidden = false;
 }
 
 // ツアーで演奏した曲（はじめて出てきた順）と、何公演で演奏したか
@@ -221,10 +238,11 @@ function saveUrl() {
 }
 
 function setView(v, { scroll = false } = {}) {
-  view = VIEWS.includes(v) ? v : "live";
+  view = VIEWS.includes(v) && !(v === "unplayed" && !catalog.length) ? v : "live";
   for (const b of document.querySelectorAll(".sl-tab")) b.setAttribute("aria-selected", String(b.dataset.view === view));
   $("#lives").hidden = view !== "live";
   $("#nenpyo").hidden = view !== "nenpyo";
+  $("#unplayedView").hidden = view !== "unplayed";
   saveUrl();
   if (scroll) {
     const top = $(".hist-tabs-bar").getBoundingClientRect().top + scrollY - headerH();
@@ -251,7 +269,8 @@ $("#tabs").addEventListener("click", (e) => {
 // 左右の矢印キーで切り替え
 $("#tabs").addEventListener("keydown", (e) => {
   if (e.key !== "ArrowRight" && e.key !== "ArrowLeft") return;
-  setView(view === "live" ? "nenpyo" : "live");
+  const vs = [...document.querySelectorAll(".sl-tab:not([hidden])")].map((b) => b.dataset.view);
+  setView(vs[(vs.indexOf(view) + (e.key === "ArrowRight" ? 1 : vs.length - 1)) % vs.length]);
   document.querySelector(`.sl-tab[data-view="${view}"]`).focus();
 });
 document.addEventListener("click", (e) => {
@@ -319,6 +338,8 @@ async function loadCatalog() {
       return { title, work: (r[iW] || "").trim(), y: +(r[iY] || 0) || 0, k: catalogKey(title) };
     }).sort((a, b) => a.y - b.y);
     renderUnplayed();
+    // URL が #unplayed のときは、楽曲一覧を読んでから開く
+    if (startHash === "#unplayed" && view === "live") setView("unplayed");
   } catch (e) { console.warn("楽曲一覧を読み込めませんでした", e); }
 }
 
