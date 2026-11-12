@@ -728,8 +728,8 @@ dialog.modal::backdrop { background: rgba(23, 32, 24, .5); -webkit-backdrop-filt
 .sl-live { margin: 0 0 10px; border: 1px solid var(--line-card); border-radius: 10px; background: var(--card); }
 .sl-live summary { position: relative; display: block; padding: 14px 44px 14px 16px; cursor: pointer; list-style: none; }
 .sl-live summary::-webkit-details-marker { display: none; }
-.sl-live summary::after { content: "＋"; position: absolute; right: 16px; top: 50%; transform: translateY(-50%); color: var(--muted); font-size: 16px; }
-.sl-live[open] summary::after { content: "−"; }
+.sl-live > summary::after { content: "＋"; position: absolute; right: 16px; top: 50%; transform: translateY(-50%); color: var(--muted); font-size: 16px; }
+.sl-live[open] > summary::after { content: "−"; }
 .sl-live summary:hover { background: var(--accent-tint); border-radius: 10px; }
 .sl-live-name { margin: 2px 0 2px; font-size: 15px; font-weight: 700; line-height: 1.55; text-wrap: pretty; }
 .sl-live-venue { display: flex; flex-wrap: wrap; gap: 2px 10px; margin: 0; font-size: 12px; color: var(--muted); }
@@ -808,7 +808,7 @@ dialog.modal::backdrop { background: rgba(23, 32, 24, .5); -webkit-backdrop-filt
 .sl-show summary { position: relative; display: flex; flex-wrap: wrap; align-items: baseline; gap: 2px 10px; padding: 11px 40px 11px 16px; cursor: pointer; list-style: none; font-size: 13px; }
 .sl-show summary::-webkit-details-marker { display: none; }
 .sl-show summary::after { content: "＋"; position: absolute; right: 16px; top: 50%; transform: translateY(-50%); color: var(--muted); font-size: 14px; }
-.sl-show[open] summary::after { content: "−"; }
+.sl-show[open] > summary::after { content: "−"; }
 .sl-show summary:hover { background: var(--accent-tint); }
 .sl-show time { font-family: var(--f-mono); font-size: 12px; color: var(--muted); }
 .sl-show-venue { flex: 1 1 12em; min-width: 0; color: var(--ink); }
