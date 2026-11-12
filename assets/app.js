@@ -1030,15 +1030,20 @@ function renderAdmin() {
   $("#admRepoNote").hidden = !!REPO;
   renderAnalytics();
 }
-// 運営管理の「アクセス状況」（集計のしくみは assets/analytics.js。数字は Cloudflare の画面で見ます）
+// 運営管理の「アクセス状況」（集計のしくみは assets/analytics.js。グラフは assets/stats.js を、開いたときだけ読み込みます）
+let statsView = null, statsLoading = false;
 function renderAnalytics() {
   const box = $("#admAnalytics");
   if (analyticsOn) {
-    box.replaceChildren(
-      h("p", { class: "ok", text: "アクセス数を集計しています（Cloudflare Web Analytics）。" }),
-      h("ul", { class: "admlinks" }, h("li", null, h("a", { href: DASHBOARD_URL, target: "_blank", rel: "noopener noreferrer" },
-        h("span", { text: "アクセス状況を見る" }), h("small", { text: "見られた回数・よく見られたページ・どこから来たか・端末の種類など（Cloudflare へのログインが必要）" })))),
-      h("p", { class: "hint", text: "この端末は管理者モードなので、ここからのアクセスは数えていません。数字が画面に出るまで、数分かかることがあります。" }));
+    if (statsView || statsLoading) return;
+    statsLoading = true;
+    box.replaceChildren(h("p", { class: "hint", text: "読み込んでいます…" }));
+    import("./stats.js").then((m) => { statsView = m.mountStats(box, { dashboardUrl: DASHBOARD_URL }); })
+      .catch(() => {
+        box.replaceChildren(h("p", { class: "msg err", text: "アクセス状況を読み込めませんでした。ページを開き直してください。" }),
+          h("ul", { class: "admlinks" }, h("li", null, h("a", { href: DASHBOARD_URL, target: "_blank", rel: "noopener noreferrer" }, h("span", { text: "Cloudflare の画面で見る" })))));
+      })
+      .finally(() => { statsLoading = false; });
   } else {
     box.replaceChildren(
       h("p", { text: "まだ集計していません。無料の Cloudflare Web Analytics に登録して、出てきた「token」を assets/config.js の analytics に書くと、集計が始まります（Cookie は使わず、個人情報も集めません）。" }),

@@ -393,6 +393,43 @@ dialog.modal::backdrop { background: rgba(23, 32, 24, .5); -webkit-backdrop-filt
 .addform textarea { resize: vertical; line-height: 1.6; }
 .addform .btn { justify-self: start; }
 
+/* 管理画面：アクセス状況のグラフ（中身は assets/stats.js が作ります）
+   グラフの色は1色（メインカラーの紺）だけ。線・目盛りは控えめにして、数字は文字の色で書きます。 */
+#admAnalytics { display: grid; grid-template-columns: minmax(0, 1fr); gap: 14px; }
+#admAnalytics .admstats small { font-size: 11px; }
+.statbar { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px; }
+.statrange { display: inline-flex; border: 1px solid #C2C9B8; border-radius: 5px; overflow: hidden; }
+.statrange .btn { min-width: 64px; border: 0; border-radius: 0; }
+.statrange .btn + .btn { border-left: 1px solid #C2C9B8; }
+.statrange .btn[aria-pressed="true"] { background: var(--accent); color: var(--green-ink); font-weight: 600; }
+.statcard { min-width: 0; padding: 14px 16px 16px; border: 1px solid var(--rule); border-radius: 8px; background: var(--card); }
+.statcard h3 { margin: 0 0 10px; font-size: 14px; font-weight: 700; }
+.statgrid { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 280px), 1fr)); gap: 14px; }
+.statchart { position: relative; }
+.statline { display: block; width: 100%; height: auto; touch-action: pan-y; }
+.statline .grid { stroke: var(--rule); stroke-width: 1; }
+.statline .base { stroke: #B9BDB0; stroke-width: 1; }
+.statline .ylab, .statline .xlab { fill: var(--muted); font-size: 12px; font-variant-numeric: tabular-nums; }
+.statline .area { fill: var(--accent); fill-opacity: .08; }
+.statline .line { fill: none; stroke: var(--accent); stroke-width: 2; stroke-linejoin: round; stroke-linecap: round; }
+.statline .pt { fill: var(--accent); stroke: var(--card); stroke-width: 2; }
+.statline .hover { fill: var(--accent); stroke: var(--card); stroke-width: 2; }
+.statline .cross { stroke: var(--muted); stroke-width: 1; stroke-dasharray: 3 3; }
+.stattip { position: absolute; top: 0; left: var(--x, 50%); transform: translateX(-50%); display: grid; gap: 1px; padding: 6px 10px; border: 1px solid var(--rule); border-radius: 5px; background: var(--white); box-shadow: 0 2px 8px rgba(23, 32, 24, .12); font-size: 12px; line-height: 1.5; color: var(--ink-2); white-space: nowrap; pointer-events: none; }
+.stattip b { color: var(--ink); }
+.stattable { margin-top: 8px; font-size: 13px; }
+.stattable summary { cursor: pointer; color: var(--live); min-height: 32px; padding-top: 4px; }
+.stattable table { width: 100%; border-collapse: collapse; font-variant-numeric: tabular-nums; }
+.stattable th, .stattable td { padding: 6px 4px; border-bottom: 1px solid var(--rule); text-align: right; }
+.stattable th:first-child, .stattable td:first-child { text-align: left; }
+.stattable th { font-weight: 600; color: var(--muted); font-size: 12px; }
+.statbars { list-style: none; margin: 0; padding: 0; display: grid; gap: 10px; }
+.statbars li { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 3px 10px; font-size: 13px; }
+.statbar-label { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--ink); }
+.statbars b { font-weight: 600; font-variant-numeric: tabular-nums; color: var(--ink); }
+.statbar-track { grid-column: 1 / -1; height: 6px; border-radius: 3px; background: var(--sunk); }
+.statbar-fill { display: block; width: var(--w, 0%); height: 100%; border-radius: 3px; background: var(--accent); }
+
 /* 管理画面：記事の管理（中身は assets/admin.js が作ります） */
 .admeditor { display: grid; grid-template-columns: minmax(0, 1fr); gap: 12px; }
 #adminEditor { scroll-margin-top: 76px; }
