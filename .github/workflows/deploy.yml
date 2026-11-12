@@ -44,7 +44,7 @@ jobs:
       - name: 公開するファイルをまとめる
         run: |
           mkdir _site
-          cp -r index.html maker.html history.html members.html 404.html assets data _site/
+          cp -r index.html maker.html history.html songs.html members.html 404.html assets data _site/
 
       - name: 古い表示が残らないように、読み込むファイルに版の番号を付ける
         run: |

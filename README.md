@@ -38,12 +38,14 @@ RADWIMPS とメンバーのインタビュー・対談・ライブレポート�
 index.html            サイトの骨組みと文章
 maker.html            記事データ作成ツール
 history.html          「RADWIMPSの歩み」（年表）のページ
+songs.html            「楽曲一覧」のページ（歌詞は載せず、許諾を受けた歌詞サイトへリンク）
 members.html          「メンバー・人物紹介」のページ
 404.html              ない URL を開いたときのページ
 assets/
   style.css           見た目（色など）
   app.js              画面の動き（探す入口・検索・絞り込み・あとで読む・既読）
   history.js          「RADWIMPSの歩み」（年表）の動き
+  songs.js            「楽曲一覧」の動き（記事の数・年表の MV ともつなげる）
   admin.js            運営管理の「記事の管理」（記事の編集と GitHub への保存。運営管理を開いたときだけ読み込み）
   feedback.js         ベータ版の表示と、ご意見・不具合の送信フォーム（Web3Forms 経由でメールに届く。未設定なら Google フォーム／GitHub の Issue）
   maker.js・maker.css 記事データ作成ツールの動きと見た目
@@ -58,6 +60,7 @@ assets/
 data/
   articles.csv        記事の一覧
   releases.csv        年ごとの主なリリース（「年代から探す」で年を選ぶと出る）
+  songs.csv           楽曲一覧（曲名・初めて出た作品・発売日・タイアップ・歌詞サイトの URL）
   history.csv         「RADWIMPSの歩み」（年表）の出来事
 tools/
   validate.mjs        書式チェック（記事・年ごとのリリース・年表）
