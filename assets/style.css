@@ -805,23 +805,19 @@ dialog.modal::backdrop { background: rgba(23, 32, 24, .5); -webkit-backdrop-filt
   .song-items { display: grid; grid-template-columns: 1fr 1fr; column-gap: 28px; }
   .song-item:nth-last-child(2):nth-child(odd) { border-bottom: 0; }
 }
-.song-order-btn { min-height: 44px; padding: 0 12px; border: 1px solid var(--line-entry); border-radius: 5px; background: var(--card); color: var(--ink); font-size: 13px; }
+.song-order-btn { height: 45px; padding: 0 12px; border: 1px solid var(--line-entry); border-radius: 5px; background: var(--card); color: var(--ink); font-size: 13px; }
 .song-order-btn[aria-pressed="true"] { border-color: var(--accent); background: var(--accent-tint); color: var(--accent); font-weight: 700; }
 .song-row .hist-year-head span { font-family: var(--f-body); font-size: 26px; font-weight: 700; }
 @media (min-width: 701px) { .song-row .hist-year-head span { font-size: 30px; } }
-/* 検索と並び順の帯：上の帯のすぐ下に残る。スクロールしたら（.stuck）高さを少しつめる */
+/* 検索と並び順の帯：上の帯のすぐ下に残る。ボタンと検索窓の高さは 45px。スクロールしたら（.stuck）上下の余白をつめる */
 .song-sentinel { height: 1px; }
 .song-bar { position: sticky; top: calc(60px + env(safe-area-inset-top, 0px)); z-index: 10; background: var(--paper); border-bottom: 1px solid transparent; transition: border-color .2s; }
 .song-bar.stuck { border-bottom-color: var(--rule); box-shadow: 0 4px 8px rgba(38, 41, 35, .06); }
 .song-bar-inner { display: flex; align-items: center; gap: 8px; padding-block: 10px; transition: padding .2s; }
-.song-search { flex: 1; min-width: 0; height: 46px; transition: height .2s; }
+.song-search { flex: 1; min-width: 0; height: 45px; }
 .song-order { flex: none; display: flex; gap: 4px; }
-.song-order-btn { transition: min-height .2s, font-size .2s; }
 .song-bar.stuck .song-bar-inner { padding-block: 6px; }
-.song-bar.stuck .song-search { height: 38px; }
-.song-bar.stuck .song-search input { font-size: 16px; } /* 16px より小さいと、iPhone で入力のときに画面が拡大されるため */
-.song-bar.stuck .song-order-btn { min-height: 38px; padding-inline: 10px; font-size: 12px; }
 .song-tools { padding-block: 2px 0; }
 /* 幅のせまいスマホ：並び順のボタンを少しつめる */
 @media (max-width: 389px) { .song-order-btn { padding-inline: 8px; font-size: 12px; } }
-@media (prefers-reduced-motion: reduce) { .song-bar, .song-bar-inner, .song-search, .song-order-btn { transition: none; } }
+@media (prefers-reduced-motion: reduce) { .song-bar, .song-bar-inner { transition: none; } }
