@@ -110,7 +110,7 @@ function tourCard(t, open) {
         one ? (one.venue || "") : `${n}公演`,
         el("span", { class: "sl-count", text: one ? (hasSongs(one) ? `${songsOf(one).length}曲` : "セトリ未確認") : `セトリあり ${withSongs}／${n}` }))));
   if (one) { const b = setlistBody(one); b.id = liveId(one); card.append(b); }
-  else card.append(el("div", { class: "sl-shows" }, ...[...t.lives].reverse().map((l) => showRow(l, false))));
+  else card.append(el("div", { class: "sl-shows" }, ...t.lives.map((l) => showRow(l, false))));
   return card;
 }
 
