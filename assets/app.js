@@ -8,6 +8,7 @@
 // 記事を増やしたり直したりするときは、このファイルではなく data/articles.csv を編集します。
 // 絞り込みの状態は URL（例：?person=野田洋次郎&format=all）に入るので、そのままブックマークや共有ができます。
 
+import { analyticsOn, DASHBOARD_URL } from "./analytics.js";
 import config from "./config.js";
 import {
   parseArticles, parseReleases, KIND_ORDER, MEMBERS, MEMBER_ORDER, CATEGORIES, SUPPORT_MEMBERS, WORKS, QUICK_WORKS,
@@ -725,6 +726,9 @@ function openRandom(e, link) {
   toast(`開きました：${it.title.length > 28 ? it.title.slice(0, 27) + "…" : it.title}`);
 }
 
+// 「収録方針」の、アクセス解析についての文を、集計しているかどうかで切り替える
+for (const p of $("#aboutText").content.querySelectorAll("[data-analytics]")) p.hidden = (p.dataset.analytics === "on") !== analyticsOn;
+
 /* ---------- 小窓（保存データの管理・収録方針・記事を追加） ---------- */
 
 let modalBack = null;
@@ -974,6 +978,23 @@ function renderAdmin() {
     REPO ? L(`${REPO}/blob/main/docs/manual.md`, "運用マニュアル", "記事の追加や、困ったときの手順", true) : null
   ].filter(Boolean));
   $("#admRepoNote").hidden = !!REPO;
+  renderAnalytics();
+}
+// 運営管理の「アクセス状況」（集計のしくみは assets/analytics.js。数字は Cloudflare の画面で見ます）
+function renderAnalytics() {
+  const box = $("#admAnalytics");
+  if (analyticsOn) {
+    box.replaceChildren(
+      h("p", { class: "ok", text: "アクセス数を集計しています（Cloudflare Web Analytics）。" }),
+      h("ul", { class: "admlinks" }, h("li", null, h("a", { href: DASHBOARD_URL, target: "_blank", rel: "noopener noreferrer" },
+        h("span", { text: "アクセス状況を見る" }), h("small", { text: "見られた回数・よく見られたページ・どこから来たか・端末の種類など（Cloudflare へのログインが必要）" })))),
+      h("p", { class: "hint", text: "この端末は管理者モードなので、ここからのアクセスは数えていません。数字が画面に出るまで、数分かかることがあります。" }));
+  } else {
+    box.replaceChildren(
+      h("p", { text: "まだ集計していません。無料の Cloudflare Web Analytics に登録して、出てきた「token」を assets/config.js の analytics に書くと、集計が始まります（Cookie は使わず、個人情報も集めません）。" }),
+      REPO ? h("ul", { class: "admlinks" }, h("li", null, h("a", { href: `${REPO}/blob/main/docs/manual.md#13-5-アクセス数を集計するcloudflare-web-analytics`, target: "_blank", rel: "noopener noreferrer" },
+        h("span", { text: "集計の始め方（マニュアル13-5）" }), h("small", { text: "登録から設定まで、10分ほどです" })))) : null);
+  }
 }
 function setAdmin(on) {
   S.admin = on;

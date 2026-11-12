@@ -767,3 +767,29 @@ SNS などで、知らない人にもたくさん見てもらうための設定�
    - 「Restrict deletions」と「Block force pushes」にチェック（ほかはそのまま）→「Create」
    - これで main が消されたり、履歴を書き換えられたりしなくなります（ふつうの保存や運営管理からの保存はそのままできます）。
 3. 自分の GitHub の「Settings」→「Emails」で「Keep my email addresses private」と「Block command line pushes that expose my email」をオンにします。
+
+### 13-5. アクセス数を集計する（Cloudflare Web Analytics）
+
+GitHub Pages だけでは、サイトが何回見られたかはわかりません。無料の **Cloudflare Web Analytics** を使うと、運営管理から集計の画面を開けるようになります。
+
+- わかること：見られた回数・訪問者のおおよその数・よく見られたページ・どこから来たか（X・検索など）・国・端末やブラウザの種類。
+- Cookie は使わず、名前やメールアドレスなど個人を特定できる情報は集めません。そのため、同意のボタン（Cookie バナー）は要りません。サイトの「収録方針と出典について」の文は、集計を始めると自動で「アクセス数を数えています」に切り替わります。
+- 数えるのは記事一覧・年表（RADWIMPSの歩み）・人物紹介のページです。**管理者モードをオンにした端末からのアクセスは数えません**（自分で見た分が混ざらないように）。
+
+**始め方（最初の一度だけ・10分ほど）**
+
+1. https://dash.cloudflare.com/sign-up を開き、メールアドレスとパスワードで無料登録します（届いたメールで確認します）。
+2. 左のメニューの「**Analytics & Logs**」→「**Web Analytics**」（見つからなければ、上の検索欄に「Web Analytics」）を開き、「**Add a site**」を押します。
+3. 「Hostname」に `radwimps-archive.github.io` と入れて「Done」を押します（「Automatic setup」ではなく、JS Snippet の方法になります）。
+4. 表示された文の中の `"token": "…"` の **英数字32文字** をコピーします。
+5. GitHub で `assets/config.js` を開いて鉛筆のボタンを押し、いちばん下の `analytics: { cloudflare: "" }` の `""` の中に貼り付けて保存します。
+   ```js
+   analytics: { cloudflare: "0123456789abcdef0123456789abcdef" }
+   ```
+6. 1〜2分でサイトが更新され、集計が始まります。スマホなど、管理者モードではない端末でサイトを開いてから、数分待って Cloudflare の画面に数字が出れば成功です。
+
+**数字を見る**：運営管理の「**アクセス状況**」→「アクセス状況を見る」を押すと、Cloudflare の集計画面が開きます（Cloudflare へのログインが必要）。
+
+**やめるとき**：`assets/config.js` の `cloudflare` を `""` に戻します。
+
+※ token はページの中に書かれるので、だれでも見られますが、数字を見ることはできません（見るには Cloudflare へのログインが必要です）。

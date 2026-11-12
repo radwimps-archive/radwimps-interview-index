@@ -3,6 +3,7 @@
 // 上のタブでカテゴリを選ぶと、そのカテゴリの出来事だけが並びます（URL の末尾 #release などでも開けます）。
 // 「MV」のタブ（#mv）は、MV のある曲だけを1曲ずつ並べます。
 
+import "./analytics.js";
 import { parseHistory, HISTORY_CATEGORIES } from "./data.js";
 import { h as el, setupMenu, isAdminDevice } from "./ui.js";
 import config from "./config.js";

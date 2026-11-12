@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <!-- 安全のための決まり（CSP）：このサイトと、決めた所（YouTube の埋め込み・サムネイル、GitHub の API）以外からは、プログラムや画像を読み込みません。
      HTML の中に直接 <script> や style="…" を書くと動かなくなるので、assets フォルダのファイルに書いてください。 -->
-<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data: https://i.ytimg.com; font-src 'self'; connect-src 'self' https://api.github.com https://api.web3forms.com; frame-src https://www.youtube-nocookie.com https://www.youtube.com; object-src 'none'; base-uri 'self'; form-action 'self'; upgrade-insecure-requests">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' https://static.cloudflareinsights.com; style-src 'self'; img-src 'self' data: https://i.ytimg.com; font-src 'self'; connect-src 'self' https://api.github.com https://api.web3forms.com https://cloudflareinsights.com; frame-src https://www.youtube-nocookie.com https://www.youtube.com; object-src 'none'; base-uri 'self'; form-action 'self'; upgrade-insecure-requests">
 <meta name="referrer" content="strict-origin-when-cross-origin">
 <title>RADWIMPS Archives — 好きな曲から、気になる人から。</title>
 <meta name="description" content="RADWIMPS とメンバーのインタビュー・対談・ライブレポートを、人・曲や作品・年代・ライブから探せる、非公式の索引サイトです。">
@@ -187,6 +187,8 @@
       <div id="admIssues"></div>
       <h2>記事の管理</h2>
       <div id="adminEditor" class="admeditor"><p class="hint">読み込んでいます…</p></div>
+      <h2>アクセス状況</h2>
+      <div id="admAnalytics"></div>
       <h2>よく使う操作</h2>
       <ul class="admlinks" id="admLinks"></ul>
       <p class="hint" id="admRepoNote" hidden>GitHub Pages（○○.github.io）で公開すると、ここに GitHub の画面へのリンクが出ます。独自ドメインのときは、assets/config.js の repoUrl に GitHub の URL を書いてください。</p>
@@ -235,7 +237,7 @@
   <p>リンク先でインタビューやライブレポートの内容が読める・見られる・聴けるものを載せています。有料会員限定のもの（ファンクラブ「ボクンチ」など）は載せていません。ラジオ番組の放送回は「ラジオ」のタブに、雑誌の掲載号の案内や発売のお知らせなど、本文が読めない資料は「リリース情報」のタブに分けています。</p>
   <p>「説明」は、記事の内容がわかるように運営が書いた紹介文で、掲載元の文章の転載ではありません。掲載日が「年」や「年・月」までのものは、確認できた範囲で記載しています。掲載元のタイトルを確認できなかった記事には、内容がわかる見出しを付けています。</p>
   <p>リンクは定期的に確認し、開けなくなった記事は一覧から外しています。主な出典は、RADWIMPS 公式サイトの MEDIA 欄と、各媒体の記事ページです。</p>
-  <p>このサイトでは、アクセス解析（訪問者の記録）や広告のための追跡はしていません。「あとで読む」「既読」は、このブラウザの中だけに保存され、運営を含めほかの人には送られません（ブラウザのデータを消すと消えます。「保存データの管理」から、ファイルに書き出したり、引き継ぎ用のリンクでほかの端末に移したりできます。リンクの中身もサーバーには送られません）。動画のサムネイル画像と再生には YouTube（Google）のしくみを使っているため、その部分には YouTube と Google の決まりが適用されます。</p>
+  <p><span data-analytics="off">このサイトでは、アクセス解析（訪問者の記録）や広告のための追跡はしていません。</span><span data-analytics="on" hidden>このサイトでは、どのページがどれくらい見られているかを知るために、Cloudflare Web Analytics でアクセス数を数えています。Cookie は使わず、名前やメールアドレスなどの個人を特定できる情報は集めていません。広告のための追跡はしていません。</span>「あとで読む」「既読」は、このブラウザの中だけに保存され、運営を含めほかの人には送られません（ブラウザのデータを消すと消えます。「保存データの管理」から、ファイルに書き出したり、引き継ぎ用のリンクでほかの端末に移したりできます。リンクの中身もサーバーには送られません）。動画のサムネイル画像と再生には YouTube（Google）のしくみを使っているため、その部分には YouTube と Google の決まりが適用されます。</p>
 </template>
 
 <div id="toast" class="toast" role="status" aria-live="polite"></div>

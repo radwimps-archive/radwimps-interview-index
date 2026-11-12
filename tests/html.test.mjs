@@ -14,7 +14,7 @@ for (const page of PAGES) {
   test(`${page}：CSP が書かれている`, () => {
     const m = read(page).match(/<meta http-equiv="Content-Security-Policy" content="([^"]+)">/);
     assert.ok(m, "CSP の <meta> がありません");
-    assert.match(m[1], /script-src 'self'(;|$)/, "script-src は 'self' だけにします");
+    assert.match(m[1], /script-src 'self'( https:\/\/static\.cloudflareinsights\.com)?(;|$)/, "script-src は 'self'（とアクセス集計の Cloudflare）だけにします");
     assert.doesNotMatch(m[1], /unsafe-inline|unsafe-eval/, "unsafe-inline・unsafe-eval は使いません");
   });
   test(`${page}：HTML の中に直接プログラムや style を書いていない`, () => {

@@ -2,6 +2,7 @@
 // 「メンバー・人物紹介」のページ（members.html）の動き。紹介文と SNS のリンクは members.html に直接書いてあります。
 // ここでは、ほかのページと同じメニュー・ベータ版の表示・「誤りを知らせる」リンクを準備するだけです。
 
+import "./analytics.js";
 import { h, setupMenu, isAdminDevice } from "./ui.js";
 import { feedbackUrl, hasFeedback, setupBeta, KIND } from "./feedback.js";
 
