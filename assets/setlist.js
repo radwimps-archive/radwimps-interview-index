@@ -5,8 +5,9 @@
 //   ライブ：ツアーごと。ツアーを押すと全公演が並び、公演を押すとその日のセットリスト（曲順）が開く。新しいツアーが上
 //   年表　：年ごとに、ツアーと、そのツアーで演奏した曲を並べたもの。古いツアーが上。
 //           曲名を押すと、その曲を演奏したツアーと日付だけになる（?song=曲名 でも開けます）
+//           楽曲一覧（data/songs.csv）があれば、どの公演でも演奏していない曲（ライブで未演奏の曲）も出します
 
-import { parseSetlists, songKey, SETLIST_CONFIDENCE } from "./data.js";
+import { parseCSV, parseSetlists, songKey, SETLIST_CONFIDENCE } from "./data.js";
 import { h as el, setupMenu, isAdminDevice } from "./ui.js";
 import { feedbackUrl, hasFeedback, setupBeta, KIND } from "./feedback.js";
 import "./analytics.js";
@@ -19,6 +20,11 @@ let tours = [];          // ツアー（古い順）：{ id, name, lives: [公�
 let songs = new Map();   // 曲の名前（songKey）→ { title, plays: [{ live, memo }] }
 let view = "live";
 let song = "";           // 年表で選んでいる曲（songKey）
+let catalog = [];        // 楽曲一覧（data/songs.csv）：{ title, work, y, k }。ないときは空
+
+// 楽曲一覧の曲名と、セトリの曲名を同じものとして比べるための名前
+// （「グランドエスケープ feat.三浦透子」→「グランドエスケープ」、‘I’ と 'I' のちがいも同じとみなす）
+const catalogKey = (t) => songKey(t.replace(/\s*[(（]?feat\..*$/i, "").replace(/[‘’`]/g, "'"));
 
 const pad = (n) => String(n).padStart(2, "0");
 const dateLabel = (l) => (l.d ? `${l.y}.${pad(l.m)}.${pad(l.d)}` : l.m ? `${l.y}.${pad(l.m)}` : String(l.y));
@@ -141,6 +147,24 @@ function renderSongInfo() {
     el("div", { class: "sl-chips" }, ...top.map(([k, r]) => el("button", { type: "button", class: "sl-chip", "data-song": k }, r.title, el("small", { text: ` ${r.plays.length}` })))));
 }
 
+// ライブで未演奏の曲：楽曲一覧にあって、このページのどの公演のセトリにも出てこない曲（発売の古い順）
+const playedKeys = () => new Set([...songs.values()].map((r) => catalogKey(r.title)));
+function renderUnplayed() {
+  const box = $("#unplayed");
+  if (!catalog.length) { box.hidden = true; return; }
+  const played = playedKeys();
+  const list = catalog.filter((c) => !played.has(c.k));
+  const years = new Map();
+  for (const c of list) (years.get(c.y) || years.set(c.y, []).get(c.y)).push(c);
+  box.replaceChildren(
+    el("summary", {}, el("b", { text: "ライブで未演奏の曲" }), el("small", { text: ` ${list.length} 曲（全 ${catalog.length} 曲のうち）` })),
+    el("p", { class: "sl-song-sub", text: "楽曲一覧（アルバム・シングル・配信の曲）のうち、このページに載っている公演のセトリに一度も出てこない曲です。フェスやイベントなど、載せていないライブで演奏したことがある曲も入っています。" }),
+    ...[...years].map(([y, cs]) => el("div", { class: "sl-unplayed-year" },
+      el("span", { class: "sl-unplayed-y", text: y || "" }),
+      el("ul", { class: "sl-unplayed-list" }, ...cs.map((c) => el("li", {}, c.title, c.work && c.work !== c.title ? el("small", { text: `（${c.work}）` }) : null))))));
+  box.hidden = false;
+}
+
 // ツアーで演奏した曲（はじめて出てきた順）と、何公演で演奏したか
 function tourSongs(t) {
   const m = new Map();
@@ -255,7 +279,12 @@ function findSong(text) {
 }
 $("#songInput").addEventListener("change", (e) => {
   const k = findSong(e.target.value);
-  if (k === null) { song = ""; renderTimeline(); $("#songInfo").replaceChildren(el("p", { class: "sl-song-sub", text: `「${e.target.value}」を演奏したライブは、まだ載っていません。` })); $("#songClear").hidden = false; return; }
+  if (k === null) {
+    song = ""; renderTimeline();
+    const c = catalog.find((x) => x.k === catalogKey(e.target.value));
+    $("#songInfo").replaceChildren(el("p", { class: "sl-song-sub", text: c ? `「${c.title}」（${[c.y ? `${c.y}年` : "", c.work].filter(Boolean).join("・")}）は、ここに載っているライブでは、まだ演奏されていません。` : `「${e.target.value}」を演奏したライブは、まだ載っていません。` }));
+    $("#songClear").hidden = false; return;
+  }
   setSong(k, { scroll: false });
 });
 $("#songClear").addEventListener("click", () => { setSong("", { scroll: false }); $("#songInput").focus(); });
@@ -276,6 +305,23 @@ if (isAdminDevice()) $("#adminLink").hidden = false;
 // 確かさの札の説明
 $("#legend").replaceChildren(...SETLIST_CONFIDENCE.map((c) => el("span", {}, badge(c), el("small", { text: c.desc }))));
 
+// 楽曲一覧（data/songs.csv）を読む。読めないときは「ライブで未演奏の曲」を出さない
+async function loadCatalog() {
+  try {
+    const res = await fetch("data/songs.csv", { cache: "no-cache" });
+    if (!res.ok) return;
+    const { rows } = parseCSV(await res.text());
+    const head = rows[0] || [], ci = (n) => head.indexOf(n);
+    const [iT, iW, iY] = [ci("曲名"), ci("初めて出た作品"), ci("年")];
+    if (iT < 0) return;
+    catalog = rows.slice(1).filter((r) => (r[iT] || "").trim()).map((r) => {
+      const title = r[iT].trim();
+      return { title, work: (r[iW] || "").trim(), y: +(r[iY] || 0) || 0, k: catalogKey(title) };
+    }).sort((a, b) => a.y - b.y);
+    renderUnplayed();
+  } catch (e) { console.warn("楽曲一覧を読み込めませんでした", e); }
+}
+
 // 読み込み
 (async () => {
   try {
@@ -294,6 +340,7 @@ $("#legend").replaceChildren(...SETLIST_CONFIDENCE.map((c) => el("span", {}, bad
     if (song) $("#songInput").value = songs.get(song).title;
     renderSongInfo();
     renderTimeline();
+    loadCatalog();
     setView(song && !location.hash ? "nenpyo" : location.hash.slice(1));
   } catch (e) {
     console.error(e);

@@ -761,6 +761,16 @@ dialog.modal::backdrop { background: rgba(23, 32, 24, .5); -webkit-backdrop-filt
 .sl-chip small { font-family: var(--f-mono); font-size: 10.5px; color: var(--muted); }
 .sl-chip:hover { background: var(--accent-tint); }
 .sl-chip.on { border-color: var(--accent); background: var(--accent); color: var(--white); }
+.sl-unplayed { margin-top: 12px; padding-top: 10px; border-top: 1px dashed var(--rule); }
+.sl-unplayed > summary { cursor: pointer; list-style: none; position: relative; padding-right: 28px; font-size: 13px; }
+.sl-unplayed > summary::-webkit-details-marker { display: none; }
+.sl-unplayed > summary::after { content: "＋"; position: absolute; right: 2px; top: 50%; transform: translateY(-50%); color: var(--muted); font-size: 14px; }
+.sl-unplayed[open] > summary::after { content: "−"; }
+.sl-unplayed > summary small { font-family: var(--f-mono); font-size: 11px; color: var(--muted); }
+.sl-unplayed-year { display: grid; grid-template-columns: 3.2em minmax(0, 1fr); gap: 8px; margin-top: 8px; font-size: 13px; line-height: 1.6; }
+.sl-unplayed-y { font-family: var(--f-mono); font-size: 12px; color: var(--muted); padding-top: 1px; }
+.sl-unplayed-list { margin: 0; padding: 0; list-style: none; }
+.sl-unplayed-list small { font-size: 11px; color: var(--muted); }
 .sl-enc-mark { padding: 0 2px 0 6px; font-size: 10.5px; color: var(--accent); letter-spacing: .05em; }
 .sl-enc-mark::before { content: "／ "; color: var(--muted); }
 .hist-title .sl-to-live { color: inherit; text-decoration: underline dotted var(--line-input); text-underline-offset: 4px; }
