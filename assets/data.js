@@ -468,7 +468,7 @@ export function parseHistory(text) {
 
 /* ---------- ライブのセトリ（setlists.csv） ---------- */
 
-// 「ライブのセトリ」のページ（setlist.html）のデータです。1行が1つの公演です。
+// 「ライブのセトリ」のページ（setlist.html）のデータです。1行が1つの公演です。ライブ名が同じ公演は、1つのツアーとしてまとめて表示します。
 //   本編・アンコール：曲名を「／」で区切って、演奏した順に書きます（例：DADA／有心論）。
 //   曲名のうしろの（　）は、その曲のメモです（例：25コ目の染色体（アコースティック）、Tokyo（feat. iri））。
 //   （　）の前までが曲名として数えられるので、同じ曲は同じ書き方にそろえてください。
@@ -477,7 +477,8 @@ export const SETLIST_CONFIDENCE = [
   { name: "確認済み", slug: "ok", label: "確認済み", desc: "報道のライブレポートに載ったセットリスト" },
   { name: "未確認", slug: "fan", label: "未確認（ファンの投稿）", desc: "ファンが投稿するサイト（LiveFans など）の情報。まちがいがあるかもしれません" },
   { name: "一部", slug: "part", label: "一部だけ", desc: "ライブレポートの本文に出てくる曲を順に並べたもの。全曲ではない可能性があります" },
-  { name: "映像", slug: "video", label: "映像の収録曲", desc: "ライブ映像の作品に収められた曲。ツアーのいくつかの公演から選んだもので、1つの公演の曲順ではありません" }
+  { name: "映像", slug: "video", label: "映像の収録曲", desc: "ライブ映像の作品に収められた曲。ツアーのいくつかの公演から選んだもので、1つの公演の曲順ではありません" },
+  { name: "セトリなし", slug: "none", label: "セトリ未確認", desc: "日付と会場だけ。セットリストは、まだ確かめられていません" }
 ];
 const SETLIST_COLUMNS = {
   "公演日": "date", "ライブ名": "name", "会場": "venue", "本編": "main", "アンコール": "encore", "ゲスト": "guests",
@@ -516,14 +517,15 @@ export function parseSetlists(text) {
     const date = readDateCell(get("date"), line, err);
     const songs = (s) => splitList(s, /[／]/).map(splitSong);
     const main = songs(get("main")), encore = songs(get("encore"));
-    if (!main.length) err(line, "本編の曲が空欄です（曲名を「／」で区切って書きます）");
     // 曲の区切りは全角の「／」だけ（半角の「/」は曲名の一部として読む）
     if (/\//.test(get("main") + get("encore"))) warn(line, "曲の区切りは全角の「／」です。半角の「/」は曲名の一部として読みます");
     const conf = SETLIST_CONFIDENCE.find((c) => c.name === nfkc(get("conf")));
     if (!conf) err(line, `確かさ「${get("conf")}」は使えません。${confNames} のどれかを書いてください`);
+    if (!main.length && conf && conf.slug !== "none") err(line, "本編の曲が空欄です（曲名を「／」で区切って書きます。セトリがわからない公演は、確かさを「セトリなし」にします）");
+    if (main.length + encore.length && conf && conf.slug === "none") warn(line, "確かさが「セトリなし」なのに、曲が書いてあります");
     let url = get("url");
     if (url && !/^https:\/\/[^\s"<>]+$/.test(url)) { warn(line, "出典URL は https:// で始まるものだけ使えます（このリンクは出ません）"); url = ""; }
-    if (!url && conf && conf.slug !== "video") warn(line, "出典URL が空欄です（どこで確かめたかを残しておくと、あとで見直せます）");
+    if (!url && conf && conf.slug !== "video" && conf.slug !== "none") warn(line, "出典URL が空欄です（どこで確かめたかを残しておくと、あとで見直せます）");
     if (errors.length > before) continue;
     const [y, m = 0, d = 0] = date.split("-").map((v) => +v || 0);
     lives.push({ line, i: lives.length, date, y, m, d, name, venue: get("venue"), main, encore,
