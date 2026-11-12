@@ -1,5 +1,5 @@
 // assets/transfer.js
-// 「あとで読む」「既読」を、ほかの端末に引き継ぐためのリンクを作る・読む処理です（会員登録なし）。
+// 「お気に入り」「あとで読む」「既読」を、ほかの端末に引き継ぐためのリンクを作る・読む処理です（会員登録なし）。
 //
 // しくみ：
 //   記事の id の一覧を短く縮めて（圧縮）、サイトの URL の「#transfer=」のうしろに付けます。
@@ -24,9 +24,12 @@ async function pipe(bytes, stream) {
 }
 const canZip = () => typeof CompressionStream === "function" && typeof DecompressionStream === "function";
 
-// 引き継ぎの文字を作ります：encodeMarks({ later: [id…], read: [id…] }) → "z…"（圧縮）または "u…"（圧縮できないブラウザ）
-export async function encodeMarks({ later = [], read = [] }) {
-  const json = JSON.stringify({ v: 1, l: later, r: read });
+// 引き継ぎの文字を作ります：encodeMarks({ later: [id…], read: [id…], favorites: [id…] }) → "z…"（圧縮）または "u…"（圧縮できないブラウザ）
+// （お気に入りは f。f が無い以前のリンクも、そのまま読めます）
+export async function encodeMarks({ later = [], read = [], favorites = [] }) {
+  const data = { v: 1, l: later, r: read };
+  if (favorites.length) data.f = favorites;
+  const json = JSON.stringify(data);
   const bytes = new TextEncoder().encode(json);
   if (canZip()) return "z" + toB64url(await pipe(bytes, new CompressionStream("deflate-raw")));
   return "u" + toB64url(bytes);
@@ -44,7 +47,7 @@ export async function decodeMarks(code) {
     const data = JSON.parse(new TextDecoder().decode(bytes));
     const ids = (v) => (Array.isArray(v) ? [...new Set(v.filter((x) => typeof x === "string" && x.length > 0 && x.length < 160))] : []);
     if (!data || data.v !== 1) return null;
-    return { later: ids(data.l), read: ids(data.r) };
+    return { later: ids(data.l), read: ids(data.r), favorites: ids(data.f) };
   } catch {
     return null;
   }
