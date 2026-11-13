@@ -779,3 +779,15 @@ dialog.modal::backdrop { background: rgba(23, 32, 24, .5); -webkit-backdrop-filt
 .person-articles:hover { text-decoration: underline; }
 .empty-alt { display: flex; flex-wrap: wrap; justify-content: center; gap: 8px; margin: 4px 0 14px; }
 .empty-alt:empty { display: none; }
+
+/* とても幅のせまい画面（折りたたみスマホの小さい外側の画面など、300px 以下）：横にはみ出さないよう、見出しの帯を詰め、探す入口を1列にする */
+@media (max-width: 300px) {
+  .header-inner { gap: 6px; padding-right: 8px; }
+  .brand { gap: 6px; }
+  .brand-symbol { font-size: 36px; padding-right: 6px; }
+  .brand-text { font-size: 13px; letter-spacing: .5px; }
+  .brand-text span { font-size: 8px; letter-spacing: .6px; }
+  .beta-badge { padding: 1px 4px; font-size: 10px; }
+  .format-tabs { flex-wrap: wrap; overflow-x: visible; }
+  .entry-tabs { grid-template-columns: minmax(0, 1fr); }
+}
