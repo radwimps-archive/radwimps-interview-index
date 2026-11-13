@@ -480,8 +480,8 @@ export const SETLIST_CONFIDENCE = [
   { name: "映像", slug: "video", label: "映像の収録曲", desc: "ライブ映像の作品に収められた曲。ツアーのいくつかの公演から選んだもので、1つの公演の曲順ではありません" },
   { name: "セトリなし", slug: "none", label: "セトリ未確認", desc: "日付と会場だけ。セットリストは、まだ確かめられていません" }
 ];
-// 区分：ページの「ライブ」で、この4つに分けて見られます（ライブ名が同じ公演は、同じ区分にそろえます）
-export const SETLIST_CATEGORIES = ["国内ツアー", "海外ツアー", "フェス", "単発ライブ"];
+// 区分：ページの「ライブ」で、この5つに分けて見られます（ライブ名が同じ公演は、同じ区分にそろえます）
+export const SETLIST_CATEGORIES = ["国内ツアー", "海外ツアー", "フェス", "ボクンチ忘年会", "単発ライブ"];
 const SETLIST_COLUMNS = {
   "区分": "cat", "公演日": "date", "ライブ名": "name", "会場": "venue", "本編": "main", "アンコール": "encore", "ゲスト": "guests",
   "確かさ": "conf", "出典": "source", "出典URL": "url", "メモ": "note"
