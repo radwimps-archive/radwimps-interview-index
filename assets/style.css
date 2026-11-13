@@ -711,7 +711,8 @@ dialog.modal::backdrop { background: rgba(23, 32, 24, .5); -webkit-backdrop-filt
 
 /* ---------- ライブのセトリ（setlist.html） ----------
    年表の見た目（.hist-…）を土台に、セットリストのカード（.sl-live）と曲名の札（.sl-chip）を足しています。 */
-.sl-tab { min-width: 92px; justify-content: center; font-size: 14px; }
+.sl-tab { min-width: 0; justify-content: center; font-size: 25px; line-height: 1.2; padding: 6px 14px; }
+@media (max-width: 419px) { .setlist-page .hist-tabs { gap: 4px; } .sl-tab { padding-inline: 8px; } }
 .sl-tab::before { display: none; }
 .sl-legend { display: grid; gap: 6px; margin: 14px 0 0; font-size: 11px; line-height: 1.6; color: var(--muted); }
 .sl-legend span { display: flex; align-items: baseline; gap: 8px; }
