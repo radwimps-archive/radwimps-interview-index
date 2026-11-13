@@ -464,7 +464,8 @@ async function loadCatalog() {
     const head = rows[0] || [], ci = (n) => head.indexOf(n);
     const [iT, iW, iY] = [ci("曲名"), ci("初めて出た作品"), ci("年")];
     if (iT < 0) return;
-    catalog = rows.slice(1).filter((r) => (r[iT] || "").trim()).map((r) => {
+    // 「〈宿題発表-skit-〉」のような skit（曲と曲のあいだの短い寸劇）は、ライブでやる曲ではないので入れない
+    catalog = rows.slice(1).filter((r) => (r[iT] || "").trim() && !/skit/i.test(r[iT])).map((r) => {
       const title = r[iT].trim();
       return { title, work: (r[iW] || "").trim(), y: +(r[iY] || 0) || 0, k: catalogKey(title) };
     }).sort((a, b) => a.y - b.y);
