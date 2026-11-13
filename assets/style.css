@@ -726,6 +726,8 @@ dialog.modal::backdrop { background: rgba(23, 32, 24, .5); -webkit-backdrop-filt
 .sl-lives { padding-block: 8px 24px; }
 .sl-view { padding-bottom: 10px; }
 .sl-cats { padding-block: 14px 4px; }
+.sl-cats .chip { border-radius: 999px; padding-inline: 16px; }
+.sl-cats .chip[aria-pressed="true"] .n { color: rgba(255,255,255,.75); }
 .sl-live { margin: 0 0 10px; border: 1px solid var(--line-card); border-radius: 10px; background: var(--card); }
 .sl-live summary { position: relative; display: block; padding: 14px 44px 14px 16px; cursor: pointer; list-style: none; }
 .sl-live summary::-webkit-details-marker { display: none; }
