@@ -187,7 +187,6 @@ body::before { content: ""; position: fixed; inset: 0 0 auto; height: env(safe-a
 .format-tabs button:first-child, .format-tabs button[aria-pressed="true"] + button { border-left-width: 1px; }
 .format-tabs button:hover { color: var(--ink); background: var(--accent-tint); }
 .format-tabs button[aria-pressed="true"] { flex-grow: 1.2; min-height: 46px; padding-block: 12px 8px; border-color: var(--accent); background: var(--accent); color: var(--white); font-size: 13.5px; font-weight: 700; }
-.format-tabs .lbl-full { display: none; }
 /* 幅のせまいスマホ（360px 以下など）でも、5つのタブが1段に収まるように少しつめる */
 @media (max-width: 380px) {
   .format-tabs button { padding-inline: 3px; font-size: 11.5px; }
@@ -561,8 +560,6 @@ dialog.modal::backdrop { background: rgba(23, 32, 24, .5); -webkit-backdrop-filt
   .search-go { min-width: 96px; height: 52px; }
   .format-tabs button { padding-inline: 14px; font-size: 14px; }
   .format-tabs button[aria-pressed="true"] { font-size: 15px; }
-  .format-tabs .lbl-full { display: inline; }
-  .format-tabs .lbl-short { display: none; }
 
   /* 左に絞り込み（176px）、右に一覧 */
   .archive-layout { display: grid; grid-template-columns: 176px minmax(0, 1fr); gap: 26px; align-items: start; }
