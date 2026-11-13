@@ -1,7 +1,7 @@
 // assets/songs.js
 // 「楽曲一覧」のページ（songs.html）の動き。曲のデータは data/songs.csv です（ここを書き換えると一覧が変わります）。
 // ※ 歌詞には著作権があるので、歌詞の本文はこのサイトに載せません（データにも入れません）。
-//   「歌詞を見る」は、歌詞の掲載を許諾されている歌詞サイト（歌ネット・UtaTen など）へのリンクです。
+//   「歌詞」は、歌詞の掲載を許諾されている歌詞サイト（歌ネット・UtaTen など）へのリンクです。
 // ほかのデータともつなげています：
 //   ・記事（data/articles.csv）…その曲にふれた記事の数を出し、押すと記事一覧を ?work=曲名 で開く
 //   ・年表（data/history.csv）…「動画」の列にある、その曲の MV を YouTube で開く
@@ -148,13 +148,13 @@ function songItem(s) {
 
   const links = el("div", { class: "song-links" });
   const after = [];
-  // 歌のない曲（「メモ」が「インスト」「スキット」で始まる曲）には、「歌詞を見る」を出さない
+  // 歌のない曲（「メモ」が「インスト」「スキット」で始まる曲）には、「歌詞」を出さない
   if (/^(インスト|スキット)/.test(s.note)) {
     // 何も出さない
   } else if (s.lyrics) {
-    links.append(el("a", { class: "song-btn song-lyrics", href: s.lyrics, target: "_blank", rel: "noopener noreferrer", text: "歌詞を見る ↗" }));
+    links.append(el("a", { class: "song-btn song-lyrics", href: s.lyrics, target: "_blank", rel: "noopener noreferrer", text: "歌詞 ↗" }));
   } else {
-    links.append(el("span", { class: "song-label", text: "歌詞を見る" }));
+    links.append(el("span", { class: "song-label", text: "歌詞" }));
     for (const site of LYRIC_SITES) {
       links.append(el("a", { class: "song-btn song-lyrics", href: siteSearch(site.host, s.base), target: "_blank", rel: "noopener noreferrer",
         "aria-label": `「${s.title}」の歌詞を${site.name}で探す（新しいタブ）`, text: `${site.name} ↗` }));
