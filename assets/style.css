@@ -821,3 +821,6 @@ dialog.modal::backdrop { background: rgba(23, 32, 24, .5); -webkit-backdrop-filt
 /* 幅のせまいスマホ：並び順のボタンを少しつめる */
 @media (max-width: 389px) { .song-order-btn { padding-inline: 8px; font-size: 12px; } }
 @media (prefers-reduced-motion: reduce) { .song-bar, .song-bar-inner { transition: none; } }
+.song-shops { margin-top: 6px; }
+.song-shop { min-height: 32px; font-size: 11.5px; color: var(--ink-2); }
+.song-shop .pr { margin-left: 5px; padding: 0 3px; font-size: 8.5px; }

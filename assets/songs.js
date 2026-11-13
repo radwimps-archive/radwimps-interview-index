@@ -10,6 +10,7 @@ import "./analytics.js";
 import { parseSongs, parseArticles, parseHistory, SONG_KINDS } from "./data.js";
 import { h as el, setupMenu, isAdminDevice } from "./ui.js";
 import { feedbackUrl, hasFeedback, setupBeta, KIND } from "./feedback.js";
+import config from "./config.js";
 
 const $ = (s) => document.querySelector(s);
 
@@ -27,6 +28,30 @@ const LYRIC_SITES = [
   { name: "UtaTen", host: "utaten.com" }
 ];
 const siteSearch = (host, title) => `https://www.google.com/search?q=${encodeURIComponent(`site:${host} RADWIMPS ${title} 歌詞`)}`;
+// 「聴く」：配信の曲は、音楽サブスクリプションの検索結果を開きます（曲ごとのページの URL がなくても、曲名と RADWIMPS で見つかります）
+const q = (...w) => encodeURIComponent(["RADWIMPS", ...w].join(" "));
+const LISTEN = [
+  { name: "Spotify", url: (t) => `https://open.spotify.com/search/${q(t)}` },
+  { name: "Apple Music", url: (t) => `https://music.apple.com/jp/search?term=${q(t)}` },
+  { name: "YouTube Music", url: (t) => `https://music.youtube.com/search?q=${q(t)}` }
+];
+// 「買う」：CD の作品は、通販サイトの検索結果を開きます。
+//   タワーレコードは、config.js の towerAffiliate（バリューコマースの sid・pid）を書くとアフィリエイトリンクになり、「PR」が出ます（年表と同じ）。
+//   Amazon は config.js の amazonTag（Amazon アソシエイトのトラッキング ID）を書くとアフィリエイトリンクになります。楽天は今はふつうのリンクです。
+const AFF = config.towerAffiliate || {};
+const towerAff = !!(AFF.sid && AFF.pid);
+const amazonTag = /^[\w-]+-22$/.test(config.amazonTag || "") ? config.amazonTag : "";
+const BUY = [
+  { name: "タワレコ", aff: towerAff, url: (w) => {
+    const plain = `https://tower.jp/search/item/${q(w)}`;
+    return towerAff ? `https://ck.jp.ap.valuecommerce.com/servlet/referral?sid=${encodeURIComponent(AFF.sid)}&pid=${encodeURIComponent(AFF.pid)}&vc_url=${encodeURIComponent(plain)}` : plain;
+  } },
+  { name: "Amazon", aff: !!amazonTag, url: (w) => `https://www.amazon.co.jp/s?k=${q(w)}&i=music${amazonTag ? `&tag=${amazonTag}` : ""}` },
+  { name: "楽天", aff: false, url: (w) => `https://search.rakuten.co.jp/search/mall/${q(w)}/` }
+];
+// CD で買える作品の名前：CD で出た曲は初めて出た作品、配信の曲は、あとで入ったアルバム（なければ買うリンクは出さない）
+const CD_KINDS = ["シングル", "アルバム", "サウンドトラック"];
+const cdWork = (s) => (CD_KINDS.includes(s.kind) ? s.work : s.album) || "";
 const youtube = (id) => `https://www.youtube.com/watch?v=${id}`;
 
 // 絞り込み：「シングル」には、CD のシングルと配信のシングル（データの種類が「配信」）の両方が入ります
@@ -122,6 +147,7 @@ function songItem(s) {
   if (s.note) subs.push(el("p", { class: "song-sub", text: s.note }));
 
   const links = el("div", { class: "song-links" });
+  const after = [];
   // 歌のない曲（「メモ」が「インスト」「スキット」で始まる曲）には、「歌詞を見る」を出さない
   if (/^(インスト|スキット)/.test(s.note)) {
     // 何も出さない
@@ -138,10 +164,22 @@ function songItem(s) {
     const label = s.video.kind === "MV" ? "MV" : s.video.kind;
     links.append(el("a", { class: "song-btn", href: youtube(s.video.id), target: "_blank", rel: "noopener noreferrer", "aria-label": `「${s.title}」の${label}を YouTube で見る`, text: `▶ ${label}` }));
   }
+  // 聴く（配信の曲）・買う（CD の作品）
+  if (s.kind === "配信") {
+    after.push(el("div", { class: "song-links song-shops" }, el("span", { class: "song-label", text: "聴く" }),
+      ...LISTEN.map((m) => el("a", { class: "song-btn song-shop", href: m.url(s.base), target: "_blank", rel: "noopener noreferrer", "aria-label": `「${s.title}」を${m.name}で聴く（新しいタブ）`, text: `${m.name} ↗` }))));
+  }
+  const cd = cdWork(s);
+  if (cd) {
+    const plainWork = cd.replace(/[〜~].*$/, "").trim() || cd; // 「RADWIMPS 4〜おかずのごはん〜」→「RADWIMPS 4」で探す（長いと見つからないため）
+    after.push(el("div", { class: "song-links song-shops" }, el("span", { class: "song-label", text: s.kind === "配信" ? `CD「${cd}」` : "CD を買う" }),
+      ...BUY.map((m) => el("a", { class: "song-btn song-shop", href: m.url(plainWork), target: "_blank", rel: m.aff ? "sponsored noopener noreferrer" : "noopener noreferrer",
+        "aria-label": `「${cd}」の CD を${m.name}で探す（新しいタブ）`, text: `${m.name} ↗` }, m.aff ? el("span", { class: "pr", text: "PR" }) : null))));
+  }
   if (s.articles) {
     links.append(el("a", { class: "song-btn song-articles", href: `./?work=${encodeURIComponent(s.base)}&format=all`, text: `記事 ${s.articles}件` }));
   }
-  return el("li", { class: "song-item" }, el("h3", { class: "song-title", text: s.title }), meta, ...subs, links);
+  return el("li", { class: "song-item" }, el("h3", { class: "song-title", text: s.title }), meta, ...subs, links, ...after);
 }
 
 function render() {
@@ -214,6 +252,8 @@ if (hasFeedback) {
     el("a", { href: feedbackUrl({ kind: KIND.error, title: "楽曲一覧の誤りのお知らせ", page: "楽曲一覧" }), target: "_blank", rel: "noopener noreferrer", text: "一覧の誤りを知らせる ↗" }));
 }
 if (isAdminDevice()) document.getElementById("adminLink").hidden = false;
+// アフィリエイト（広告）のリンクがあるときは、ページの上下にそのことを出す（ステマ規制・提携の条件）
+if (BUY.some((m) => m.aff)) { $("#prTop").hidden = false; $("#prNote").hidden = false; }
 
 (async () => {
   try {
