@@ -169,18 +169,23 @@ function songItem(s) {
     after.push(el("div", { class: "song-links song-shops" }, el("span", { class: "song-label", text: "聴く" }),
       ...LISTEN.map((m) => el("a", { class: "song-btn song-shop", href: m.url(s.base), target: "_blank", rel: "noopener noreferrer", "aria-label": `「${s.title}」を${m.name}で聴く（新しいタブ）`, text: `${m.name} ↗` }))));
   }
+  // CD の購入リンク：曲名を押すと、曲名のすぐ下に開きます
   const cd = cdWork(s);
+  let title = el("h3", { class: "song-title", text: s.title }), buy = null;
   if (cd) {
     const plainWork = cd.replace(/[〜~].*$/, "").trim() || cd; // 「RADWIMPS 4〜おかずのごはん〜」→「RADWIMPS 4」で探す（長いと見つからないため）
-    after.push(el("div", { class: "song-links song-shops" }, el("span", { class: "song-label", text: s.kind === "配信" ? `CD「${cd}」` : "CD を買う" }),
+    const id = `buy${++buyCount}`;
+    buy = el("div", { class: "song-links song-buy", id, hidden: true }, el("span", { class: "song-label", text: `CD「${cd}」を探す` }),
       ...BUY.map((m) => el("a", { class: "song-btn song-shop", href: m.url(plainWork), target: "_blank", rel: m.aff ? "sponsored noopener noreferrer" : "noopener noreferrer",
-        "aria-label": `「${cd}」の CD を${m.name}で探す（新しいタブ）`, text: `${m.name} ↗` }, m.aff ? el("span", { class: "pr", text: "PR" }) : null))));
+        "aria-label": `「${cd}」の CD を${m.name}で探す（新しいタブ）`, text: `${m.name} ↗` }, m.aff ? el("span", { class: "pr", text: "PR" }) : null)));
+    title = el("h3", { class: "song-title" }, el("button", { type: "button", class: "song-title-btn", "aria-expanded": "false", "aria-controls": id, title: "押すと、CD の購入リンクが開きます" }, s.title));
   }
   if (s.articles) {
     links.append(el("a", { class: "song-btn song-articles", href: `./?work=${encodeURIComponent(s.base)}&format=all`, text: `記事 ${s.articles}件` }));
   }
-  return el("li", { class: "song-item" }, el("h3", { class: "song-title", text: s.title }), meta, ...subs, links, ...after);
+  return el("li", { class: "song-item" }, title, buy, meta, ...subs, links, ...after);
 }
+let buyCount = 0;
 
 function render() {
   const q = norm(query);
@@ -228,7 +233,16 @@ function backToList() {
   const top = box.getBoundingClientRect().top + scrollY - 60 - bar.offsetHeight;
   if (scrollY > top) scrollTo({ top });
 }
-$("#songOrder").addEventListener("click", (e) => { const b = e.target.closest("[data-order]"); if (b) setOrder(b.dataset.order); });
+// 曲名を押すと、購入リンクを開く・閉じる
+$("#songs").addEventListener("click", (e) => {
+  const b = e.target.closest(".song-title-btn");
+  if (!b) return;
+  const panel = document.getElementById(b.getAttribute("aria-controls"));
+  const open = b.getAttribute("aria-expanded") !== "true";
+  b.setAttribute("aria-expanded", String(open));
+  if (panel) panel.hidden = !open;
+});
+$("#songOrder").addEventListener("click",(e) => { const b = e.target.closest("[data-order]"); if (b) setOrder(b.dataset.order); });
 let timer;
 $("#songQ").addEventListener("input", (e) => { clearTimeout(timer); timer = setTimeout(() => { query = e.target.value; render(); backToList(); }, 150); });
 

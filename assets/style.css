@@ -824,3 +824,11 @@ dialog.modal::backdrop { background: rgba(23, 32, 24, .5); -webkit-backdrop-filt
 .song-shops { margin-top: 6px; }
 .song-shop { min-height: 32px; font-size: 11.5px; color: var(--ink-2); }
 .song-shop .pr { margin-left: 5px; padding: 0 3px; font-size: 8.5px; }
+
+/* 楽曲一覧：曲名を押すと CD の購入リンクが開く */
+.song-title-btn { padding: 0; border: 0; background: none; font: inherit; color: inherit; text-align: left; cursor: pointer; text-decoration: underline dotted; text-underline-offset: 4px; }
+.song-title-btn::after { content: " ▾"; font-size: .7em; color: var(--muted, #888); }
+.song-title-btn[aria-expanded="true"] { color: var(--accent); }
+.song-title-btn[aria-expanded="true"]::after { content: " ▴"; }
+.song-buy { margin: 2px 0 8px; padding: 8px 10px; border-radius: 6px; background: var(--accent-tint); }
+.song-buy[hidden] { display: none; }
