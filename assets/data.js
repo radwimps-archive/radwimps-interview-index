@@ -472,7 +472,7 @@ export function parseHistory(text) {
 export const SONG_KINDS = ["アルバム", "シングル", "配信", "サウンドトラック", "動画公開"];
 // 「歌詞URL」に書けるサイト（歌詞の掲載を JASRAC などから許諾されている歌詞サイトと、公式の配信・公式サイト）。
 // ※ 歌詞の本文は、このサイトには載せません（許諾がないため）。歌詞は、ここに書いたサイトへのリンクで見てもらいます。
-export const LYRIC_HOSTS = ["www.uta-net.com", "uta-net.com", "utaten.com", "www.utaten.com", "j-lyric.net", "music.apple.com", "open.spotify.com", "radwimps.jp"];
+export const LYRIC_HOSTS = ["petitlyrics.com", "www.petitlyrics.com", "www.uta-net.com", "uta-net.com", "utaten.com", "www.utaten.com", "j-lyric.net", "music.apple.com", "open.spotify.com", "radwimps.jp"];
 // 「メモ」に書ける長さ。歌詞の本文を書き写してしまわないように、短い一言だけにします。
 export const SONG_NOTE_MAX = 120;
 

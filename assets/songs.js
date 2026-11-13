@@ -1,7 +1,7 @@
 // assets/songs.js
 // 「楽曲一覧」のページ（songs.html）の動き。曲のデータは data/songs.csv です（ここを書き換えると一覧が変わります）。
 // ※ 歌詞には著作権があるので、歌詞の本文はこのサイトに載せません（データにも入れません）。
-//   「歌詞」は、歌詞の掲載を許諾されている歌詞サイト（歌ネット・UtaTen など）へのリンクです。
+//   「歌詞」は、歌詞の掲載を許諾されている歌詞サイト（プチリリ）へのリンクです。
 // ほかのデータともつなげています：
 //   ・記事（data/articles.csv）…その曲にふれた記事の数を出し、押すと記事一覧を ?work=曲名 で開く
 //   ・年表（data/history.csv）…「動画」の列にある、その曲の MV を YouTube で開く
@@ -22,12 +22,10 @@ const reEsc = (s) => s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 // 「すずめ feat.十明」→「すずめ」のように、記事を探すときの曲名（feat. より後ろを外す）
 const baseTitle = (t) => t.replace(/\s*\(?\s*feat\..*$/i, "").trim();
 
-// 歌ネット・UtaTen：曲ごとの歌詞のページの URL が「歌詞URL」の列にあればそこを開き、なければ、その歌詞サイトの中を曲名で探します
+// プチリリ：曲ごとの歌詞のページの URL が「歌詞URL」の列にあればそこを開き、なければ、プチリリの中を「曲名・RADWIMPS」で探した結果を開きます
 const LYRIC_SITES = [
-  { name: "歌ネット", host: "uta-net.com" },
-  { name: "UtaTen", host: "utaten.com" }
+  { name: "プチリリ", host: "petitlyrics.com", search: (title) => `https://petitlyrics.com/search_lyrics?title=${encodeURIComponent(title)}&artist=RADWIMPS` }
 ];
-const siteSearch = (host, title) => `https://www.google.com/search?q=${encodeURIComponent(`site:${host} RADWIMPS ${title} 歌詞`)}`;
 // 「聴く」：配信の曲は、音楽サブスクリプションの検索結果を開きます（曲ごとのページの URL がなくても、曲名と RADWIMPS で見つかります）
 const q = (...w) => encodeURIComponent(["RADWIMPS", ...w].join(" "));
 // 歌詞のリンクを「新しいタブ」で開くか「このタブ」で開くか（ページ上の切り替えで選び、この端末に覚えておきます）
@@ -181,7 +179,7 @@ function songItem(s) {
   } else {
     links.append(el("span", { class: "song-label", text: "歌詞" }));
     for (const site of LYRIC_SITES) {
-      links.append(lyricLink(siteSearch(site.host, s.base), `「${s.title}」の歌詞を${site.name}で探す`, `${site.name} ↗`));
+      links.append(lyricLink(site.search(s.base), `「${s.title}」の歌詞を${site.name}で探す`, `${site.name} ↗`));
     }
   }
   if (s.video) {
