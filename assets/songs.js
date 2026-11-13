@@ -29,7 +29,11 @@ const LYRIC_SITES = [
 const siteSearch = (host, title) => `https://www.google.com/search?q=${encodeURIComponent(`site:${host} RADWIMPS ${title} 歌詞`)}`;
 const youtube = (id) => `https://www.youtube.com/watch?v=${id}`;
 
-const FILTERS = [{ slug: "all", name: "すべて" }, ...SONG_KINDS.map((k) => ({ slug: k, name: k })), { slug: "tieup", name: "タイアップ" }];
+// 絞り込み：「シングル」には、CD のシングルと配信のシングル（データの種類が「配信」）の両方が入ります
+const SINGLE_KINDS = ["シングル", "配信"];
+const FILTERS = [{ slug: "all", name: "すべて" }, ...SONG_KINDS.filter((k) => k !== "配信").map((k) => ({ slug: k, name: k })), { slug: "tieup", name: "タイアップ" }];
+// 曲の札に出す名前（「配信」は「配信シングル」と出す）
+const kindLabel = (k) => (k === "配信" ? "配信シングル" : k);
 let songs = [], current = "all", query = "", order = "date";
 
 // 50音順：「読み」の列（なければ曲名）を、ひらがなにそろえて並べます。英語や数字で始まる曲は、最後の「英数字」にまとめます
@@ -86,7 +90,7 @@ function load(songText, articleText, historyText) {
     const base = baseTitle(s.title);
     const sortKey = kanaKey(s.yomi || base);
     return { ...s, base, sortKey, row: rowOf(sortKey), articles: count(base), video: videos.get(norm(base)) || null,
-      _h: norm([s.title, s.work, s.album, s.tieup, s.note, s.kind].join(" ")) };
+      _h: norm([s.title, s.work, s.album, s.tieup, s.note, kindLabel(s.kind)].join(" ")) };
   });
 }
 
@@ -102,14 +106,15 @@ function renderFilters() {
 }
 
 function match(s, kind, q) {
-  if (kind === "tieup" ? !s.tieup : kind !== "all" && s.kind !== kind) return false;
+  const ok = kind === "all" || (kind === "tieup" ? !!s.tieup : kind === "シングル" ? SINGLE_KINDS.includes(s.kind) : s.kind === kind);
+  if (!ok) return false;
   return !q || s._h.includes(q);
 }
 
 function songItem(s) {
   const meta = el("p", { class: "song-meta" },
     el("time", { text: dateLabel(s) }),
-    el("span", { class: "song-kind", text: s.kind }),
+    el("span", { class: "song-kind", text: kindLabel(s.kind) }),
     s.work && s.work !== s.title ? el("span", { text: s.kind === "動画公開" ? s.work : `「${s.work}」` }) : null);
   const subs = [];
   if (s.album && s.album !== s.work) subs.push(el("p", { class: "song-sub", text: `アルバム「${s.album}」に収録` }));
