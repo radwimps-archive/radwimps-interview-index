@@ -53,7 +53,7 @@
   <section class="hero wrap" aria-labelledby="setlistTitle">
     <p class="eyebrow">RADWIMPS SETLISTS <span id="span"></span></p>
     <h1 id="setlistTitle">RAD LIVE SET LIST</h1>
-    <p class="hero-description">RADWIMPS がライブで、いつ・どの曲を演奏したのかをまとめています。「ライブ」では公演ごとのセットリスト（曲順）を「国内ツアー・海外ツアー・フェス・ボクンチ忘年会・番組出演・単発ライブ」に分けて、「年表」では年ごとの流れを、「ライブ未演奏」ではライブでまだ演奏していない曲を見られます。年表で曲名を押すと、その曲を演奏したライブだけが並びます。</p>
+    <p class="hero-description">RADWIMPS がライブで、いつ・どの曲を演奏したのかをまとめています。「ライブ」では公演ごとのセットリスト（曲順）を「国内ツアー・海外ツアー・フェス・ボクンチ忘年会・番組出演・単発ライブ」に分けて、「年表」では年ごとの流れを、「ランキング」ではよく演奏された曲の順位を、「ライブ未演奏」ではライブでまだ演奏していない曲を見られます。年表で曲名を押すと、その曲を演奏したライブだけが並びます。</p>
     <p class="sl-legend" id="legend"></p>
   </section>
 
@@ -62,6 +62,7 @@
     <div class="hist-tabs wrap" role="tablist" aria-label="表示の切り替え" id="tabs">
       <button type="button" role="tab" class="hist-tab cat-all sl-tab" id="tabLive" data-view="live" aria-selected="true" aria-controls="lives">ライブ</button>
       <button type="button" role="tab" class="hist-tab cat-all sl-tab" id="tabYear" data-view="nenpyo" aria-selected="false" aria-controls="nenpyo">年表</button>
+      <button type="button" role="tab" class="hist-tab cat-all sl-tab" id="tabRank" data-view="ranking" aria-selected="false" aria-controls="ranking">ランキング</button>
       <button type="button" role="tab" class="hist-tab cat-all sl-tab" id="tabUnplayed" data-view="unplayed" aria-selected="false" aria-controls="unplayedView" hidden>ライブ未演奏</button>
     </div>
   </div>
@@ -87,6 +88,9 @@
   </section>
 
   <!-- ライブ未演奏：楽曲一覧（data/songs.csv）にあって、どの公演のセトリにも出てこない曲 -->
+  <!-- ランキング：よく演奏された曲の順位（セトリから自動で数えます） -->
+  <section class="sl-ranking wrap" id="ranking" role="tabpanel" aria-labelledby="tabRank" hidden></section>
+
   <section class="sl-unplayed-view wrap" id="unplayedView" role="tabpanel" aria-labelledby="tabUnplayed" hidden>
     <div class="sl-finder" id="unplayedBody"></div>
   </section>

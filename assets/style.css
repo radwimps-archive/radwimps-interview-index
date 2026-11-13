@@ -833,7 +833,24 @@ dialog.modal::backdrop { background: rgba(23, 32, 24, .5); -webkit-backdrop-filt
 .sl-none { margin: 12px 0 0; font-size: 13px; color: var(--muted); }
 .sl-played { margin: 6px 0 0; font-size: 12px; line-height: 1.8; color: var(--ink-2); }
 .sl-played b { color: var(--accent); margin-right: 2px; }
-.sl-played a { color: inherit; text-decoration: underline dotted var(--line-input); text-underline-offset: 3px; white-space: nowrap; }
+.sl-played a { color: inherit; text-decoration: underline dotted var(--line-input); text-underline-offset: 3px; overflow-wrap: anywhere; }
 @media (min-width: 701px) {
   .setlist-page .sl-played { grid-column: 2; }
 }
+/* ランキング：よく演奏された曲の順位と、回数の横棒 */
+.sl-ranking { padding-block: 8px 24px; }
+.sl-ranking .sl-cats + .sl-cats { padding-top: 6px; }
+.sl-ranking > .sl-song-sub { margin: 0 0 12px; }
+.sl-rank { margin: 0; padding: 0; list-style: none; border-top: 1px solid var(--rule); }
+.sl-rank-row { display: grid; grid-template-columns: 2.4em minmax(0, 1fr) auto; align-items: center; gap: 4px 10px; padding: 10px 2px; border-bottom: 1px solid var(--rule); }
+.sl-rank-no { font-family: var(--f-mono); font-size: 13px; color: var(--muted); text-align: right; font-variant-numeric: tabular-nums; }
+.sl-rank-row.top .sl-rank-no { font-size: 17px; font-weight: 700; color: var(--accent); }
+.sl-rank-main { display: grid; gap: 5px; min-width: 0; }
+.sl-rank-main .sl-song { font-size: 14px; line-height: 1.45; overflow-wrap: anywhere; }
+.sl-rank-bar { display: block; height: 6px; border-radius: 3px; background: var(--accent-tint); overflow: hidden; }
+.sl-rank-bar > span { display: block; height: 100%; border-radius: 3px; background: var(--live); }
+.sl-rank-row.top .sl-rank-bar > span { background: var(--accent); }
+.sl-rank-n { font-size: 11px; color: var(--muted); text-align: right; white-space: nowrap; font-variant-numeric: tabular-nums; }
+.sl-rank-n b { font-size: 15px; color: var(--ink); }
+.sl-rank-n small { display: block; font-size: 10.5px; color: var(--muted); }
+.sl-rank-more { display: block; margin: 14px auto 0; min-height: 44px; }
