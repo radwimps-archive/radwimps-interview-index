@@ -666,9 +666,9 @@ dialog.modal::backdrop { background: rgba(23, 32, 24, .5); -webkit-backdrop-filt
 .hist-item:last-child { border-bottom: 0; }
 .hist-item::before { content: ""; position: absolute; left: -26px; top: 21px; width: 7px; height: 7px; border-radius: 50%; background: var(--paper); border: 1.5px solid var(--cat, var(--accent)); }
 .hist-meta { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 10px; margin: 0 0 4px; }
-.hist-meta time { font-family: var(--f-mono); font-size: 12px; color: var(--muted); letter-spacing: .02em; }
-.hist-cat { display: inline-flex; align-items: center; gap: 5px; font-size: 10.5px; color: var(--muted); }
-.hist-cat::before { content: ""; width: 7px; height: 7px; border-radius: 2px; background: var(--cat, var(--accent)); }
+.hist-meta time { font-family: var(--f-mono); font-size: 13.5px; font-weight: 600; color: var(--ink); letter-spacing: .02em; }
+.hist-cat { display: inline-flex; align-items: center; gap: 6px; font-size: 12.5px; color: var(--ink); }
+.hist-cat::before { content: ""; width: 8px; height: 8px; border-radius: 2px; background: var(--cat, var(--accent)); }
 .hist-title { margin: 0; font-size: 15px; font-weight: 700; line-height: 1.6; color: var(--ink); text-wrap: pretty; }
 .hist-sub { margin: 4px 0 0; font-size: 12px; line-height: 1.7; color: var(--muted); }
 /* カテゴリごとの印の色（タブの数字の前の印と、年表の点） */
