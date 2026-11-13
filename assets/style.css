@@ -711,8 +711,6 @@ dialog.modal::backdrop { background: rgba(23, 32, 24, .5); -webkit-backdrop-filt
 
 /* ---------- ライブのセトリ（setlist.html） ----------
    年表の見た目（.hist-…）を土台に、セットリストのカード（.sl-live）と曲名の札（.sl-chip）を足しています。 */
-.sl-tab { min-width: 92px; justify-content: center; font-size: 14px; }
-.sl-tab::before { display: none; }
 .sl-legend { display: grid; gap: 6px; margin: 14px 0 0; font-size: 11px; line-height: 1.6; color: var(--muted); }
 .sl-legend span { display: flex; align-items: baseline; gap: 8px; }
 .sl-legend .sl-conf { flex: none; }
@@ -855,3 +853,18 @@ dialog.modal::backdrop { background: rgba(23, 32, 24, .5); -webkit-backdrop-filt
 .sl-rank-n small { display: block; font-size: 10.5px; color: var(--muted); }
 .sl-rank-more { display: block; margin: 14px auto 0; min-height: 44px; }
 .sl-rank-row.last { background: var(--accent-tint); border-radius: 6px; }
+/* RAD LIVE SET LIST：上の帯の表示の切り替え（押したときだけ一覧が開く） */
+.sl-switch { display: flex; align-items: center; gap: 14px; padding-block: 8px; }
+.sl-switch-label { font-size: 13px; letter-spacing: .14em; color: var(--muted); }
+.sl-drop { position: relative; }
+.sl-drop-btn { display: flex; align-items: center; justify-content: space-between; gap: 16px; min-width: 190px; min-height: 42px; padding: 8px 16px; border: 1px solid var(--line-entry); border-radius: 8px; background: var(--card); color: var(--ink); font-size: 15px; font-weight: 700; }
+.sl-drop-btn:hover { background: var(--accent-tint); }
+.sl-drop-arrow { width: 8px; height: 8px; margin-top: -4px; border-right: 1.5px solid currentColor; border-bottom: 1.5px solid currentColor; transform: rotate(45deg); transition: transform .2s var(--ease); }
+.sl-drop-btn[aria-expanded="true"] .sl-drop-arrow { margin-top: 4px; transform: rotate(225deg); }
+.sl-drop-menu { position: absolute; top: calc(100% + 4px); left: 0; z-index: 20; display: grid; min-width: 100%; padding: 6px; border: 1px solid var(--line-entry); border-radius: 8px; background: var(--card); box-shadow: var(--shadow); }
+.sl-drop-menu[hidden] { display: none; }
+.sl-drop-item { display: block; min-height: 44px; padding: 10px 12px; border: 0; border-radius: 6px; background: none; color: var(--ink); font-size: 15px; text-align: left; white-space: nowrap; }
+.sl-drop-item:hover { background: var(--accent-tint); }
+.sl-drop-item[aria-current="true"] { color: var(--accent); font-weight: 700; }
+.sl-drop-item[aria-current="true"]::after { content: " ✓"; }
+.sl-drop-item[hidden] { display: none; }

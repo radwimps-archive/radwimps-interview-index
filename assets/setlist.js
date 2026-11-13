@@ -1,7 +1,7 @@
 // assets/setlist.js
 // 「RAD LIVE SET LIST」（ライブのセトリ）のページの動き。データは data/setlists.csv です（ここを書き換えると、このページが変わります）。
 // CSV の「ライブ名」が同じ公演は、1つのツアー（またはイベント）としてまとめて表示します。
-// 上の切り替えで、2つの見え方を選べます（URL の末尾 #live・#nenpyo でも開けます）。
+// 上の帯の「VIEW」のボタンを押すと一覧が開き、見え方を選べます（URL の末尾 #live・#nenpyo・#ranking・#unplayed でも開けます）。
 //   ライブ：ツアーごと。上のボタンで「国内ツアー・海外ツアー・フェス・ボクンチ忘年会・番組出演・単発ライブ」に絞れる（CSV の「区分」）。ツアーを押すと全公演が並び、公演を押すとその日のセットリスト（曲順）が開く。新しいツアーが上
 //   年表　：年ごとに、ツアーと、そのツアーで演奏した曲を並べたもの。古いツアーが上。
 //           曲名を押すと、その曲を演奏したツアーと日付だけになる（?song=曲名 でも開けます）
@@ -329,7 +329,9 @@ function saveUrl() {
 
 function setView(v, { scroll = false } = {}) {
   view = VIEWS.includes(v) && !(v === "unplayed" && !catalog.length) ? v : "live";
-  for (const b of document.querySelectorAll(".sl-tab")) b.setAttribute("aria-selected", String(b.dataset.view === view));
+  for (const b of document.querySelectorAll(".sl-tab")) b.setAttribute("aria-current", String(b.dataset.view === view));
+  $("#viewName").textContent = $(`.sl-tab[data-view="${view}"]`).textContent;
+  openMenu(false);
   $("#lives").hidden = view !== "live";
   $("#nenpyo").hidden = view !== "nenpyo";
   $("#ranking").hidden = view !== "ranking";
@@ -356,17 +358,30 @@ function setSong(key, { scroll = true } = {}) {
 const headerH = () => $("#header").getBoundingClientRect().height;
 const scrollToEl = (d) => scrollTo({ top: d.getBoundingClientRect().top + scrollY - headerH() - $(".hist-tabs-bar").offsetHeight - 8 });
 
+// 表示の切り替え：ボタンを押すと一覧が開き、選ぶと閉じる（一覧の外を押す・Esc キーでも閉じる）
+function openMenu(open) {
+  $("#tabs").hidden = !open;
+  $("#viewBtn").setAttribute("aria-expanded", String(open));
+}
+$("#viewBtn").addEventListener("click", () => {
+  const open = $("#tabs").hidden;
+  openMenu(open);
+  if (open) $(".sl-tab[aria-current=true]")?.focus();
+});
 $("#tabs").addEventListener("click", (e) => {
   const b = e.target.closest("[data-view]");
-  if (b) setView(b.dataset.view, { scroll: true });
+  if (b) { setView(b.dataset.view, { scroll: true }); $("#viewBtn").focus(); }
 });
-// 左右の矢印キーで切り替え
+// 上下の矢印キーで一覧の中を移る
 $("#tabs").addEventListener("keydown", (e) => {
-  if (e.key !== "ArrowRight" && e.key !== "ArrowLeft") return;
-  const vs = [...document.querySelectorAll(".sl-tab:not([hidden])")].map((b) => b.dataset.view);
-  setView(vs[(vs.indexOf(view) + (e.key === "ArrowRight" ? 1 : vs.length - 1)) % vs.length]);
-  document.querySelector(`.sl-tab[data-view="${view}"]`).focus();
+  if (e.key !== "ArrowDown" && e.key !== "ArrowUp") return;
+  e.preventDefault();
+  const bs = [...document.querySelectorAll(".sl-tab:not([hidden])")];
+  const i = bs.indexOf(document.activeElement);
+  bs[(i + (e.key === "ArrowDown" ? 1 : bs.length - 1)) % bs.length].focus();
 });
+document.addEventListener("keydown", (e) => { if (e.key === "Escape" && !$("#tabs").hidden) { openMenu(false); $("#viewBtn").focus(); } });
+document.addEventListener("click", (e) => { if (!$("#tabs").hidden && !e.target.closest(".sl-drop")) openMenu(false); });
 document.addEventListener("click", (e) => {
   // 曲名を押す → 年表で、その曲のライブだけにする（もう一度押すと解除）
   const b = e.target.closest("[data-song]");
