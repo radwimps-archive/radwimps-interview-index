@@ -202,10 +202,7 @@ function renderSongInfo() {
       el("p", { class: "sl-song-sub", text: `ここに載っている中で、いちばん早いのは ${dateLabel(first)}「${first.name}」` + (last !== first ? `、いちばん新しいのは ${dateLabel(last)}「${last.name}」` : "") + "。セトリを確かめられた公演だけを数えています。" }));
     return;
   }
-  // 曲を選んでいないときは、よく演奏された曲を並べる
-  const top = [...songs.entries()].sort((a, b) => b[1].plays.length - a[1].plays.length || a[1].plays[0].live.i - b[1].plays[0].live.i).slice(0, 12);
-  box.append(el("p", { class: "sl-song-sub", text: `セトリを確かめられた ${lives.filter(hasSongs).length} 公演で、よく演奏された曲（数字は公演数。押すと、その曲を演奏したライブだけになります）` }),
-    el("div", { class: "sl-chips" }, ...top.map(([k, r]) => el("button", { type: "button", class: "sl-chip", "data-song": k }, r.title, el("small", { text: ` ${r.plays.length}` })))));
+  // 曲を選んでいないときは、何も出さない（よく演奏された曲は「ランキング」のタブで見られます）
 }
 
 // ライブで未演奏の曲：楽曲一覧にあって、このページのどの公演のセトリにも出てこない曲（発売の古い順）
