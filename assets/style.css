@@ -849,13 +849,14 @@ dialog.modal::backdrop { background: rgba(23, 32, 24, .5); -webkit-backdrop-filt
 .sl-rank-n small { display: block; font-size: 10.5px; color: var(--muted); }
 .sl-rank-more { display: block; margin: 14px auto 0; min-height: 44px; }
 .sl-rank-row.last { background: var(--accent-tint); border-radius: 6px; }
-/* RAD LIVE SET LIST：上の帯のタブ（フォルダの見出しの形。選んでいるタブは下の面とつながって見える） */
-.setlist-page .hist-tabs-bar { border-bottom-color: var(--line-entry); }
-.sl-tabs { display: flex; align-items: flex-end; gap: 4px; padding-top: 10px; }
-.sl-tab { position: relative; flex: 0 1 auto; min-width: 0; min-height: 40px; margin-bottom: -1px; padding: 9px 14px 8px; border: 1px solid var(--line-entry); border-bottom-color: transparent; border-radius: 10px 10px 0 0; background: var(--sunk); color: var(--muted); font-size: 14px; white-space: nowrap; }
+/* RAD LIVE SET LIST：上の帯のタブ（すき間なく一続きに並べ、下に紺の細い線。選んでいるタブは紺で、少しだけ背が高い） */
+.setlist-page .hist-tabs-bar { border-bottom: 0; }
+.sl-tabs { display: flex; align-items: flex-end; padding-top: 10px; border-bottom: 2px solid var(--accent); }
+.sl-tab { flex: 1 1 0; min-width: 0; min-height: 38px; padding: 8px 6px; border: 1px solid var(--line-entry); border-bottom: 0; border-left-width: 0; border-radius: 8px 8px 0 0; background: var(--sunk); color: var(--muted); font-size: 14px; white-space: nowrap; }
+.sl-tab:first-child, .sl-tab[aria-selected="true"] + .sl-tab { border-left-width: 1px; }
 .sl-tab:hover { color: var(--ink); background: var(--accent-tint); }
-.sl-tab[aria-selected="true"] { z-index: 1; border-color: var(--line-entry); border-top: 3px solid var(--accent); border-bottom: 1px solid var(--paper); padding-top: 7px; background: var(--paper); color: var(--accent); font-weight: 700; }
-@media (max-width: 380px) { .sl-tabs { gap: 2px; } .sl-tab { padding-inline: 9px; font-size: 13px; } }
+.sl-tab[aria-selected="true"] { flex-grow: 1.2; min-height: 46px; padding-block: 12px 8px; border-color: var(--accent); background: var(--accent); color: var(--white); font-size: 15px; font-weight: 700; }
+@media (max-width: 380px) { .sl-tab { font-size: 12.5px; padding-inline: 2px; } .sl-tab[aria-selected="true"] { font-size: 14px; } }
 
 /* 区分・年代・並び順の「ドロップダウンメニュー」：押したときだけ選択肢が開く */
 .sl-drops { display: flex; flex-wrap: wrap; gap: 8px; padding-block: 14px 6px; }
