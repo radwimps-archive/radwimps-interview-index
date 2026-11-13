@@ -156,7 +156,6 @@ body::before { content: ""; position: fixed; inset: 0 0 auto; height: env(safe-a
 .person-chip { min-height: 42px; padding: 9px 10px; border: 1px solid #DADCD2; border-radius: 5px; background: var(--white); color: var(--ink); font-size: 12px; transition: border-color .15s, background .15s; }
 .person-chip:hover { border-color: var(--line-card-hover); }
 .person-chip[aria-pressed="true"] { border-color: var(--accent); background: var(--accent); color: var(--white); }
-.panel-chips { margin-top: 12px; }
 .panel-empty { margin: 8px 0 0; font-size: 12px; color: var(--muted); }
 
 /* ---------- 一覧の見出し・検索・種類のタブ ---------- */

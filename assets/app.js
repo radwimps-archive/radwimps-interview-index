@@ -353,7 +353,6 @@ function renderEntry() {
     const years = [...new Set(S.items.map((it) => it._y).filter(Boolean))].sort().reverse();
     const rel = F.year && S.releases[F.year] ? S.releases[F.year] : [];
     html = `<label class="panel-label">記事が公開された年<select id="yearChoice"><option value="">すべての年</option>${years.map((y) => `<option value="${y}"${F.year === y ? " selected" : ""}>${y}年</option>`).join("")}</select></label>`
-      + `<div class="person-chips panel-chips">${years.map((y) => chip("data-pick-year", y, y, F.year === y)).join("")}</div>`
       + (rel.length ? `<p class="browse-note">${esc(F.year)}年の主なリリース：${rel.map((r) => esc((r.label ? r.label + " " : "") + r.name)).join(" ／ ")}</p>` : "")
       + `<p class="browse-note">${ENTRY_NOTES.years}</p>`;
   } else if (F.entry === "live") {
@@ -627,10 +626,9 @@ $("#entryTabs").addEventListener("click", (e) => {
   apply();
 });
 $("#entryPanel").addEventListener("click", (e) => {
-  const p = e.target.closest("[data-pick-person]"), w = e.target.closest("[data-pick-work]"), y = e.target.closest("[data-pick-year]");
+  const p = e.target.closest("[data-pick-person]"), w = e.target.closest("[data-pick-work]");
   if (p) { const v = p.dataset.pickPerson; F.person = F.person === v ? "" : v; if (!F.person) F.scope = ""; fitFormat(); apply(); }
   else if (w) { const v = w.dataset.pickWork; F.work = F.work === v ? "" : v; fitFormat(); apply(); }
-  else if (y) { const v = y.dataset.pickYear; F.year = F.year === v ? "" : v; fitFormat(); apply(); }
 });
 $("#entryPanel").addEventListener("change", (e) => {
   const t = e.target;
