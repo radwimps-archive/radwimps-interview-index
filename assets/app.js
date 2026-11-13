@@ -56,7 +56,7 @@ const F_DEFAULT = {
   year: "",     // 記事が公開された年
   tour: "",     // ライブ名（ツアー・イベント）
   q: "",        // キーワード
-  format: "text", // 種類のタブ：text＝記事　video＝Movie　radio＝Radio　all＝すべて（リリース情報は「すべて」にだけ出る）
+  format: "text", // 種類のタブ：text＝記事　video＝動画　radio＝ラジオ　all＝すべて（リリース情報は「すべて」にだけ出る）
   cat: "",      // 内容（カテゴリ）
   media: "",    // 掲載メディア
   lang: "",     // 言語（ja / en / es / other）
@@ -282,7 +282,7 @@ function passes(it, ts) {
 
 // 種類のタブごとの件数（今のタブ以外の条件はそのまま）。今のタブに1件もないときに、ほかのタブへ案内するのに使います
 //   リリース情報はタブがないので、「すべて」の件数にだけ数えます
-const FORMAT_NAMES = { text: "記事", video: "Movie", radio: "Radio", all: "すべて" };
+const FORMAT_NAMES = { text: "記事", video: "動画", radio: "ラジオ", all: "すべて" };
 const FORMAT_TABS = ["text", "video", "radio"];
 function formatCounts() {
   const keep = F.format, ts = terms(), counts = { text: 0, video: 0, radio: 0, all: 0 };
