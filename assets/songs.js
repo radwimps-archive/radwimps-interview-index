@@ -117,7 +117,10 @@ function songItem(s) {
   if (s.note) subs.push(el("p", { class: "song-sub", text: s.note }));
 
   const links = el("div", { class: "song-links" });
-  if (s.lyrics) {
+  // 歌のない曲（「メモ」が「インスト」「スキット」で始まる曲）には、「歌詞を見る」を出さない
+  if (/^(インスト|スキット)/.test(s.note)) {
+    // 何も出さない
+  } else if (s.lyrics) {
     links.append(el("a", { class: "song-btn song-lyrics", href: s.lyrics, target: "_blank", rel: "noopener noreferrer", text: "歌詞を見る ↗" }));
   } else {
     links.append(el("span", { class: "song-label", text: "歌詞を見る" }));
