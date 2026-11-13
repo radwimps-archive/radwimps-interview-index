@@ -1,14 +1,14 @@
 // assets/setlist.js
-// 「ライブのセトリ」のページの動き。データは data/setlists.csv です（ここを書き換えると、このページが変わります）。
+// 「RAD LIVE SET LIST」（ライブのセトリ）のページの動き。データは data/setlists.csv です（ここを書き換えると、このページが変わります）。
 // CSV の「ライブ名」が同じ公演は、1つのツアー（またはイベント）としてまとめて表示します。
 // 上の切り替えで、2つの見え方を選べます（URL の末尾 #live・#nenpyo でも開けます）。
-//   ライブ：ツアーごと。ツアーを押すと全公演が並び、公演を押すとその日のセットリスト（曲順）が開く。新しいツアーが上
+//   ライブ：ツアーごと。上のボタンで「国内ツアー・海外ツアー・フェス・単発ライブ」に絞れる（CSV の「区分」）。ツアーを押すと全公演が並び、公演を押すとその日のセットリスト（曲順）が開く。新しいツアーが上
 //   年表　：年ごとに、ツアーと、そのツアーで演奏した曲を並べたもの。古いツアーが上。
 //           曲名を押すと、その曲を演奏したツアーと日付だけになる（?song=曲名 でも開けます）
 //           楽曲一覧（data/songs.csv）があれば、どの公演でも演奏していない曲（ライブで未演奏の曲）も出します
 //   ライブ未演奏：楽曲一覧にあって、どの公演のセトリにも出てこない曲（#unplayed。songs.csv がないときはタブごと出しません）
 
-import { parseCSV, parseSetlists, songKey, SETLIST_CONFIDENCE } from "./data.js";
+import { parseCSV, parseSetlists, songKey, SETLIST_CONFIDENCE, SETLIST_CATEGORIES } from "./data.js";
 import { h as el, setupMenu, isAdminDevice } from "./ui.js";
 import { feedbackUrl, hasFeedback, setupBeta, KIND } from "./feedback.js";
 import "./analytics.js";
@@ -21,6 +21,7 @@ let lives = [];          // 公演（古い順）
 let tours = [];          // ツアー（古い順）：{ id, name, lives: [公演], y }
 let songs = new Map();   // 曲の名前（songKey）→ { title, plays: [{ live, memo }] }
 let view = "live";
+let cat = "";             // 「ライブ」で選んでいる区分（空なら、すべて）
 let song = "";           // 年表で選んでいる曲（songKey）
 let catalog = [];        // 楽曲一覧（data/songs.csv）：{ title, work, y, k }。ないときは空
 
@@ -51,7 +52,7 @@ function groupTours() {
     l.tour = t;
   }
   tours = [...map.values()];
-  for (const t of tours) t.y = t.lives[0].y;
+  for (const t of tours) { t.y = t.lives[0].y; t.cat = t.lives[0].cat; }
 }
 
 // 曲ごとの記録を作る（同じ公演で2回やった曲は、1公演として数える）
@@ -122,11 +123,26 @@ function tourCard(t, open) {
   return card;
 }
 
+// 区分の切り替え（すべて・国内ツアー・海外ツアー・フェス・単発ライブ）
+function catChips() {
+  const chip = (value, label) => {
+    const n = value ? tours.filter((t) => t.cat === value).length : tours.length;
+    const b = el("button", { type: "button", class: "chip", "aria-pressed": String(cat === value), disabled: n ? null : "" },
+      label, el("span", { class: "n", text: String(n) }));
+    b.addEventListener("click", () => { cat = value; renderLives(); $(".sl-cats [aria-pressed=true]")?.focus(); });
+    return b;
+  };
+  return el("div", { class: "chips sl-cats", role: "group", "aria-label": "区分で絞り込む" },
+    chip("", "すべて"), ...SETLIST_CATEGORIES.map((c) => chip(c, c)));
+}
+
 function renderLives() {
   const box = $("#lives");
-  box.replaceChildren(el("p", { class: "hist-view sl-view" }, el("b", { text: "ツアー・ライブごと" }),
-    el("span", { text: `${tours.length} 件・${lives.length} 公演・新しい順` })));
-  [...tours].reverse().forEach((t, i) => box.append(tourCard(t, i === 0)));
+  const list = cat ? tours.filter((t) => t.cat === cat) : tours;
+  const n = list.reduce((s, t) => s + t.lives.length, 0);
+  box.replaceChildren(catChips(), el("p", { class: "hist-view sl-view" }, el("b", { text: cat || "ツアー・ライブごと" }),
+    el("span", { text: `${list.length} 件・${n} 公演・新しい順` })));
+  [...list].reverse().forEach((t, i) => box.append(tourCard(t, i === 0)));
 }
 
 /* ---------- 年表：年ごとのツアーと、演奏した曲 ---------- */

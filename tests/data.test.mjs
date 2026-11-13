@@ -167,3 +167,12 @@ test("parseSetlists：書き間違いを知らせる", () => {
   assert.equal(lives.length, 1);
   assert.equal(warnings.length, 3); // 半角の「/」・http の URL・URL が空になった
 });
+
+test("parseSetlists：区分（国内ツアー・海外ツアー・フェス・単発ライブ）", () => {
+  const head = SETLIST_HEAD + ",区分";
+  const { lives, warnings } = parseSetlists([head,
+    "2019-08-29,A,,DADA,,,確認済み,,https://example.com/,,フェス",
+    "2019-08-30,B,,DADA,,,確認済み,,https://example.com/,,ライブ"].join("\n"));
+  assert.deepEqual(lives.map((l) => l.cat), ["フェス", ""]);
+  assert.equal(warnings.length, 1);
+});

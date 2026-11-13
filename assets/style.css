@@ -725,6 +725,7 @@ dialog.modal::backdrop { background: rgba(23, 32, 24, .5); -webkit-backdrop-filt
 /* ライブ：公演のカード */
 .sl-lives { padding-block: 8px 24px; }
 .sl-view { padding-bottom: 10px; }
+.sl-cats { padding-block: 14px 4px; }
 .sl-live { margin: 0 0 10px; border: 1px solid var(--line-card); border-radius: 10px; background: var(--card); }
 .sl-live summary { position: relative; display: block; padding: 14px 44px 14px 16px; cursor: pointer; list-style: none; }
 .sl-live summary::-webkit-details-marker { display: none; }

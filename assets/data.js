@@ -480,8 +480,10 @@ export const SETLIST_CONFIDENCE = [
   { name: "映像", slug: "video", label: "映像の収録曲", desc: "ライブ映像の作品に収められた曲。ツアーのいくつかの公演から選んだもので、1つの公演の曲順ではありません" },
   { name: "セトリなし", slug: "none", label: "セトリ未確認", desc: "日付と会場だけ。セットリストは、まだ確かめられていません" }
 ];
+// 区分：ページの「ライブ」で、この4つに分けて見られます（ライブ名が同じ公演は、同じ区分にそろえます）
+export const SETLIST_CATEGORIES = ["国内ツアー", "海外ツアー", "フェス", "単発ライブ"];
 const SETLIST_COLUMNS = {
-  "公演日": "date", "ライブ名": "name", "会場": "venue", "本編": "main", "アンコール": "encore", "ゲスト": "guests",
+  "区分": "cat", "公演日": "date", "ライブ名": "name", "会場": "venue", "本編": "main", "アンコール": "encore", "ゲスト": "guests",
   "確かさ": "conf", "出典": "source", "出典URL": "url", "メモ": "note"
 };
 const SETLIST_REQUIRED = ["公演日", "ライブ名", "本編", "確かさ"];
@@ -526,9 +528,11 @@ export function parseSetlists(text) {
     let url = get("url");
     if (url && !/^https:\/\/[^\s"<>]+$/.test(url)) { warn(line, "出典URL は https:// で始まるものだけ使えます（このリンクは出ません）"); url = ""; }
     if (!url && conf && conf.slug !== "video" && conf.slug !== "none") warn(line, "出典URL が空欄です（どこで確かめたかを残しておくと、あとで見直せます）");
+    const cat = nfkc(get("cat"));
+    if (col.cat !== undefined && !SETLIST_CATEGORIES.includes(cat)) warn(line, `区分「${get("cat")}」は使えません。${SETLIST_CATEGORIES.join("・")} のどれかを書いてください（空欄だと「すべて」のときだけ出ます）`);
     if (errors.length > before) continue;
     const [y, m = 0, d = 0] = date.split("-").map((v) => +v || 0);
-    lives.push({ line, i: lives.length, date, y, m, d, name, venue: get("venue"), main, encore,
+    lives.push({ cat: SETLIST_CATEGORIES.includes(cat) ? cat : "", line, i: lives.length, date, y, m, d, name, venue: get("venue"), main, encore,
       guests: splitList(get("guests"), /[、,]/), conf, source: get("source"), url, note: get("note") });
   }
   lives.sort((a, b) => a.y - b.y || a.m - b.m || a.d - b.d || a.i - b.i);
