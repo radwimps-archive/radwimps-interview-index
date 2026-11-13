@@ -30,6 +30,27 @@ const LYRIC_SITES = [
 const siteSearch = (host, title) => `https://www.google.com/search?q=${encodeURIComponent(`site:${host} RADWIMPS ${title} 歌詞`)}`;
 // 「聴く」：配信の曲は、音楽サブスクリプションの検索結果を開きます（曲ごとのページの URL がなくても、曲名と RADWIMPS で見つかります）
 const q = (...w) => encodeURIComponent(["RADWIMPS", ...w].join(" "));
+// 歌詞のリンクを「新しいタブ」で開くか「このタブ」で開くか（ページ上の切り替えで選び、この端末に覚えておきます）
+const STORE_OPEN = "radwimps-interview-index:lyric-open";
+let lyricOpen = "new";
+try { if (localStorage.getItem(STORE_OPEN) === "same") lyricOpen = "same"; } catch { /* 保存できない端末では毎回「新しいタブ」 */ }
+function applyOpen(a) {
+  const same = lyricOpen === "same";
+  if (same) a.removeAttribute("target"); else a.setAttribute("target", "_blank");
+  a.setAttribute("aria-label", `${a.dataset.label}（${same ? "このタブ" : "新しいタブ"}で開く）`);
+}
+function lyricLink(href, label, text) {
+  const a = el("a", { class: "song-btn song-lyrics", href, rel: "noopener noreferrer", "data-label": label, text });
+  applyOpen(a);
+  return a;
+}
+function setOpen(v) {
+  lyricOpen = v === "same" ? "same" : "new";
+  try { localStorage.setItem(STORE_OPEN, lyricOpen); } catch { /* 覚えられなくても、このページを開いている間は効きます */ }
+  for (const b of document.querySelectorAll(".song-open-btn")) b.setAttribute("aria-pressed", String(b.dataset.open === lyricOpen));
+  for (const a of document.querySelectorAll("a.song-lyrics")) applyOpen(a);
+}
+
 const LISTEN = [
   { name: "Spotify", url: (t) => `https://open.spotify.com/search/${q(t)}` },
   { name: "Apple Music", url: (t) => `https://music.apple.com/jp/search?term=${q(t)}` },
@@ -152,12 +173,11 @@ function songItem(s) {
   if (/^(インスト|スキット)/.test(s.note)) {
     // 何も出さない
   } else if (s.lyrics) {
-    links.append(el("a", { class: "song-btn song-lyrics", href: s.lyrics, target: "_blank", rel: "noopener noreferrer", text: "歌詞 ↗" }));
+    links.append(lyricLink(s.lyrics, `「${s.title}」の歌詞`, "歌詞 ↗"));
   } else {
     links.append(el("span", { class: "song-label", text: "歌詞" }));
     for (const site of LYRIC_SITES) {
-      links.append(el("a", { class: "song-btn song-lyrics", href: siteSearch(site.host, s.base), target: "_blank", rel: "noopener noreferrer",
-        "aria-label": `「${s.title}」の歌詞を${site.name}で探す（新しいタブ）`, text: `${site.name} ↗` }));
+      links.append(lyricLink(siteSearch(site.host, s.base), `「${s.title}」の歌詞を${site.name}で探す`, `${site.name} ↗`));
     }
   }
   if (s.video) {
@@ -233,6 +253,8 @@ function backToList() {
   const top = box.getBoundingClientRect().top + scrollY - 60 - bar.offsetHeight;
   if (scrollY > top) scrollTo({ top });
 }
+$("#songOpen").addEventListener("click", (e) => { const b = e.target.closest("[data-open]"); if (b) setOpen(b.dataset.open); });
+setOpen(lyricOpen);
 // 曲名を押すと、購入リンクを開く・閉じる
 $("#songs").addEventListener("click", (e) => {
   const b = e.target.closest(".song-title-btn");

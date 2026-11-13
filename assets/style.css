@@ -832,3 +832,9 @@ dialog.modal::backdrop { background: rgba(23, 32, 24, .5); -webkit-backdrop-filt
 .song-title-btn[aria-expanded="true"]::after { content: " ▴"; }
 .song-buy { margin: 2px 0 8px; padding: 8px 10px; border-radius: 6px; background: var(--accent-tint); }
 .song-buy[hidden] { display: none; }
+
+/* 楽曲一覧：歌詞を開くとき（新しいタブ／このタブ） */
+.song-open { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; padding-block: 4px 6px; }
+.song-open .song-label { margin-right: 2px; }
+.song-open-btn { min-height: 36px; padding: 0 12px; border: 1px solid var(--line-entry); border-radius: 999px; background: var(--card); color: var(--ink); font-size: 13px; }
+.song-open-btn[aria-pressed="true"] { border-color: var(--accent); background: var(--accent-tint); color: var(--accent); font-weight: 700; }
