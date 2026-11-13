@@ -8,7 +8,7 @@
 //           曲名を押すと、その曲を演奏したツアーと日付だけになる（?song=曲名 でも開けます）
 //           楽曲一覧（data/songs.csv）があれば、どの公演でも演奏していない曲（ライブで未演奏の曲）も出します
 //   ランキング：よく演奏された曲の順位（#ranking）。セトリから自動で数えるので、CSV に公演を足すと順位も変わります。
-//           区分（国内ツアーなど）と年代で絞れる。多い順・少ない順を切り替えられる（1回も演奏していない曲は入れない）。曲名を押すと、年表でその曲を演奏したライブだけになる
+//           楽曲一覧（data/songs.csv）にない曲（未発表の曲・カバー・映画の劇伴など）は入れない。区分（国内ツアーなど）と年代で絞れる。多い順・少ない順を切り替えられる（1回も演奏していない曲は入れない）。曲名を押すと、年表でその曲を演奏したライブだけになる
 //   ライブ未演奏：楽曲一覧にあって、どの公演のセトリにも出てこない曲（#unplayed。songs.csv がないときはタブごと出しません）
 
 import { parseCSV, parseSetlists, songKey, SETLIST_CONFIDENCE, SETLIST_CATEGORIES } from "./data.js";
@@ -296,10 +296,13 @@ const eraOf = (l) => String(Math.floor(l.y / 10) * 10);
 
 // 選んだ区分・年代の公演（セトリがあるものだけ）で、曲ごとに何公演で演奏したかを数える
 function rankRows() {
+  // 楽曲一覧（data/songs.csv）があるときは、そこに載っている曲（発表された曲）だけを数える
+  const released = catalog.length ? new Set(catalog.map((c) => c.k)) : null;
   const target = lives.filter((l) => hasSongs(l) && (!rankCat || l.cat === rankCat) && (!rankEra || eraOf(l) === rankEra));
   const m = new Map();
   for (const l of target) {
     for (const k of new Set(songsOf(l).map((s) => songKey(s.title)))) {
+      if (released && !released.has(catalogKey(songs.get(k).title))) continue; // 楽曲一覧にない曲（未発表の曲・カバーなど）は入れない
       const r = m.get(k) || m.set(k, { k, title: songs.get(k).title, n: 0, last: l }).get(k);
       r.n++; r.last = l;
     }
@@ -339,7 +342,7 @@ function renderRanking() {
       dropdown("並び順", [[false, "多い順"], [true, "少ない順"]], rankAsc, (v) => { rankAsc = v; rankAll = false; renderRanking(); })),
     el("p", { class: "hist-view sl-view" }, el("b", { text: [rankCat || "すべて", rankEra ? `${rankEra}年代` : ""].filter(Boolean).join("・") }),
       el("span", { text: total ? `セトリがある ${total} 公演・${rows.length} 曲` : "セトリがある公演は、まだありません" })),
-    el("p", { class: "sl-song-sub", text: "数字は、その曲を演奏した公演の数です（1つの公演で2回やっても1回。1回も演奏していない曲は入れていません）。% は、セトリがある公演のうち何割で演奏したか。曲名を押すと、その曲を演奏したライブが年表で並びます。" }),
+    el("p", { class: "sl-song-sub", text: "数字は、その曲を演奏した公演の数です（1つの公演で2回やっても1回。1回も演奏していない曲は入れていません" + (catalog.length ? "。楽曲一覧に載っていない曲（未発表の曲・ほかの人の曲のカバー・映画の劇伴）も入れていません" : "") + "）。% は、セトリがある公演のうち何割で演奏したか。曲名を押すと、その曲を演奏したライブが年表で並びます。" }),
     ol);
   if (shown.length < rows.length) {
     const more = el("button", { type: "button", class: "sl-clear sl-rank-more", text: `すべて見る（${rows.length} 曲）` });
@@ -465,6 +468,7 @@ async function loadCatalog() {
       return { title, work: (r[iW] || "").trim(), y: +(r[iY] || 0) || 0, k: catalogKey(title) };
     }).sort((a, b) => a.y - b.y);
     renderUnplayed();
+    renderRanking(); // 楽曲一覧を読んだら、ランキングを発表された曲だけで数え直す
     // URL が #unplayed のときは、楽曲一覧を読んでから開く
     if (startHash === "#unplayed" && view === "live") setView("unplayed");
   } catch (e) { console.warn("楽曲一覧を読み込めませんでした", e); }
