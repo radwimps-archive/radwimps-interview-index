@@ -686,12 +686,13 @@ dialog.modal::backdrop { background: rgba(23, 32, 24, .5); -webkit-backdrop-filt
 .title-link:hover { color: var(--accent); text-decoration-style: solid; text-decoration-color: currentColor; }
 .title-link:active { color: var(--accent); }
 /* 「▶ MV」などの動画の行と、その場で開くプレーヤー */
-.hist-videos { display: flex; flex-wrap: wrap; align-items: center; margin: 4px 0 -6px; font-size: 11.5px; line-height: 1.4; color: var(--muted); }
+.hist-videos { display: flex; flex-wrap: wrap; align-items: center; margin: 6px 0 -4px; font-size: 13.5px; line-height: 1.4; color: var(--muted); }
 .hist-videos .sep { margin: 0 8px; color: var(--line-input); }
-.vbtn { display: inline-flex; align-items: center; gap: 5px; min-height: 30px; padding: 0; border: 0; background: none; color: var(--muted); font: inherit; cursor: pointer; -webkit-tap-highlight-color: transparent; }
-.vbtn .tri { font-size: 8px; color: var(--accent); }
-.vbtn .vl { text-decoration: underline dotted; text-decoration-color: var(--line-input); text-underline-offset: 4px; }
-.vbtn:hover, .vbtn[aria-expanded="true"] { color: var(--accent); }
+.vbtn { display: inline-flex; align-items: center; gap: 6px; min-height: 36px; padding: 0; border: 0; background: none; color: var(--accent); font: inherit; font-weight: 700; cursor: pointer; -webkit-tap-highlight-color: transparent; }
+.vbtn .tri { font-size: 10px; color: var(--accent); }
+.vbtn .vl { text-decoration: underline; text-decoration-color: var(--accent-soft); text-decoration-thickness: 1.5px; text-underline-offset: 4px; }
+.vbtn:hover, .vbtn[aria-expanded="true"] { color: var(--accent-deep); }
+.vbtn:hover .vl, .vbtn[aria-expanded="true"] .vl { text-decoration-color: currentColor; }
 .hist-player { margin: 10px 0 2px; max-width: 560px; }
 /* YouTube の決まりで、プレーヤーは 200×200 ピクセル以上（せまいスマホでは高さ 200px にして、上下に黒い帯が出る） */
 .hist-player .frame { position: relative; width: 100%; max-width: 100%; height: 0; padding-top: 56.25%; padding-top: max(56.25%, 200px); overflow: hidden; border-radius: 6px; background: #000; }
