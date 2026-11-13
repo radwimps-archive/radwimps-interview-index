@@ -173,7 +173,11 @@ function songItem(s) {
   if (/^(インスト|スキット)/.test(s.note)) {
     // 何も出さない
   } else if (s.lyrics) {
-    links.append(lyricLink(s.lyrics, `「${s.title}」の歌詞`, "歌詞 ↗"));
+    // 「歌詞URL」に曲のページがあるときは、そのページを直接開く（ボタンには歌詞サイトの名前を出す）
+    const host = new URL(s.lyrics).hostname.replace(/^www\./, "");
+    const site = LYRIC_SITES.find((x) => x.host === host);
+    links.append(el("span", { class: "song-label", text: "歌詞" }),
+      lyricLink(s.lyrics, `「${s.title}」の歌詞を${site ? site.name : "歌詞サイト"}で見る`, `${site ? site.name : "歌詞"} ↗`));
   } else {
     links.append(el("span", { class: "song-label", text: "歌詞" }));
     for (const site of LYRIC_SITES) {
