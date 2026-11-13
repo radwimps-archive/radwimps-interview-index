@@ -7,7 +7,7 @@
 //           曲名を押すと、その曲を演奏したツアーと日付だけになる（?song=曲名 でも開けます）
 //           楽曲一覧（data/songs.csv）があれば、どの公演でも演奏していない曲（ライブで未演奏の曲）も出します
 //   ランキング：よく演奏された曲の順位（#ranking）。セトリから自動で数えるので、CSV に公演を足すと順位も変わります。
-//           区分（国内ツアーなど）と年代で絞れる。曲名を押すと、年表でその曲を演奏したライブだけになる
+//           区分（国内ツアーなど）と年代で絞れる。多い順・少ない順を切り替えられる（1回も演奏していない曲は入れない）。曲名を押すと、年表でその曲を演奏したライブだけになる
 //   ライブ未演奏：楽曲一覧にあって、どの公演のセトリにも出てこない曲（#unplayed。songs.csv がないときはタブごと出しません）
 
 import { parseCSV, parseSetlists, songKey, SETLIST_CONFIDENCE, SETLIST_CATEGORIES } from "./data.js";
@@ -28,6 +28,7 @@ let song = "";           // 年表で選んでいる曲（songKey）
 let rankCat = "";         // ランキングで選んでいる区分（空なら、すべて）
 let rankEra = "";         // ランキングで選んでいる年代（"2000" など。空なら、すべての年）
 let rankAll = false;      // ランキングを全曲まで出しているか
+let rankAsc = false;      // ランキングを少ない順（昇順）に並べるか
 let catalog = [];        // 楽曲一覧（data/songs.csv）：{ title, work, y, k }。ないときは空
 
 // 楽曲一覧の曲名と、セトリの曲名を同じものとして比べるための名前
@@ -287,7 +288,11 @@ function renderRanking() {
   const eras = [...new Set(lives.filter(hasSongs).map(eraOf))].sort();
   const { rows, total } = rankRows();
   const max = rows[0]?.n || 1;
-  const shown = rankAll ? rows : rows.filter((r) => r.rank <= RANK_TOP);
+  // 少ない順：回数の少ない曲から（同じ回数は曲名順）。0回の曲は、もともと数に入らないので出ません
+  const ordered = rankAsc ? [...rows].sort((a, b) => a.n - b.n || a.title.localeCompare(b.title, "ja")) : rows;
+  const cut = ordered[Math.min(RANK_TOP, ordered.length) - 1];
+  // はじめは30曲まで（30曲目と同じ回数の曲は、あわせて出します）
+  const shown = rankAll || !cut ? ordered : ordered.filter((r) => (rankAsc ? r.n <= cut.n : r.n >= cut.n));
   const ol = el("ol", { class: "sl-rank" });
   for (const r of shown) {
     const bar = el("span", { class: "sl-rank-bar", "aria-hidden": "true" }, el("span", {}));
@@ -302,9 +307,10 @@ function renderRanking() {
   box.replaceChildren(
     rankChips("区分で絞り込む", [["", "すべて"], ...SETLIST_CATEGORIES.map((c) => [c, c])], rankCat, (v) => { rankCat = v; }),
     rankChips("年代で絞り込む", [["", "すべての年"], ...eras.map((e) => [e, `${e}年代`])], rankEra, (v) => { rankEra = v; }),
+    rankChips("並び順", [[false, "多い順"], [true, "少ない順"]], rankAsc, (v) => { rankAsc = v; }),
     el("p", { class: "hist-view sl-view" }, el("b", { text: [rankCat || "すべて", rankEra ? `${rankEra}年代` : ""].filter(Boolean).join("・") }),
       el("span", { text: total ? `セトリがある ${total} 公演・${rows.length} 曲` : "セトリがある公演は、まだありません" })),
-    el("p", { class: "sl-song-sub", text: "数字は、その曲を演奏した公演の数です（1つの公演で2回やっても1回）。% は、セトリがある公演のうち何割で演奏したか。曲名を押すと、その曲を演奏したライブが年表で並びます。" }),
+    el("p", { class: "sl-song-sub", text: "数字は、その曲を演奏した公演の数です（1つの公演で2回やっても1回。1回も演奏していない曲は入れていません）。% は、セトリがある公演のうち何割で演奏したか。曲名を押すと、その曲を演奏したライブが年表で並びます。" }),
     ol);
   if (shown.length < rows.length) {
     const more = el("button", { type: "button", class: "sl-clear sl-rank-more", text: `すべて見る（${rows.length} 曲）` });
