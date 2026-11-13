@@ -423,12 +423,14 @@ function findSong(text) {
   const k = songKey(text);
   if (!k) return "";
   if (songs.has(k)) return k;
+  // 楽曲一覧にそのままある曲で、まだ演奏していないときは、名前の一部が似た別の曲を出さない
+  if (catalog.some((c) => c.k === catalogKey(text)) && ![...songs.values()].some((r) => catalogKey(r.title) === catalogKey(text))) return null;
   return [...songs.keys()].find((x) => x.includes(k)) || null;
 }
 $("#songInput").addEventListener("change", (e) => {
   const k = findSong(e.target.value);
   if (k === null) {
-    song = ""; renderTimeline();
+    song = ""; $("#timeline").replaceChildren(); // 演奏していない曲のときは、年表に何も出さない
     const c = catalog.find((x) => x.k === catalogKey(e.target.value));
     $("#songInfo").replaceChildren(el("p", { class: "sl-song-sub", text: c ? `「${c.title}」（${[c.y ? `${c.y}年` : "", c.work].filter(Boolean).join("・")}）は、ここに載っているライブでは、まだ演奏されていません。` : `「${e.target.value}」を演奏したライブは、まだ載っていません。` }));
     $("#songClear").hidden = false; return;
