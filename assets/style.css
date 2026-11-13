@@ -791,3 +791,13 @@ dialog.modal::backdrop { background: rgba(23, 32, 24, .5); -webkit-backdrop-filt
   .format-tabs { flex-wrap: wrap; overflow-x: visible; }
   .entry-tabs { grid-template-columns: minmax(0, 1fr); }
 }
+
+/* パソコン向けの表示のうち幅が狭め（折りたたみスマホを開いたときなど）：探す入口4つの文字がはみ出さないように */
+@media (min-width: 701px) and (max-width: 860px) {
+  .entry-tabs { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .entry-tabs button { min-height: 84px; }
+}
+@media (min-width: 861px) and (max-width: 900px) {
+  .entry-tabs button { padding-inline: 12px; column-gap: 6px; }
+  .entry-tabs strong { font-size: 14px; }
+}
