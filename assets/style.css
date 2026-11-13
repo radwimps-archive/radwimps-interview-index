@@ -156,7 +156,6 @@ body::before { content: ""; position: fixed; inset: 0 0 auto; height: env(safe-a
 .person-chip { min-height: 42px; padding: 9px 10px; border: 1px solid #DADCD2; border-radius: 5px; background: var(--white); color: var(--ink); font-size: 12px; transition: border-color .15s, background .15s; }
 .person-chip:hover { border-color: var(--line-card-hover); }
 .person-chip[aria-pressed="true"] { border-color: var(--accent); background: var(--accent); color: var(--white); }
-.panel-chips { margin-top: 12px; }
 .panel-empty { margin: 8px 0 0; font-size: 12px; color: var(--muted); }
 
 /* ---------- 一覧の見出し・検索・種類のタブ ---------- */
@@ -182,18 +181,20 @@ body::before { content: ""; position: fixed; inset: 0 0 auto; height: env(safe-a
 .search-go { flex: none; min-width: 64px; height: 50px; padding: 0 14px; border: 1px solid var(--accent); border-radius: 5px; background: var(--accent); color: #fff; font-size: 14px; font-weight: 700; letter-spacing: .04em; cursor: pointer; }
 .search-go:hover { filter: brightness(1.12); }
 
-.format-tabs { display: flex; gap: 3px; margin-bottom: 22px; padding-bottom: 12px; border-bottom: 1px solid var(--rule); overflow-x: auto; scrollbar-width: none; }
-.format-tabs::-webkit-scrollbar { display: none; }
-.format-tabs button { flex: 1 1 auto; min-height: 40px; padding: 9px 7px; border: 0; border-radius: 4px; background: transparent; color: var(--ink); font-size: 10px; white-space: nowrap; }
-.format-tabs button:hover { background: var(--sunk); }
-.format-tabs button[aria-pressed="true"] { background: var(--green); color: var(--green-ink); }
-/* 幅のせまいスマホ（360px など）でも、5つのタブが1段に収まるように少しつめる */
-@media (max-width: 389px) {
-  .format-tabs { gap: 2px; }
-  .format-tabs button { padding-inline: 5px; }
+/* 記事の種類のタブ：すき間なく一続きに並べ、下に紺の細い線。選んでいるタブは紺で、少しだけ背が高く幅も広い。下へ動かしても上の帯の下に残る */
+.format-tabs { position: sticky; top: calc(60px + env(safe-area-inset-top, 0px)); z-index: 10; display: flex; align-items: flex-end; margin-bottom: 22px; padding-top: 10px; background: var(--paper); border-bottom: 2px solid var(--accent); }
+.format-tabs button { flex: 1 1 auto; min-width: 0; min-height: 38px; padding: 8px 6px; border: 1px solid var(--line-entry); border-bottom: 0; border-left-width: 0; border-radius: 8px 8px 0 0; background: var(--sunk); color: var(--muted); font-size: 12.5px; white-space: nowrap; }
+.format-tabs button:first-child, .format-tabs button[aria-pressed="true"] + button { border-left-width: 1px; }
+.format-tabs button:hover { color: var(--ink); background: var(--accent-tint); }
+.format-tabs button[aria-pressed="true"] { flex-grow: 1.2; min-height: 46px; padding-block: 12px 8px; border-color: var(--accent); background: var(--accent); color: var(--white); font-size: 13.5px; font-weight: 700; }
+/* 幅のせまいスマホ（360px 以下など）でも、5つのタブが1段に収まるように少しつめる */
+@media (max-width: 380px) {
+  .format-tabs button { padding-inline: 3px; font-size: 11.5px; }
+  .format-tabs button[aria-pressed="true"] { font-size: 12.5px; }
 }
-@media (max-width: 359px) {
-  .format-tabs button { padding-inline: 4px; font-size: 9px; }
+@media (max-width: 300px) {
+  .format-tabs button { padding-inline: 2px; font-size: 10.5px; }
+  .format-tabs button[aria-pressed="true"] { font-size: 11.5px; }
 }
 
 /* ---------- 一覧の左（パソコン）／上（スマホ）の「さらに絞り込む」 ---------- */
@@ -557,8 +558,8 @@ dialog.modal::backdrop { background: rgba(23, 32, 24, .5); -webkit-backdrop-filt
   .search-box input { font-size: 15px; }
   .search-box kbd { display: inline-block; }
   .search-go { min-width: 96px; height: 52px; }
-  .format-tabs { gap: 6px; }
-  .format-tabs button { flex: none; padding: 10px 15px; font-size: 12px; }
+  .format-tabs button { padding-inline: 14px; font-size: 14px; }
+  .format-tabs button[aria-pressed="true"] { font-size: 15px; }
 
   /* 左に絞り込み（176px）、右に一覧 */
   .archive-layout { display: grid; grid-template-columns: 176px minmax(0, 1fr); gap: 26px; align-items: start; }
@@ -788,7 +789,6 @@ dialog.modal::backdrop { background: rgba(23, 32, 24, .5); -webkit-backdrop-filt
   .brand-text { font-size: 13px; letter-spacing: .5px; }
   .brand-text span { font-size: 8px; letter-spacing: .6px; }
   .beta-badge { padding: 1px 4px; font-size: 10px; }
-  .format-tabs { flex-wrap: wrap; overflow-x: visible; }
   .entry-tabs { grid-template-columns: minmax(0, 1fr); }
 }
 

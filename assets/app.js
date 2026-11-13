@@ -56,7 +56,7 @@ const F_DEFAULT = {
   year: "",     // 記事が公開された年
   tour: "",     // ライブ名（ツアー・イベント）
   q: "",        // キーワード
-  format: "text", // 種類のタブ：text＝記事・資料　video＝動画インタビュー　radio＝ラジオ　release＝リリース情報　all＝すべて
+  format: "text", // 種類のタブ：text＝記事　video＝Movie　radio＝Radio　all＝すべて（リリース情報は「すべて」にだけ出る）
   cat: "",      // 内容（カテゴリ）
   media: "",    // 掲載メディア
   lang: "",     // 言語（ja / en / es / other）
@@ -97,13 +97,14 @@ const saveMarks = () => save(STORE_MARKS, S.marks);
 /* ---------- URL と絞り込みの条件 ---------- */
 
 const VALID = {
-  entry: ["", "people", "works", "years", "live"], scope: ["", "any", "about"], format: ["text", "video", "radio", "release", "all"],
+  entry: ["", "people", "works", "years", "live"], scope: ["", "any", "about"], format: ["text", "video", "radio", "all"],
   status: ["", "fav", "later", "unread", "read"], sort: ["new", "old", "media"]
 };
 function readURL() {
   const p = new URLSearchParams(location.search);
   for (const k of Object.keys(F_DEFAULT)) {
     let v = p.has(k) ? String(p.get(k)).slice(0, 200) : F_DEFAULT[k];
+    if (k === "format" && v === "release") v = "all"; // 以前の「リリース情報」タブのリンクは「すべて」で開く
     if (VALID[k] && !VALID[k].includes(v)) v = F_DEFAULT[k];
     F[k] = v;
   }
@@ -280,16 +281,18 @@ function passes(it, ts) {
 }
 
 // 種類のタブごとの件数（今のタブ以外の条件はそのまま）。今のタブに1件もないときに、ほかのタブへ案内するのに使います
-const FORMAT_NAMES = { text: "記事・資料", video: "動画インタビュー", radio: "ラジオ", release: "リリース情報" };
+//   リリース情報はタブがないので、「すべて」の件数にだけ数えます
+const FORMAT_NAMES = { text: "記事", video: "Movie", radio: "Radio", all: "すべて" };
+const FORMAT_TABS = ["text", "video", "radio"];
 function formatCounts() {
-  const keep = F.format, ts = terms(), counts = { text: 0, video: 0, radio: 0, release: 0 };
+  const keep = F.format, ts = terms(), counts = { text: 0, video: 0, radio: 0, all: 0 };
   F.format = "all";
-  for (const it of S.items) if (passes(it, ts)) counts[it.format]++;
+  for (const it of S.items) if (passes(it, ts)) { counts.all++; if (FORMAT_TABS.includes(it.format)) counts[it.format]++; }
   F.format = keep;
   return counts;
 }
-// 人・作品・年を選んだとき、今のタブに1件もなければ、記事のあるタブに切り替える（1つのタブだけならそのタブ、いくつかなら「すべて」）
-//   ここで切り替えたタブは、次に選び直したとき「記事・資料」に戻してから合わせ直す（自分で選んだタブはそのまま）
+// 人・作品・年を選んだとき、今のタブに1件もなければ、記事のあるタブに切り替える（1つのタブだけならそのタブ、いくつか・リリース情報だけなら「すべて」）
+//   ここで切り替えたタブは、次に選び直したとき「記事」に戻してから合わせ直す（自分で選んだタブはそのまま）
 let autoFormat = "";
 function fitFormat() {
   if (autoFormat && F.format === autoFormat) F.format = "text";
@@ -297,8 +300,9 @@ function fitFormat() {
   if (F.format === "all" || isLiveView()) return;
   const c = formatCounts();
   if (c[F.format]) return;
-  const has = Object.keys(c).filter((k) => c[k]);
-  if (has.length) F.format = autoFormat = has.length === 1 ? has[0] : "all";
+  const has = FORMAT_TABS.filter((k) => c[k]);
+  if (has.length === 1) F.format = autoFormat = has[0];
+  else if (c.all) F.format = autoFormat = "all";
 }
 
 function filtered() {
@@ -353,7 +357,6 @@ function renderEntry() {
     const years = [...new Set(S.items.map((it) => it._y).filter(Boolean))].sort().reverse();
     const rel = F.year && S.releases[F.year] ? S.releases[F.year] : [];
     html = `<label class="panel-label">記事が公開された年<select id="yearChoice"><option value="">すべての年</option>${years.map((y) => `<option value="${y}"${F.year === y ? " selected" : ""}>${y}年</option>`).join("")}</select></label>`
-      + `<div class="person-chips panel-chips">${years.map((y) => chip("data-pick-year", y, y, F.year === y)).join("")}</div>`
       + (rel.length ? `<p class="browse-note">${esc(F.year)}年の主なリリース：${rel.map((r) => esc((r.label ? r.label + " " : "") + r.name)).join(" ／ ")}</p>` : "")
       + `<p class="browse-note">${ENTRY_NOTES.years}</p>`;
   } else if (F.entry === "live") {
@@ -477,7 +480,6 @@ function headingText() {
   if (F.q) return `「${F.q}」の検索結果`;
   if (F.format === "video") return "動画インタビュー";
   if (F.format === "radio") return "ラジオ";
-  if (F.format === "release") return "リリース情報";
   return "新しく掲載された記事";
 }
 function viewNote() {
@@ -486,7 +488,6 @@ function viewNote() {
   if (F.cat) return CATEGORIES.find((c) => c.name === F.cat)?.desc || "";
   if (F.format === "video" && !isLiveView()) return "インタビュー・対談の映像です。リンクから YouTube などを新しいタブで開きます。";
   if (F.format === "radio" && !isLiveView()) return "メンバーが出演したラジオ番組の放送回です。リンクから YouTube などを新しいタブで開いて聴けます。";
-  if (F.format === "release" && !isLiveView()) return "発売・公開のお知らせや、雑誌の掲載号の案内です。インタビュー本文ではありません。";
   return "";
 }
 
@@ -627,10 +628,9 @@ $("#entryTabs").addEventListener("click", (e) => {
   apply();
 });
 $("#entryPanel").addEventListener("click", (e) => {
-  const p = e.target.closest("[data-pick-person]"), w = e.target.closest("[data-pick-work]"), y = e.target.closest("[data-pick-year]");
+  const p = e.target.closest("[data-pick-person]"), w = e.target.closest("[data-pick-work]");
   if (p) { const v = p.dataset.pickPerson; F.person = F.person === v ? "" : v; if (!F.person) F.scope = ""; fitFormat(); apply(); }
   else if (w) { const v = w.dataset.pickWork; F.work = F.work === v ? "" : v; fitFormat(); apply(); }
-  else if (y) { const v = y.dataset.pickYear; F.year = F.year === v ? "" : v; fitFormat(); apply(); }
 });
 $("#entryPanel").addEventListener("change", (e) => {
   const t = e.target;
@@ -701,7 +701,7 @@ for (const [id, key] of Object.entries(SELECT_KEYS)) {
     F[key] = e.target.value;
     if (key === "person" && !F.person) F.scope = "";
     // 資料の種類で「動画」「ラジオ」などを選んだら、その種類が出るタブに切り替える（「すべて」のタブのときはそのまま）
-    if (key === "kind" && F.kind && F.format !== "all" && F.kind !== LIVE_KIND) F.format = formatOf(F.kind);
+    if (key === "kind" && F.kind && F.format !== "all" && F.kind !== LIVE_KIND) F.format = FORMAT_TABS.includes(formatOf(F.kind)) ? formatOf(F.kind) : "all";
     apply();
   });
 }
