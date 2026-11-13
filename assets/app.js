@@ -2,7 +2,7 @@
 // 画面の動きを担当するプログラムです。
 //   1. data/articles.csv（記事）と data/releases.csv（年ごとの主なリリース）を読み込む
 //   2. 探す入口（人・曲や作品・年代・ライブ）、検索、種類のタブ、「さらに絞り込む」で記事一覧を絞り込む
-//   3. 記事をカードで表示する（12件ずつ。「続きを表示」で12件ずつ増やす）
+//   3. 記事をカードで表示する（最初は12件。「続きを表示」を押すと、残りをすべて出す）
 //   4. 「お気に入り」「あとで読む」「既読」を、このブラウザに保存する（「保存データの管理」でファイルへの書き出し・読み込み・引き継ぎも）
 //   5. 運営管理（URL の末尾に #admin）：記事の追加・修正を GitHub に保存する（中身は assets/admin.js）
 // 記事を増やしたり直したりするときは、このファイルではなく data/articles.csv を編集します。
@@ -551,6 +551,7 @@ function render() {
   }
   for (const img of grid.querySelectorAll("img[data-thumb]")) img.addEventListener("error", () => img.remove(), { once: true });
   $("#loadMore").hidden = shown >= list.length;
+  $("#loadMore").textContent = `続きを表示（残り ${list.length - shown} 件）`;
   $("#empty").hidden = list.length > 0;
   $("#emptyText").textContent = F.status === "fav" && !list.length && !F.q
     ? "まだ「お気に入り」の記事はありません。カードの右上のハートを押すと、ここに集まります。"
@@ -714,7 +715,7 @@ $("#activeFilters").addEventListener("click", (e) => {
 });
 $("#loadMore").addEventListener("click", () => {
   const before = $$("#grid .article-card").length;
-  S.limit += PAGE_SIZE;
+  S.limit = Infinity; // 一度押せば、残りをすべて出す（何度も押さなくてよいように）
   render();
   $$("#grid .article-card")[before]?.querySelector("a")?.focus({ preventScroll: true });
 });
