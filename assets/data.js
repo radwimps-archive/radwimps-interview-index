@@ -478,7 +478,7 @@ export const SETLIST_CONFIDENCE = [
   { name: "未確認", slug: "fan", label: "未確認（ファンの投稿）", desc: "ファンが投稿するサイト（LiveFans など）の情報。まちがいがあるかもしれません" },
   { name: "一部", slug: "part", label: "一部だけ", desc: "ライブレポートの本文に出てくる曲を順に並べたもの。全曲ではない可能性があります" },
   { name: "映像", slug: "video", label: "映像の収録曲", desc: "ライブ映像の作品に収められた曲。ツアーのいくつかの公演から選んだもので、1つの公演の曲順ではありません" },
-  { name: "セトリなし", slug: "none", label: "セトリ未確認", desc: "日付と会場だけ。セットリストは、まだ確かめられていません" }
+  { name: "セトリなし", slug: "none", label: "セトリ未確認", desc: "セットリストは、まだ確かめられていません（曲が書いてあるときは、記事などからの推測です）" }
 ];
 // 区分：ページの「ライブ」で、この5つに分けて見られます（ライブ名が同じ公演は、同じ区分にそろえます）
 export const SETLIST_CATEGORIES = ["国内ツアー", "海外ツアー", "フェス", "ボクンチ忘年会", "単発ライブ"];
@@ -524,7 +524,8 @@ export function parseSetlists(text) {
     const conf = SETLIST_CONFIDENCE.find((c) => c.name === nfkc(get("conf")));
     if (!conf) err(line, `確かさ「${get("conf")}」は使えません。${confNames} のどれかを書いてください`);
     if (!main.length && conf && conf.slug !== "none") err(line, "本編の曲が空欄です（曲名を「／」で区切って書きます。セトリがわからない公演は、確かさを「セトリなし」にします）");
-    if (main.length + encore.length && conf && conf.slug === "none") warn(line, "確かさが「セトリなし」なのに、曲が書いてあります");
+    // 「セトリなし」でも、演奏したと思われる曲を書いておける（ページでは「セトリ未確認」の札のまま出ます。メモに理由を書きます）
+    if (main.length + encore.length && conf && conf.slug === "none" && !get("note")) warn(line, "確かさが「セトリなし」なのに曲が書いてあります。推測の曲なら、メモにそう書いてください");
     let url = get("url");
     if (url && !/^https:\/\/[^\s"<>]+$/.test(url)) { warn(line, "出典URL は https:// で始まるものだけ使えます（このリンクは出ません）"); url = ""; }
     if (!url && conf && conf.slug !== "video" && conf.slug !== "none") warn(line, "出典URL が空欄です（どこで確かめたかを残しておくと、あとで見直せます）");
