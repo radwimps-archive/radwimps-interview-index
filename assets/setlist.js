@@ -28,6 +28,7 @@ let song = "";           // 年表で選んでいる曲（songKey）
 let rankCat = "";         // ランキングで選んでいる区分（空なら、すべて）
 let rankEra = "";         // ランキングで選んでいる年代（"2000" など。空なら、すべての年）
 let rankAll = false;      // ランキングを全曲まで出しているか
+let rankSong = "";        // ランキングで最後に押した曲（ランキングに戻ったとき、その曲の位置から見られるように）
 let rankAsc = false;      // ランキングを少ない順（昇順）に並べるか
 let catalog = [];        // 楽曲一覧（data/songs.csv）：{ title, work, y, k }。ないときは空
 
@@ -297,7 +298,7 @@ function renderRanking() {
   for (const r of shown) {
     const bar = el("span", { class: "sl-rank-bar", "aria-hidden": "true" }, el("span", {}));
     bar.firstChild.style.width = `${(r.n / max) * 100}%`; // 回数の長さ（いちばん多い曲を 100%）
-    ol.append(el("li", { class: "sl-rank-row" + (r.rank <= 3 ? " top" : "") },
+    ol.append(el("li", { class: "sl-rank-row" + (r.rank <= 3 ? " top" : "") + (r.k === rankSong ? " last" : "") },
       el("span", { class: "sl-rank-no", text: String(r.rank) }),
       el("span", { class: "sl-rank-main" },
         el("button", { type: "button", class: "sl-song", "data-song": r.k, title: `「${r.title}」を演奏したライブを年表で見る` }, r.title),
@@ -334,6 +335,9 @@ function setView(v, { scroll = false } = {}) {
   $("#ranking").hidden = view !== "ranking";
   $("#unplayedView").hidden = view !== "unplayed";
   saveUrl();
+  // ランキングに戻ったときは、前に押した曲の位置へ
+  const last = view === "ranking" && rankSong && $("#ranking .sl-rank-row.last");
+  if (last) { scrollTo({ top: last.getBoundingClientRect().top + scrollY - headerH() - $(".hist-tabs-bar").offsetHeight - 16 }); return; }
   if (scroll) {
     const top = $(".hist-tabs-bar").getBoundingClientRect().top + scrollY - headerH();
     if (scrollY > top) scrollTo({ top });
@@ -366,6 +370,11 @@ $("#tabs").addEventListener("keydown", (e) => {
 document.addEventListener("click", (e) => {
   // 曲名を押す → 年表で、その曲のライブだけにする（もう一度押すと解除）
   const b = e.target.closest("[data-song]");
+  if (b && b.closest("#ranking")) {
+    // ランキングで押した曲を覚えて、印をつける
+    rankSong = b.dataset.song;
+    for (const r of document.querySelectorAll("#ranking .sl-rank-row")) r.classList.toggle("last", r.contains(b));
+  }
   if (b) { setSong(b.dataset.song === song && view === "nenpyo" ? "" : b.dataset.song, { scroll: b.classList.contains("sl-song") }); return; }
   // 年表のツアー名・日付 → 「ライブ」でそのツアー（と公演）を開く
   const a = e.target.closest("a.sl-to-live");
