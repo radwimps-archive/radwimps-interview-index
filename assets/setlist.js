@@ -291,6 +291,8 @@ function renderTimeline() {
 
 /* ---------- ランキング：よく演奏された曲 ---------- */
 
+// 割合の書き方：10% 以上は整数、それより小さいときは小数1けた（1公演でも 0% にならないように）
+const pctLabel = (n, total) => { const p = (n / total) * 100; return `${p >= 10 ? Math.round(p) : p.toFixed(1)}%`; };
 const RANK_TOP = 30; // はじめに出す曲の数（「すべて見る」で全曲）
 const eraOf = (l) => String(Math.floor(l.y / 10) * 10);
 
@@ -333,7 +335,7 @@ function renderRanking() {
       el("span", { class: "sl-rank-main" },
         el("button", { type: "button", class: "sl-song", "data-song": r.k, title: `「${r.title}」を演奏したライブを年表で見る` }, r.title),
         bar),
-      el("span", { class: "sl-rank-n" }, el("b", { text: String(r.n) }), " 公演", el("small", { text: `${Math.round((r.n / total) * 100)}%` }))));
+      el("span", { class: "sl-rank-n" }, el("b", { text: String(r.n) }), " 公演", el("small", { text: pctLabel(r.n, total) }))));
   }
   box.replaceChildren(
     el("div", { class: "sl-drops" },
