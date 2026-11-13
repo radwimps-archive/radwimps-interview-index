@@ -57,29 +57,23 @@
     <p class="sl-legend" id="legend"></p>
   </section>
 
-  <!-- 表示の切り替え：いま見ている表示だけを出し、押すと「ライブ・年表・ランキング・ライブ未演奏」の一覧が開きます（スクロールしても上に残ります） -->
+  <!-- 表示の切り替え：フォルダの見出しのような「タブ」。スクロールしても上に残ります -->
   <div class="hist-tabs-bar">
-    <div class="sl-switch wrap">
-      <span class="sl-switch-label" id="viewLabel">VIEW</span>
-      <div class="sl-drop">
-        <button type="button" class="sl-drop-btn" id="viewBtn" aria-expanded="false" aria-controls="tabs" aria-labelledby="viewLabel viewName"><span id="viewName">ライブ</span><span class="sl-drop-arrow" aria-hidden="true"></span></button>
-        <div class="sl-drop-menu" id="tabs" hidden>
-          <button type="button" class="sl-drop-item sl-tab" id="tabLive" data-view="live" aria-current="true">ライブ</button>
-          <button type="button" class="sl-drop-item sl-tab" id="tabYear" data-view="nenpyo" aria-current="false">年表</button>
-          <button type="button" class="sl-drop-item sl-tab" id="tabRank" data-view="ranking" aria-current="false">ランキング</button>
-          <button type="button" class="sl-drop-item sl-tab" id="tabUnplayed" data-view="unplayed" aria-current="false" hidden>ライブ未演奏</button>
-        </div>
-      </div>
+    <div class="sl-tabs wrap" role="tablist" aria-label="表示の切り替え" id="tabs">
+      <button type="button" role="tab" class="sl-tab" id="tabLive" data-view="live" aria-selected="true" aria-controls="lives">ライブ</button>
+      <button type="button" role="tab" class="sl-tab" id="tabYear" data-view="nenpyo" aria-selected="false" aria-controls="nenpyo">年表</button>
+      <button type="button" role="tab" class="sl-tab" id="tabRank" data-view="ranking" aria-selected="false" aria-controls="ranking">ランキング</button>
+      <button type="button" role="tab" class="sl-tab" id="tabUnplayed" data-view="unplayed" aria-selected="false" aria-controls="unplayedView" hidden>ライブ未演奏</button>
     </div>
   </div>
 
   <!-- ライブ：公演ごとのセットリスト（新しい順） -->
-  <section class="sl-lives wrap" id="lives" aria-labelledby="tabLive">
+  <section class="sl-lives wrap" id="lives" role="tabpanel" aria-labelledby="tabLive">
     <p class="hist-loading" id="loading">セットリストを読み込んでいます…</p>
   </section>
 
   <!-- 年表：年ごとに、公演と演奏した曲（古い順） -->
-  <section class="sl-nenpyo wrap" id="nenpyo" aria-labelledby="tabYear" hidden>
+  <section class="sl-nenpyo wrap" id="nenpyo" role="tabpanel" aria-labelledby="tabYear" hidden>
     <div class="sl-finder">
       <label class="panel-label" for="songInput">曲名で探す</label>
       <div class="sl-finder-row">
@@ -95,9 +89,9 @@
 
   <!-- ライブ未演奏：楽曲一覧（data/songs.csv）にあって、どの公演のセトリにも出てこない曲 -->
   <!-- ランキング：よく演奏された曲の順位（セトリから自動で数えます） -->
-  <section class="sl-ranking wrap" id="ranking" aria-labelledby="tabRank" hidden></section>
+  <section class="sl-ranking wrap" id="ranking" role="tabpanel" aria-labelledby="tabRank" hidden></section>
 
-  <section class="sl-unplayed-view wrap" id="unplayedView" aria-labelledby="tabUnplayed" hidden>
+  <section class="sl-unplayed-view wrap" id="unplayedView" role="tabpanel" aria-labelledby="tabUnplayed" hidden>
     <div class="sl-finder" id="unplayedBody"></div>
   </section>
 

@@ -723,9 +723,6 @@ dialog.modal::backdrop { background: rgba(23, 32, 24, .5); -webkit-backdrop-filt
 /* ライブ：公演のカード */
 .sl-lives { padding-block: 8px 24px; }
 .sl-view { padding-bottom: 10px; }
-.sl-cats { padding-block: 14px 4px; }
-.sl-cats .chip { border-radius: 999px; padding-inline: 16px; }
-.sl-cats .chip[aria-pressed="true"] .n { color: rgba(255,255,255,.75); }
 .sl-live { margin: 0 0 10px; border: 1px solid var(--line-card); border-radius: 10px; background: var(--card); }
 .sl-live summary { position: relative; display: block; padding: 14px 44px 14px 16px; cursor: pointer; list-style: none; }
 .sl-live summary::-webkit-details-marker { display: none; }
@@ -837,7 +834,6 @@ dialog.modal::backdrop { background: rgba(23, 32, 24, .5); -webkit-backdrop-filt
 }
 /* ランキング：よく演奏された曲の順位と、回数の横棒 */
 .sl-ranking { padding-block: 8px 24px; }
-.sl-ranking .sl-cats + .sl-cats { padding-top: 6px; }
 .sl-ranking > .sl-song-sub { margin: 0 0 12px; }
 .sl-rank { margin: 0; padding: 0; list-style: none; border-top: 1px solid var(--rule); }
 .sl-rank-row { display: grid; grid-template-columns: 2.4em minmax(0, 1fr) auto; align-items: center; gap: 4px 10px; padding: 10px 2px; border-bottom: 1px solid var(--rule); }
@@ -853,18 +849,28 @@ dialog.modal::backdrop { background: rgba(23, 32, 24, .5); -webkit-backdrop-filt
 .sl-rank-n small { display: block; font-size: 10.5px; color: var(--muted); }
 .sl-rank-more { display: block; margin: 14px auto 0; min-height: 44px; }
 .sl-rank-row.last { background: var(--accent-tint); border-radius: 6px; }
-/* RAD LIVE SET LIST：上の帯の表示の切り替え（押したときだけ一覧が開く） */
-.sl-switch { display: flex; align-items: center; gap: 14px; padding-block: 8px; }
-.sl-switch-label { font-size: 13px; letter-spacing: .14em; color: var(--muted); }
+/* RAD LIVE SET LIST：上の帯のタブ（フォルダの見出しの形。選んでいるタブは下の面とつながって見える） */
+.setlist-page .hist-tabs-bar { border-bottom-color: var(--line-entry); }
+.sl-tabs { display: flex; align-items: flex-end; gap: 4px; padding-top: 10px; }
+.sl-tab { position: relative; flex: 0 1 auto; min-width: 0; min-height: 40px; margin-bottom: -1px; padding: 9px 14px 8px; border: 1px solid var(--line-entry); border-bottom-color: transparent; border-radius: 10px 10px 0 0; background: var(--sunk); color: var(--muted); font-size: 14px; white-space: nowrap; }
+.sl-tab:hover { color: var(--ink); background: var(--accent-tint); }
+.sl-tab[aria-selected="true"] { z-index: 1; border-color: var(--line-entry); border-top: 3px solid var(--accent); border-bottom: 1px solid var(--paper); padding-top: 7px; background: var(--paper); color: var(--accent); font-weight: 700; }
+@media (max-width: 380px) { .sl-tabs { gap: 2px; } .sl-tab { padding-inline: 9px; font-size: 13px; } }
+
+/* 区分・年代・並び順の「ドロップダウンメニュー」：押したときだけ選択肢が開く */
+.sl-drops { display: flex; flex-wrap: wrap; gap: 8px; padding-block: 14px 6px; }
 .sl-drop { position: relative; }
-.sl-drop-btn { display: flex; align-items: center; justify-content: space-between; gap: 16px; min-width: 190px; min-height: 42px; padding: 8px 16px; border: 1px solid var(--line-entry); border-radius: 8px; background: var(--card); color: var(--ink); font-size: 15px; font-weight: 700; }
-.sl-drop-btn:hover { background: var(--accent-tint); }
-.sl-drop-arrow { width: 8px; height: 8px; margin-top: -4px; border-right: 1.5px solid currentColor; border-bottom: 1.5px solid currentColor; transform: rotate(45deg); transition: transform .2s var(--ease); }
+.sl-drop-btn { display: flex; align-items: center; gap: 8px; min-height: 42px; padding: 8px 14px; border: 1px solid var(--line-entry); border-radius: 999px; background: var(--white); color: var(--ink); font-size: 14px; }
+.sl-drop-btn:hover { border-color: var(--line-card-hover); }
+.sl-drop-btn[aria-expanded="true"] { border-color: var(--accent); }
+.sl-drop-label { font-size: 11px; color: var(--muted); }
+.sl-drop-value { font-weight: 700; }
+.sl-drop-arrow { width: 7px; height: 7px; margin: -3px 2px 0 4px; border-right: 1.5px solid currentColor; border-bottom: 1.5px solid currentColor; transform: rotate(45deg); }
 .sl-drop-btn[aria-expanded="true"] .sl-drop-arrow { margin-top: 4px; transform: rotate(225deg); }
-.sl-drop-menu { position: absolute; top: calc(100% + 4px); left: 0; z-index: 20; display: grid; min-width: 100%; padding: 6px; border: 1px solid var(--line-entry); border-radius: 8px; background: var(--card); box-shadow: var(--shadow); }
+.sl-drop-menu { position: absolute; top: calc(100% + 4px); left: 0; z-index: 20; display: grid; min-width: 100%; padding: 6px; border: 1px solid var(--line-entry); border-radius: 10px; background: var(--card); box-shadow: var(--shadow); }
 .sl-drop-menu[hidden] { display: none; }
-.sl-drop-item { display: block; min-height: 44px; padding: 10px 12px; border: 0; border-radius: 6px; background: none; color: var(--ink); font-size: 15px; text-align: left; white-space: nowrap; }
+.sl-drop-item { display: flex; align-items: center; justify-content: space-between; gap: 16px; min-height: 44px; padding: 8px 12px; border: 0; border-radius: 6px; background: none; color: var(--ink); font-size: 15px; text-align: left; white-space: nowrap; }
 .sl-drop-item:hover { background: var(--accent-tint); }
-.sl-drop-item[aria-current="true"] { color: var(--accent); font-weight: 700; }
-.sl-drop-item[aria-current="true"]::after { content: " ✓"; }
-.sl-drop-item[hidden] { display: none; }
+.sl-drop-item .n { font-size: 12px; color: var(--muted); font-variant-numeric: tabular-nums; }
+.sl-drop-item[aria-current="true"] { background: var(--accent-tint); color: var(--accent); font-weight: 700; }
+.sl-drop-item:disabled { opacity: .4; }

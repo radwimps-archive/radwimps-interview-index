@@ -1,8 +1,9 @@
 // assets/setlist.js
 // 「RAD LIVE SET LIST」（ライブのセトリ）のページの動き。データは data/setlists.csv です（ここを書き換えると、このページが変わります）。
 // CSV の「ライブ名」が同じ公演は、1つのツアー（またはイベント）としてまとめて表示します。
-// 上の帯の「VIEW」のボタンを押すと一覧が開き、見え方を選べます（URL の末尾 #live・#nenpyo・#ranking・#unplayed でも開けます）。
-//   ライブ：ツアーごと。上のボタンで「国内ツアー・海外ツアー・フェス・ボクンチ忘年会・番組出演・単発ライブ」に絞れる（CSV の「区分」）。ツアーを押すと全公演が並び、公演を押すとその日のセットリスト（曲順）が開く。新しいツアーが上
+// 上のタブ（フォルダの見出しの形）で、見え方を選べます（URL の末尾 #live・#nenpyo・#ranking・#unplayed でも開けます）。
+// 区分・年代・並び順は「ドロップダウンメニュー」：ボタンを押したときだけ選択肢が開きます（dropdown()）。
+//   ライブ：ツアーごと。「区分」のメニューで「国内ツアー・海外ツアー・フェス・ボクンチ忘年会・番組出演・単発ライブ」に絞れる（CSV の「区分」）。ツアーを押すと全公演が並び、公演を押すとその日のセットリスト（曲順）が開く。新しいツアーが上
 //   年表　：年ごとに、ツアーと、そのツアーで演奏した曲を並べたもの。古いツアーが上。
 //           曲名を押すと、その曲を演奏したツアーと日付だけになる（?song=曲名 でも開けます）
 //           楽曲一覧（data/songs.csv）があれば、どの公演でも演奏していない曲（ライブで未演奏の曲）も出します
@@ -131,16 +132,51 @@ function tourCard(t, open) {
 }
 
 // 区分の切り替え（すべて・国内ツアー・海外ツアー・フェス・ボクンチ忘年会・番組出演・単発ライブ）
+// ドロップダウンメニュー：ボタン（「区分：すべて」など）を押したときだけ、選択肢の一覧が開く
+//   options は [値, 表示する名前, 数（なくてもよい）] の並び。選ぶと onPick(値) を呼んで閉じる
+function dropdown(label, options, current, onPick) {
+  const cur = options.find((o) => o[0] === current) || options[0];
+  const id = `dd-${label}`;
+  const btn = el("button", { type: "button", class: "sl-drop-btn", "aria-expanded": "false", "aria-controls": id },
+    el("span", { class: "sl-drop-label", text: label }), el("span", { class: "sl-drop-value", text: cur[1] }), el("span", { class: "sl-drop-arrow", "aria-hidden": "true" }));
+  const menu = el("div", { class: "sl-drop-menu", id, role: "group", "aria-label": label, hidden: "" });
+  for (const [v, text, n] of options) {
+    const b = el("button", { type: "button", class: "sl-drop-item", "aria-current": String(v === current), disabled: n === 0 ? "" : null },
+      text, n === undefined ? null : el("span", { class: "n", text: String(n) }));
+    b.addEventListener("click", () => { closeDrops(); onPick(v); document.querySelector(`[aria-controls="${id}"]`)?.focus(); });
+    menu.append(b);
+  }
+  btn.addEventListener("click", () => {
+    const open = menu.hidden;
+    closeDrops();
+    menu.hidden = !open; btn.setAttribute("aria-expanded", String(open));
+    if (open) (menu.querySelector("[aria-current=true]") || menu.firstChild).focus();
+  });
+  menu.addEventListener("keydown", (e) => {
+    if (e.key !== "ArrowDown" && e.key !== "ArrowUp") return;
+    e.preventDefault();
+    const bs = [...menu.querySelectorAll("button:not([disabled])")], k = bs.indexOf(document.activeElement);
+    bs[(k + (e.key === "ArrowDown" ? 1 : bs.length - 1)) % bs.length].focus();
+  });
+  return el("div", { class: "sl-drop" }, btn, menu);
+}
+function closeDrops() {
+  for (const m of document.querySelectorAll(".sl-drop-menu:not([hidden])")) m.hidden = true;
+  for (const b of document.querySelectorAll(".sl-drop-btn[aria-expanded=true]")) b.setAttribute("aria-expanded", "false");
+}
+// 一覧の外を押す・Esc キーで閉じる
+document.addEventListener("click", (e) => { if (!e.target.closest(".sl-drop")) closeDrops(); });
+document.addEventListener("keydown", (e) => {
+  if (e.key !== "Escape") return;
+  const open = document.querySelector(".sl-drop-btn[aria-expanded=true]");
+  if (open) { closeDrops(); open.focus(); }
+});
+
+// 「ライブ」の区分のメニュー（数はツアー・ライブの件数）
 function catChips() {
-  const chip = (value, label) => {
-    const n = value ? tours.filter((t) => t.cat === value).length : tours.length;
-    const b = el("button", { type: "button", class: "chip", "aria-pressed": String(cat === value), disabled: n ? null : "" },
-      label, el("span", { class: "n", text: String(n) }));
-    b.addEventListener("click", () => { cat = value; renderLives(); $(".sl-cats [aria-pressed=true]")?.focus(); });
-    return b;
-  };
-  return el("div", { class: "chips sl-cats", role: "group", "aria-label": "区分で絞り込む" },
-    chip("", "すべて"), ...SETLIST_CATEGORIES.map((c) => chip(c, c)));
+  const n = (c) => (c ? tours.filter((t) => t.cat === c).length : tours.length);
+  return el("div", { class: "sl-drops" },
+    dropdown("区分", [["", "すべて", n("")], ...SETLIST_CATEGORIES.map((c) => [c, c, n(c)])], cat, (v) => { cat = v; renderLives(); }));
 }
 
 function renderLives() {
@@ -274,15 +310,6 @@ function rankRows() {
   return { rows, total: target.length };
 }
 
-function rankChips(label, values, current, set) {
-  const g = el("div", { class: "chips sl-cats", role: "group", "aria-label": label });
-  for (const [v, text] of values) {
-    const b = el("button", { type: "button", class: "chip", "aria-pressed": String(current === v) }, text);
-    b.addEventListener("click", () => { set(v); rankAll = false; renderRanking(); g.querySelector("[aria-pressed=true]")?.focus(); });
-    g.append(b);
-  }
-  return g;
-}
 
 function renderRanking() {
   const box = $("#ranking");
@@ -306,9 +333,10 @@ function renderRanking() {
       el("span", { class: "sl-rank-n" }, el("b", { text: String(r.n) }), " 公演", el("small", { text: `${Math.round((r.n / total) * 100)}%` }))));
   }
   box.replaceChildren(
-    rankChips("区分で絞り込む", [["", "すべて"], ...SETLIST_CATEGORIES.map((c) => [c, c])], rankCat, (v) => { rankCat = v; }),
-    rankChips("年代で絞り込む", [["", "すべての年"], ...eras.map((e) => [e, `${e}年代`])], rankEra, (v) => { rankEra = v; }),
-    rankChips("並び順", [[false, "多い順"], [true, "少ない順"]], rankAsc, (v) => { rankAsc = v; }),
+    el("div", { class: "sl-drops" },
+      dropdown("区分", [["", "すべて"], ...SETLIST_CATEGORIES.map((c) => [c, c])], rankCat, (v) => { rankCat = v; rankAll = false; renderRanking(); }),
+      dropdown("年代", [["", "すべての年"], ...eras.map((e) => [e, `${e}年代`])], rankEra, (v) => { rankEra = v; rankAll = false; renderRanking(); }),
+      dropdown("並び順", [[false, "多い順"], [true, "少ない順"]], rankAsc, (v) => { rankAsc = v; rankAll = false; renderRanking(); })),
     el("p", { class: "hist-view sl-view" }, el("b", { text: [rankCat || "すべて", rankEra ? `${rankEra}年代` : ""].filter(Boolean).join("・") }),
       el("span", { text: total ? `セトリがある ${total} 公演・${rows.length} 曲` : "セトリがある公演は、まだありません" })),
     el("p", { class: "sl-song-sub", text: "数字は、その曲を演奏した公演の数です（1つの公演で2回やっても1回。1回も演奏していない曲は入れていません）。% は、セトリがある公演のうち何割で演奏したか。曲名を押すと、その曲を演奏したライブが年表で並びます。" }),
@@ -329,9 +357,7 @@ function saveUrl() {
 
 function setView(v, { scroll = false } = {}) {
   view = VIEWS.includes(v) && !(v === "unplayed" && !catalog.length) ? v : "live";
-  for (const b of document.querySelectorAll(".sl-tab")) b.setAttribute("aria-current", String(b.dataset.view === view));
-  $("#viewName").textContent = $(`.sl-tab[data-view="${view}"]`).textContent;
-  openMenu(false);
+  for (const b of document.querySelectorAll(".sl-tab")) b.setAttribute("aria-selected", String(b.dataset.view === view));
   $("#lives").hidden = view !== "live";
   $("#nenpyo").hidden = view !== "nenpyo";
   $("#ranking").hidden = view !== "ranking";
@@ -358,30 +384,17 @@ function setSong(key, { scroll = true } = {}) {
 const headerH = () => $("#header").getBoundingClientRect().height;
 const scrollToEl = (d) => scrollTo({ top: d.getBoundingClientRect().top + scrollY - headerH() - $(".hist-tabs-bar").offsetHeight - 8 });
 
-// 表示の切り替え：ボタンを押すと一覧が開き、選ぶと閉じる（一覧の外を押す・Esc キーでも閉じる）
-function openMenu(open) {
-  $("#tabs").hidden = !open;
-  $("#viewBtn").setAttribute("aria-expanded", String(open));
-}
-$("#viewBtn").addEventListener("click", () => {
-  const open = $("#tabs").hidden;
-  openMenu(open);
-  if (open) $(".sl-tab[aria-current=true]")?.focus();
-});
 $("#tabs").addEventListener("click", (e) => {
   const b = e.target.closest("[data-view]");
-  if (b) { setView(b.dataset.view, { scroll: true }); $("#viewBtn").focus(); }
+  if (b) setView(b.dataset.view, { scroll: true });
 });
-// 上下の矢印キーで一覧の中を移る
+// 左右の矢印キーで切り替え
 $("#tabs").addEventListener("keydown", (e) => {
-  if (e.key !== "ArrowDown" && e.key !== "ArrowUp") return;
-  e.preventDefault();
-  const bs = [...document.querySelectorAll(".sl-tab:not([hidden])")];
-  const i = bs.indexOf(document.activeElement);
-  bs[(i + (e.key === "ArrowDown" ? 1 : bs.length - 1)) % bs.length].focus();
+  if (e.key !== "ArrowRight" && e.key !== "ArrowLeft") return;
+  const vs = [...document.querySelectorAll(".sl-tab:not([hidden])")].map((b) => b.dataset.view);
+  setView(vs[(vs.indexOf(view) + (e.key === "ArrowRight" ? 1 : vs.length - 1)) % vs.length]);
+  document.querySelector(`.sl-tab[data-view="${view}"]`).focus();
 });
-document.addEventListener("keydown", (e) => { if (e.key === "Escape" && !$("#tabs").hidden) { openMenu(false); $("#viewBtn").focus(); } });
-document.addEventListener("click", (e) => { if (!$("#tabs").hidden && !e.target.closest(".sl-drop")) openMenu(false); });
 document.addEventListener("click", (e) => {
   // 曲名を押す → 年表で、その曲のライブだけにする（もう一度押すと解除）
   const b = e.target.closest("[data-song]");
