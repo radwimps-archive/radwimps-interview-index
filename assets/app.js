@@ -165,7 +165,7 @@ function ingest(text) {
   S.parsed = parsed;
   S.items = parsed.items.filter((it) => it.state === "公開").map(prep);
   buildChoices();
-  // 人物紹介などから ?person=… で開いたとき（タブの指定がなければ）、記事のあるタブに合わせる
+  // メンバー紹介などから ?person=… で開いたとき（タブの指定がなければ）、記事のあるタブに合わせる
   if (!new URLSearchParams(location.search).has("format") && (F.person || F.work || F.year)) fitFormat();
 }
 
