@@ -157,10 +157,11 @@ function match(s, kind, q) {
 
 function songItem(s, inRelease) {
   // 発売順では、日付と作品名は「発売ごとの見出し」に出すので、曲の行には種類の札だけ。50音順では今までどおり日付・作品名も出す
-  const meta = el("p", { class: "song-meta" },
-    inRelease ? null : el("time", { text: dateLabel(s) }),
+  // （種類の札も、発売順では作品名の隣に1つだけ出す）
+  const meta = inRelease ? null : el("p", { class: "song-meta" },
+    el("time", { text: dateLabel(s) }),
     el("span", { class: "song-kind", text: kindLabel(s.kind) }),
-    !inRelease && s.work && s.work !== s.title ? el("span", { text: s.kind === "動画公開" ? s.work : `「${s.work}」` }) : null);
+    s.work && s.work !== s.title ? el("span", { text: s.kind === "動画公開" ? s.work : `「${s.work}」` }) : null);
   const subs = [];
   if (s.album && s.album !== s.work) subs.push(el("p", { class: "song-sub", text: `アルバム「${s.album}」に収録` }));
   if (s.tieup) subs.push(el("p", { class: "song-sub song-tieup", text: s.tieup }));
@@ -239,7 +240,7 @@ function render() {
     const work = f.work || f.title;
     box.append(el("section", { class: "hist-year song-release", "aria-labelledby": id },
       el("h2", { id, class: "hist-year-head" }, el("span", { text: String(f.y) }), day ? el("time", { class: "song-release-date", text: day }) : null, el("small", { text: `${items.length} 曲` })),
-      el("p", { class: "song-release-work", text: work }),
+      el("p", { class: "song-release-work" }, el("span", { text: work }), el("span", { class: "song-kind", text: kindLabel(f.kind) })),
       el("ol", { class: "song-items" }, ...items.map((x) => songItem(x, true)))));
   }
 }

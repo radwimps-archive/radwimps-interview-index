@@ -843,7 +843,7 @@ dialog.modal::backdrop { background: rgba(23, 32, 24, .5); -webkit-backdrop-filt
 .song-release .hist-year-head { padding-top: 26px; padding-bottom: 2px; }
 .song-release .hist-year-head::before { top: 43px; }
 .song-release-date { font-family: var(--f-mono); font-size: 18px; letter-spacing: .02em; color: var(--muted); }
-.song-release-work { margin: 0 0 4px; font-size: 20px; font-weight: 700; line-height: 1.4; color: var(--ink); overflow-wrap: anywhere; }
+.song-release-work { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 10px; margin: 0 0 4px; font-size: 20px; font-weight: 700; line-height: 1.4; color: var(--ink); overflow-wrap: anywhere; }
 @media (min-width: 701px) { .song-release-date { font-size: 22px; } .song-release-work { font-size: 24px; } .song-release .hist-year-head::before { top: 48px; } }
 
 /* 楽曲一覧：曲名の隣に「歌詞」「MV」「記事」を左詰めで並べる（入りきらないときは次の行へ） */
