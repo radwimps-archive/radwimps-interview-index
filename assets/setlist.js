@@ -81,6 +81,23 @@ const badge = (c) => el("span", { class: `sl-conf conf-${c.slug}`, title: c.desc
 
 /* ---------- ライブ：ツアーごとの全公演と、公演ごとのセットリスト ---------- */
 
+// 歌った人の見出し（【kZm】など）がある公演は、人ごとに曲順の番号を数え直す
+function songLists(list, from = 0) {
+  const out = [];
+  let ol = null, part = null, n = 0;
+  list.forEach((s, i) => {
+    if (!ol || (s.part || "") !== part) {
+      part = s.part || "";
+      if (part) out.push(el("h4", { class: "sl-part", text: part }));
+      ol = el("ol", { class: "sl-songs" });
+      out.push(ol);
+      n = part ? 0 : from;
+    }
+    ol.append(songItem(s, ++n));
+  });
+  return out;
+}
+
 function songItem(s, n) {
   return el("li", { value: String(n) },
     el("button", { type: "button", class: "sl-song", "data-song": songKey(s.title), title: `「${s.title}」を演奏したライブを年表で見る` }, s.title),
@@ -92,10 +109,10 @@ function setlistBody(l) {
   const body = el("div", { class: "sl-live-body" });
   if (!hasSongs(l)) body.append(el("p", { class: "sl-none", text: "この公演のセットリストは、まだ確かめられていません。" }));
   else {
-    body.append(el("ol", { class: "sl-songs" }, ...l.main.map((s, i) => songItem(s, i + 1))));
+    body.append(...songLists(l.main));
     if (l.encore.length) {
       body.append(el("h4", { class: "sl-encore", text: "アンコール" }),
-        el("ol", { class: "sl-songs" }, ...l.encore.map((s, i) => songItem(s, l.main.length + i + 1))));
+        ...songLists(l.encore, l.main.some((s) => s.part) ? 0 : l.main.length));
     }
   }
   const info = el("dl", { class: "sl-info" });

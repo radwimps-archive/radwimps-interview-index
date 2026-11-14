@@ -157,6 +157,12 @@ test("parseSetlists：曲の区切り・アンコール・並び順", () => {
   assert.equal(lives[0].d, 0);
 });
 
+test("parseSetlists：【 】の見出しは、そのあとの曲を歌った人になる（曲には数えない）", () => {
+  const { lives, errors } = setlists("2024-09-27,A,会場,【kZm】／Aquarius Heaven／【野田洋次郎】／SHEETA／PIPE DREAM,,,一部,出典,https://example.com/,");
+  assert.deepEqual(errors, []);
+  assert.deepEqual(lives[0].main.map((s) => [s.title, s.part]), [["Aquarius Heaven", "kZm"], ["SHEETA", "野田洋次郎"], ["PIPE DREAM", "野田洋次郎"]]);
+});
+
 test("parseSetlists：書き間違いを知らせる", () => {
   const { lives, errors, warnings } = setlists(
     "2019-13-01,B,,DADA,,,確認済み,,https://example.com/,",
