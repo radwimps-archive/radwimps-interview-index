@@ -25,8 +25,8 @@
 <meta name="twitter:image" content="https://radwimps-archive.github.io/radwimps-interview-index/assets/ogp.png">
 <meta name="theme-color" content="#FFFFFF">
 <link rel="icon" href="assets/icon.svg" type="image/svg+xml">
-<link rel="stylesheet" href="assets/style.css?v=20261114b">
-<script type="module" src="assets/setlist.js?v=20261114b"></script>
+<link rel="stylesheet" href="assets/style.css?v=20261114c">
+<script type="module" src="assets/setlist.js?v=20261114c"></script>
 </head>
 <body class="history-page setlist-page">
 <a href="#lives" class="skip">セットリストへ移動</a>
@@ -67,6 +67,15 @@
     </div>
   </div>
 
+  <!-- 検索窓：どのタブでも使えます（タブごとに、入れた言葉を覚えています） -->
+  <div class="sl-search wrap">
+    <label class="sl-search-box">
+      <span class="sl-search-icon" aria-hidden="true"></span>
+      <span class="sl-visually-hidden">このタブの中を検索</span>
+      <input id="viewSearch" type="search" autocomplete="off" autocapitalize="off" enterkeyhint="search" placeholder="ライブ名・会場・曲名で探す">
+    </label>
+  </div>
+
   <!-- 参加公演：行ったライブ（足あとのマークを付けた公演）のライブ名と公演日だけ -->
   <section class="sl-mine wrap" id="mine" role="tabpanel" aria-labelledby="tabMine" hidden></section>
 
@@ -77,13 +86,7 @@
 
   <!-- 年表：年ごとに、公演と演奏した曲（古い順） -->
   <section class="sl-nenpyo wrap" id="nenpyo" role="tabpanel" aria-labelledby="tabYear" hidden>
-    <div class="sl-finder">
-      <label class="panel-label" for="songInput">曲名で探す</label>
-      <div class="sl-finder-row">
-        <input id="songInput" type="search" list="songList" autocomplete="off" enterkeyhint="search" placeholder="例：有心論">
-        <datalist id="songList"></datalist>
-        <button type="button" class="sl-clear" id="songClear" hidden>解除</button>
-      </div>
+    <div>
       <div class="sl-song-info" id="songInfo" aria-live="polite"></div>
     </div>
     <div class="timeline" id="timeline"></div>
@@ -94,7 +97,7 @@
   <section class="sl-ranking wrap" id="ranking" role="tabpanel" aria-labelledby="tabRank" hidden></section>
 
   <section class="sl-unplayed-view wrap" id="unplayedView" role="tabpanel" aria-labelledby="tabUnplayed" hidden>
-    <div class="sl-finder" id="unplayedBody"></div>
+    <div id="unplayedBody"></div>
   </section>
 
   <p class="hist-note wrap">報道のライブレポートと、ファンが投稿するサイト（LiveFans・setlist.fm）、ライブ映像の収録曲をもとに、運営がまとめた非公式の記録です。ツアーの全公演に加えて、フェス・テレビ番組・ファンクラブのイベントなども載せています。同じツアーでも、日によって曲が変わります。それぞれの公演の「出典」で、もとの情報を確かめられます。誤りに気づいたら、お知らせください。</p>
