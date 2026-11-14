@@ -214,6 +214,9 @@ function workBtn(text, panel) {
 let uid = 0;
 let folded = false; // 「すべて閉じる」を選んだあとは、作品の曲を閉じた状態で並べる
 
+// 発売順の項目の名前：アルバム名・シングル名。動画公開は、作品名が「YouTube で公開」で札と重なるので、曲名を出す
+const relName = (s) => (s.kind === "動画公開" ? s.title : s.work || s.title);
+
 function render() {
   const q = norm(query);
   const list = songs.filter((s) => match(s, current, q));
@@ -243,7 +246,7 @@ function render() {
   const years = new Map();
   for (const s of sorted) {
     const rel = years.get(s.y) || years.set(s.y, new Map()).get(s.y);
-    const k = `${s.m || 0}|${s.d || 0}|${s.work || s.title}`;
+    const k = `${s.m || 0}|${s.d || 0}|${relName(s)}`;
     (rel.get(k) || rel.set(k, []).get(k)).push(s);
   }
   const shut = folded && !q; // 検索中は、見つかった曲を隠さない
@@ -254,7 +257,7 @@ function render() {
     for (const items of rels.values()) {
       const f = items[0];
       const olId = `ol${++uid}`;
-      const work = f.work || f.title;
+      const work = relName(f);
       const cdBuy = CD_KINDS.includes(f.kind) ? buyPanel(work) : null;
       ol.append(el("li", { class: "hist-item song-release" },
         el("p", { class: "hist-meta" }, el("time", { text: dateLabel(f) }),
