@@ -43,6 +43,7 @@ function load(text) {
 function renderTabs() {
   const tabs = $("#tabs");
   tabs.replaceChildren();
+  tabs.className = `hist-tabs wrap cat-${current}`; // 下の細い線の色は、選んでいるカテゴリの色
   const all = [{ name: "すべて", slug: "all", short: "すべて" }, ...CATS, MV_TAB];
   for (const t of all) {
     const n = t.slug === "all" ? events.length : t.slug === "mv" ? mvSongs().length : events.filter((e) => e.cats.some((c) => c.slug === t.slug)).length;
@@ -50,6 +51,9 @@ function renderTabs() {
       el("span", { class: "lbl-full", text: t.name }), el("span", { class: "lbl-short", text: t.short, "aria-hidden": "true" }), el("small", { text: String(n) }));
     tabs.append(b);
   }
+  // 入りきらないときは、選んでいるタブが見えるところまで横にスクロールする
+  const on = tabs.querySelector('[aria-selected="true"]');
+  if (on) tabs.scrollTo({ left: on.offsetLeft - (tabs.clientWidth - on.offsetWidth) / 2, behavior: "auto" });
 }
 
 function renderTimeline() {
