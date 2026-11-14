@@ -40,8 +40,6 @@
   <div class="menu-clip" id="menuClip" inert aria-hidden="true">
     <nav class="menu-panel" aria-label="メニュー">
       <a class="nav-item" href="./" data-go="list">記事一覧 <span aria-hidden="true">↗</span></a>
-      <a class="nav-item" href="./?status=fav" data-go="fav">お気に入り <span id="favCount">0</span></a>
-      <a class="nav-item" href="./?status=later" data-go="later">あとで読む <span id="laterCount">0</span></a>
       <a class="nav-item" href="history.html">RADWIMPSの歩み <span aria-hidden="true">↗</span></a>
       <a class="nav-item" href="members.html">メンバー紹介 <span aria-hidden="true">↗</span></a>
       <button class="nav-item" type="button" data-act="add">記事を追加 <span aria-hidden="true">＋</span></button>
@@ -101,6 +99,8 @@
       </div>
 
       <div class="format-tabs" id="formatTabs" role="group" aria-label="記事の種類">
+        <button type="button" data-format="fav" aria-pressed="false">お気に入り<small id="favCount" hidden>0</small></button>
+        <button type="button" data-format="later" aria-pressed="false">あとで読む<small id="laterCount" hidden>0</small></button>
         <button type="button" data-format="text" aria-pressed="true">記事</button>
         <button type="button" data-format="video" aria-pressed="false">▶ 動画</button>
         <button type="button" data-format="radio" aria-pressed="false">ラジオ</button>

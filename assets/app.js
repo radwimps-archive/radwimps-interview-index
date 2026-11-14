@@ -515,7 +515,16 @@ function render() {
   if (!listMode) { renderAdmin(); writeURL(); return; }
 
   // 上の部品の状態を、条件に合わせる
-  for (const b of $$("#formatTabs [data-format]")) b.setAttribute("aria-pressed", String(!isLiveView() && F.format === b.dataset.format));
+  // 「お気に入り」「あとで読む」のタブは、読書の状態（F.status）で選ばれる。それ以外のタブは、状態が「お気に入り」「あとで読む」でないときに選ばれる
+  const marked = F.status === "fav" || F.status === "later";
+  for (const b of $$("#formatTabs [data-format]")) {
+    const f = b.dataset.format;
+    const on = isLiveView() ? false : f === "fav" || f === "later" ? F.status === f : !marked && F.format === f;
+    b.setAttribute("aria-pressed", String(on));
+  }
+  // 入りきらないときは左右にスクロールできる。選んでいるタブが見える位置まで動かす
+  const tabs = $("#formatTabs"), cur = tabs.querySelector('[aria-pressed="true"]');
+  if (cur && tabs.scrollWidth > tabs.clientWidth) tabs.scrollTo({ left: cur.offsetLeft - (tabs.clientWidth - cur.offsetWidth) / 2, behavior: "auto" });
   if ($("#q").value !== F.q) $("#q").value = F.q;
   $("#qclear").hidden = !F.q;
   if (!S.loaded) return;
@@ -583,8 +592,12 @@ function scrollToList() {
 
 function renderMenu() {
   const shownCount = (k) => String(Object.keys(S.marks[k]).filter((id) => S.items.some((it) => it.id === id)).length || Object.keys(S.marks[k]).length);
-  $("#laterCount").textContent = shownCount("lt");
-  $("#favCount").textContent = shownCount("fv");
+  // 数は、「お気に入り」「あとで読む」のタブに小さく出す（0 のときは出さない）
+  for (const [id, k] of [["laterCount", "lt"], ["favCount", "fv"]]) {
+    const n = shownCount(k);
+    $("#" + id).textContent = n;
+    $("#" + id).hidden = n === "0";
+  }
   $("#adminLink").hidden = !S.admin;
   const cur = S.page === "admin" ? "admin" : F.status === "later" ? "later" : F.status === "fav" ? "fav" : "list";
   for (const a of $$("#menuClip [data-go]")) {
@@ -599,7 +612,7 @@ $("#menuClip").addEventListener("click", (e) => {
   if (!go) return;
   e.preventDefault();
   setMenuOpen(false, { focusBack: false });
-  goList(() => { if (go.dataset.go === "later" || go.dataset.go === "fav") { F.status = go.dataset.go; F.format = "all"; } });
+  goList();
 });
 $("#adminLink").addEventListener("click", () => setMenuOpen(false, { focusBack: false }));
 
@@ -690,7 +703,9 @@ $("#emptyAlt").addEventListener("click", (e) => {
 $("#formatTabs").addEventListener("click", (e) => {
   const b = e.target.closest("[data-format]");
   if (!b) return;
-  F.format = b.dataset.format;
+  const f = b.dataset.format;
+  if (f === "fav" || f === "later") { F.status = f; F.format = "all"; } // 種類は問わず、印をつけた記事だけを出す
+  else { if (F.status === "fav" || F.status === "later") F.status = ""; F.format = f; }
   if (isLiveView()) { F.entry = F.entry === "live" ? "" : F.entry; F.tour = ""; if (F.kind === LIVE_KIND) F.kind = ""; }
   apply();
 });

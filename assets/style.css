@@ -182,9 +182,12 @@ body::before { content: ""; position: fixed; inset: 0 0 auto; height: env(safe-a
 .search-go:hover { filter: brightness(1.12); }
 
 /* 記事の種類のタブ：すき間なく一続きに並べ、下に紺の細い線。選んでいるタブは紺で、少しだけ背が高く幅も広い。下へ動かしても上の帯の下に残る */
-.format-tabs { position: sticky; top: calc(60px + env(safe-area-inset-top, 0px)); z-index: 10; display: flex; align-items: flex-end; margin-bottom: 22px; padding-top: 10px; background: var(--paper); border-bottom: 2px solid var(--accent); }
-.format-tabs button { flex: 1 1 auto; min-width: 0; min-height: 38px; padding: 8px 6px; border: 1px solid var(--line-entry); border-bottom: 0; border-left-width: 0; border-radius: 8px 8px 0 0; background: var(--sunk); color: var(--muted); font-size: 12.5px; white-space: nowrap; }
+.format-tabs { position: sticky; top: calc(60px + env(safe-area-inset-top, 0px)); z-index: 10; display: flex; align-items: flex-end; margin-bottom: 22px; padding-top: 10px; background: var(--paper); border-bottom: 2px solid var(--accent); overflow-x: auto; overscroll-behavior-x: contain; scrollbar-width: none; }
+.format-tabs::-webkit-scrollbar { display: none; }
+.format-tabs button { flex: 1 0 auto; min-height: 38px; padding: 8px 6px; border: 1px solid var(--line-entry); border-bottom: 0; border-left-width: 0; border-radius: 8px 8px 0 0; background: var(--sunk); color: var(--muted); font-size: 12.5px; white-space: nowrap; }
 .format-tabs button:first-child, .format-tabs button[aria-pressed="true"] + button { border-left-width: 1px; }
+.format-tabs small { margin-left: 4px; font-size: .85em; font-variant-numeric: tabular-nums; opacity: .8; }
+.format-tabs small[hidden] { display: none; }
 .format-tabs button:hover { color: var(--ink); background: var(--accent-tint); }
 .format-tabs button[aria-pressed="true"] { flex-grow: 1.2; min-height: 46px; padding-block: 12px 8px; border-color: var(--accent); background: var(--accent); color: var(--white); font-size: 13.5px; font-weight: 700; }
 /* 幅のせまいスマホ（360px 以下など）でも、5つのタブが1段に収まるように少しつめる */
