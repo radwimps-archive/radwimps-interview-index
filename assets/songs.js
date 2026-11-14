@@ -172,15 +172,14 @@ function songItem(s, inRelease) {
   if (/^(インスト|スキット|歌詞非公開)/.test(s.note)) {
     // 何も出さない
   } else if (s.lyrics) {
-    // 「歌詞URL」に曲のページがあるときは、そのページを直接開く（ボタンには歌詞サイトの名前を出す）
+    // 「歌詞URL」に曲のページがあるときは、そのページを直接開く（ボタンは「歌詞」だけ）
     const host = new URL(s.lyrics).hostname.replace(/^www\./, "");
     const site = LYRIC_SITES.find((x) => x.host === host);
-    links.append(el("span", { class: "song-label", text: "歌詞" }),
-      lyricLink(s.lyrics, `「${s.title}」の歌詞を${site ? site.name : "歌詞サイト"}で見る`, `${site ? site.name : "歌詞"} ↗`));
+    links.append(lyricLink(s.lyrics, `「${s.title}」の歌詞を${site ? site.name : "歌詞サイト"}で見る`, "歌詞 ↗"));
   } else {
-    links.append(el("span", { class: "song-label", text: "歌詞" }));
+    // 曲のページがないときは、歌詞サイトの中を曲名で探した結果を開く
     for (const site of LYRIC_SITES) {
-      links.append(lyricLink(site.search(s.base), `「${s.title}」の歌詞を${site.name}で探す`, `${site.name} ↗`));
+      links.append(lyricLink(site.search(s.base), `「${s.title}」の歌詞を${site.name}で探す`, "歌詞 ↗"));
     }
   }
   if (s.video) {
@@ -206,7 +205,8 @@ function songItem(s, inRelease) {
   if (s.articles) {
     links.append(el("a", { class: "song-btn song-articles", href: `./?work=${encodeURIComponent(s.base)}&format=all`, text: `記事 ${s.articles}件` }));
   }
-  return el("li", { class: "song-item" }, title, buy, meta, ...subs, links, ...after);
+  // 曲名の隣に「歌詞」「MV」「記事」を左詰めで並べる
+  return el("li", { class: "song-item" }, el("div", { class: "song-head" }, title, links), buy, meta, ...subs, ...after);
 }
 let buyCount = 0;
 
