@@ -90,7 +90,7 @@ button { cursor: pointer; }
 /* iPhone をホーム画面アプリとして開いたときなど、画面のいちばん上（時刻や電池の表示の裏）にも帯の色を敷いて、帯はその下に止める */
 body::before { content: ""; position: fixed; inset: 0 0 auto; height: env(safe-area-inset-top, 0px); z-index: 25; background: var(--white); pointer-events: none; }
 .header { position: sticky; top: env(safe-area-inset-top, 0px); z-index: 20; background: var(--white); border-bottom: 1px solid var(--rule); }
-.header-inner { position: relative; display: flex; align-items: center; gap: 11px; max-width: 1200px; height: 60px; margin-inline: auto; padding: 0 21px 0 0; background: var(--white); }
+.header-inner { position: relative; z-index: 2; display: flex; align-items: center; gap: 11px; max-width: 1200px; height: 60px; margin-inline: auto; padding: 0 21px 0 0; background: var(--white); }
 
 /* 3本線のボタン：開くと「×」になる（上下の線が 8px 中央へ寄って ±45° 回転、真ん中の線は消える）。開いている間は朱色 */
 .hamburger { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 5px; width: 44px; height: 44px; flex: none; padding: 0; border: 0; background: none; color: var(--ink); }
@@ -101,15 +101,14 @@ body::before { content: ""; position: fixed; inset: 0 0 auto; height: env(safe-a
 .hamburger[aria-expanded="true"] span:nth-child(3) { transform: translateY(-8px) rotate(-45deg); }
 
 /* ロゴ：朱色の「r.」と、RADWIMPS / INTERVIEW ARCHIVES */
-.brand { display: flex; align-items: center; gap: 10px; color: var(--ink); text-decoration: none; }
+.brand { display: flex; align-items: center; gap: 10px; margin-left: auto; text-align: right; color: var(--ink); text-decoration: none; }
 .brand-text { display: block; font-size: 18px; font-weight: 800; line-height: 1.25; letter-spacing: 1px; white-space: nowrap; }
 .brand-text span { display: block; font-weight: 300; letter-spacing: .29em; }
 
-/* メニュー：帯のすぐ下から 0.3 秒で降りてくる（帯より上には出ない） */
-.menu-clip { position: absolute; top: 60px; left: 0; right: 0; overflow: hidden; pointer-events: none; }
-.menu-clip.open { pointer-events: auto; box-shadow: var(--shadow); }
-.menu-panel { display: flex; flex-direction: column; padding: 6px 0 14px; background: var(--white); transform: translateY(-100%); transition: transform .3s var(--ease); }
-.menu-clip.open .menu-panel { transform: none; }
+/* メニュー：開くと、画面いっぱいに 0.3 秒でふわっと広がる。帯（ボタンとロゴ）はそのまま上に残る */
+.menu-clip { position: fixed; inset: 0; z-index: 1; padding-top: calc(60px + env(safe-area-inset-top, 0px)); overflow-y: auto; overscroll-behavior: contain; background: var(--white); opacity: 0; visibility: hidden; pointer-events: none; transition: opacity .3s var(--ease), visibility 0s linear .3s; }
+.menu-clip.open { opacity: 1; visibility: visible; pointer-events: auto; transition: opacity .3s var(--ease), visibility 0s; }
+.menu-panel { display: flex; flex-direction: column; max-width: 542px; padding: 6px 0 14px; }
 .nav-item { display: flex; align-items: center; justify-content: space-between; gap: 12px; min-height: 60px; margin: 0 20px; padding: 0 4px; border: 0; border-bottom: 1px solid var(--rule); background: none; color: var(--ink); font-size: 17px; font-weight: 600; letter-spacing: .02em; text-align: left; text-decoration: none; white-space: nowrap; }
 .nav-item:last-child { border-bottom: 0; }
 .nav-item span { font-size: 15px; font-weight: 500; color: var(--muted); }
@@ -611,10 +610,7 @@ dialog.modal::backdrop { background: rgba(23, 32, 24, .5); -webkit-backdrop-filt
   .live-event .article-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 }
 @media (min-width: 1240px) {
-  .menu-clip { left: max(0px, calc((100vw - 1200px) / 2)); right: auto; width: 542px; }
-}
-@media (min-width: 701px) and (max-width: 1239px) {
-  .menu-clip { right: auto; width: min(542px, 100%); }
+  .menu-panel { margin-left: max(0px, calc((100vw - 1200px) / 2)); }
 }
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { transition: none !important; animation: none !important; scroll-behavior: auto !important; }
