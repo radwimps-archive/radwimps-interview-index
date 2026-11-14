@@ -7,7 +7,7 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 
-const PAGES = ["index.html", "history.html", "members.html", "maker.html", "404.html"];
+const PAGES = ["index.html", "history.html", "members.html", "setlist.html", "maker.html", "404.html"];
 const read = (f) => readFileSync(new URL(`../${f}`, import.meta.url), "utf8").replace(/<!--[\s\S]*?-->/g, "");
 
 for (const page of PAGES) {

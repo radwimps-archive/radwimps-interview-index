@@ -2,9 +2,12 @@
 // 「RADWIMPSの歩み」のページの動き。年表のデータは data/history.csv です（ここを書き換えると年表が変わります）。
 // 上のタブでカテゴリを選ぶと、そのカテゴリの出来事だけが並びます（URL の末尾 #release などでも開けます）。
 // 「MV」のタブ（#mv）は、MV のある曲だけを1曲ずつ並べます。
+// 「ライブ・ツアー」の出来事には、行ったことのあるライブの印（ブックマーク）をつけられます。印は「RAD LIVE SET LIST」の公演日と同じもので、連動します（attended.js）。
+//   どの出来事がどの公演か：data/setlists.csv の公演のうち、出来事の日付（期間）に入るもの。期間の中に別のライブ（フェスなど）があるときは、いちばん公演数の多いツアーだけ。
 
 import "./analytics.js";
-import { parseHistory, HISTORY_CATEGORIES } from "./data.js";
+import { parseHistory, parseSetlists, HISTORY_CATEGORIES } from "./data.js";
+import { attendButton, attendCount, assignKeys, sync as syncAttend, setupAttendClicks } from "./attended.js";
 import { h as el, setupMenu, isAdminDevice } from "./ui.js";
 import config from "./config.js";
 import { feedbackUrl, hasFeedback, setupBeta, KIND } from "./feedback.js";
@@ -20,6 +23,7 @@ const VIEWS = ["all", ...CATS.map((c) => c.slug), MV_TAB.slug];
 const ERAS = [[2001, 2008], [2009, 2016], [2017, 9999]];
 
 let events = [];
+let lives = [];   // セトリのデータ（data/setlists.csv）の公演。読めないときは空（印は出ません）
 let current = "all";
 
 const pad = (n) => String(n).padStart(2, "0");
@@ -38,6 +42,29 @@ function load(text) {
   // 書き間違いは公開前のチェックでエラーになるので、ここでは読めた行だけを並べる
   if (errors.length) console.warn("年表のデータに、直すところがあります", errors);
   return events.map((e) => ({ ...e, cat: e.cats[0] }));
+}
+
+// 出来事に当てはまる公演（セトリのデータから）。ライブ・ツアーの出来事だけ
+const isoOf = (y, m, d) => `${y}-${pad(m || 1)}-${pad(d || 1)}`;
+function showsOf(e) {
+  if (!e.m || !e.cats.some((c) => c.name === "ライブ・ツアー")) return [];
+  const from = isoOf(e.y, e.m, e.d);
+  const to = e.ey ? isoOf(e.ey, e.em || 12, e.ed || 31) : e.d ? from : isoOf(e.y, e.m, 31);
+  const inside = lives.filter((l) => { const k = isoOf(l.y, l.m, l.d); return k >= from && k <= to; });
+  if (!e.ey) return inside;
+  // 期間の中にフェスなど別のライブがあるときは、公演がいちばん多いツアー（同じなら早いほう）だけにする
+  const by = new Map();
+  for (const l of inside) (by.get(l.name) || by.set(l.name, []).get(l.name)).push(l);
+  return [...by.values()].sort((a, b) => b.length - a.length)[0] || [];
+}
+// 出来事の下の「行った」ボタン。1公演だけならボタン、複数ならたたんだ欄に公演日を並べる
+function attendLine(e) {
+  const shows = e.shows;
+  if (!shows || !shows.length) return null;
+  if (shows.length === 1) return el("p", { class: "att-line" }, attendButton(shows[0]));
+  const sameYear = shows.every((l) => l.y === shows[0].y);
+  const chips = el("div", { class: "att-chips" }, ...shows.map((l) => attendButton(l, { label: `${sameYear ? "" : `${l.y}.`}${pad(l.m)}.${pad(l.d)} ${(l.venue || "").replace(/（.*）$/, "")}`.trim() })));
+  return el("details", { class: "att-shows" }, el("summary", {}, "行った公演を選ぶ", attendCount(shows)), chips);
 }
 
 function renderTabs() {
@@ -78,6 +105,7 @@ function renderTimeline() {
           ...(e.cats || [e.cat]).map((c) => el("span", { class: `hist-cat cat-${c.slug}`, text: c.name }))),
         ...titleLine(e),
         e.note ? el("p", { class: "hist-sub", text: e.note }) : null,
+        attendLine(e),
         videoLine(e)));
     }
     sec.append(ol);
@@ -85,6 +113,7 @@ function renderTimeline() {
   }
   if (!list.length) box.append(el("p", { class: "hist-loading", text: current === "mv" ? "MV はまだありません。" : "このカテゴリの出来事はまだありません。" }));
   renderEras(list);
+  syncAttend(box);
 }
 
 // MV のある曲を1曲ずつの行にする。曲名は、ラベルの「」の中（MV「光」→ 光）か、ラベルが「MV」だけなら出来事の「」の中の名前。
@@ -320,6 +349,8 @@ const toTop = $("#toTop");
 addEventListener("scroll", () => { toTop.hidden = scrollY < 900; }, { passive: true });
 toTop.addEventListener("click", () => scrollTo({ top: 0, behavior: "smooth" }));
 
+// 「行った」ボタン
+setupAttendClicks();
 // メニュー（記事一覧のページと同じ動き。ui.js）
 setupMenu();
 setupBeta($("#main").firstElementChild);
@@ -335,6 +366,12 @@ if (isAdminDevice()) $("#adminLink").hidden = false;
     const res = await fetch("data/history.csv", { cache: "no-cache" });
     if (!res.ok) throw new Error();
     events = load(await res.text());
+    // セトリのデータ（行ったライブの印のため）。読めなくても、年表はそのまま見られる
+    try {
+      const sl = await fetch("data/setlists.csv", { cache: "no-cache" });
+      if (sl.ok) { lives = parseSetlists(await sl.text()).lives; assignKeys(lives); }
+    } catch { /* 印は出さない */ }
+    for (const e of events) e.shows = showsOf(e);
     if (events.length) $("#span").textContent = `${events[0].y} — ${events[events.length - 1].y}`;
     if (affiliateOn) $("#prNote").hidden = $("#prTop").hidden = false;
     setCat(location.hash.slice(1));

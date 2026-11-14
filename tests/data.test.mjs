@@ -7,7 +7,7 @@
 
 import test from "node:test";
 import assert from "node:assert/strict";
-import { parseCSV, youtubeId, parseVideos, parseHistory, parseArticles, toCSVLine } from "../assets/data.js";
+import { parseCSV, youtubeId, parseVideos, parseHistory, parseArticles, parseSetlists, splitSong, songKey, toCSVLine } from "../assets/data.js";
 
 const HISTORY_HEAD = "年,月,日,終了年,終了月,終了日,カテゴリ,出来事,補足,特設サイト,タワーレコード,動画";
 const history = (...rows) => parseHistory([HISTORY_HEAD, ...rows].join("\n"));
@@ -131,4 +131,48 @@ test("parseArticles：種類で、どのタブに出るかが決まる（ラジ�
 test("parseArticles：見出しに必要な列がないとエラー", () => {
   const r = parseArticles("状態,年\n公開,2024");
   assert.ok(r.errors.some((e) => /「タイトル」の列がありません/.test(e.msg)));
+});
+
+const SETLIST_HEAD = "公演日,ライブ名,会場,本編,アンコール,ゲスト,確かさ,出典,出典URL,メモ";
+const setlists = (...rows) => parseSetlists([SETLIST_HEAD, ...rows].join("\n"));
+
+test("splitSong・songKey：曲名とメモを分け、同じ曲を同じ名前にする", () => {
+  assert.deepEqual(splitSong("25コ目の染色体（アコースティック）"), { title: "25コ目の染色体", memo: "アコースティック" });
+  assert.deepEqual(splitSong("05410-(ん)"), { title: "05410-(ん)", memo: "" });
+  assert.equal(songKey("いいんですか？"), songKey("いいんですか?"));
+  assert.equal(songKey("One man live"), songKey("one man  live"));
+});
+
+test("parseSetlists：曲の区切り・アンコール・並び順", () => {
+  const { lives, errors, warnings } = setlists(
+    "2019-08-29,B,横浜アリーナ,正解／DADA,有心論（with X）,あいみょん、Awich,確認済み,ぴあ,https://example.com/,",
+    "2007-03,A,全国,ふたりごと,,,映像,生春巻き,,");
+  assert.deepEqual(errors, []);
+  assert.deepEqual(warnings, []);
+  assert.deepEqual(lives.map((l) => l.name), ["A", "B"]);
+  assert.deepEqual(lives[1].main.map((s) => s.title), ["正解", "DADA"]);
+  assert.deepEqual(lives[1].encore, [{ title: "有心論", memo: "with X" }]);
+  assert.deepEqual(lives[1].guests, ["あいみょん", "Awich"]);
+  assert.equal(lives[0].m, 3);
+  assert.equal(lives[0].d, 0);
+});
+
+test("parseSetlists：書き間違いを知らせる", () => {
+  const { lives, errors, warnings } = setlists(
+    "2019-13-01,B,,DADA,,,確認済み,,https://example.com/,",
+    "2019-08-29,C,,,,,確認済み,,https://example.com/,",
+    "2019-08-29,D,,DADA,,,たぶん,,https://example.com/,",
+    "2019-08-29,E,,DADA/有心論,,,未確認,,http://example.com/,");
+  assert.equal(errors.length, 3);
+  assert.equal(lives.length, 1);
+  assert.equal(warnings.length, 3); // 半角の「/」・http の URL・URL が空になった
+});
+
+test("parseSetlists：区分（国内ツアー・海外ツアー・フェス・単発ライブ）", () => {
+  const head = SETLIST_HEAD + ",区分";
+  const { lives, warnings } = parseSetlists([head,
+    "2019-08-29,A,,DADA,,,確認済み,,https://example.com/,,フェス",
+    "2019-08-30,B,,DADA,,,確認済み,,https://example.com/,,ライブ"].join("\n"));
+  assert.deepEqual(lives.map((l) => l.cat), ["フェス", ""]);
+  assert.equal(warnings.length, 1);
 });

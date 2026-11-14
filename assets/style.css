@@ -753,6 +753,79 @@ button.title-link { padding: 0; border: 0; background: none; font: inherit; text
 .addform select { width: 100%; min-width: 0; min-height: 44px; padding: 9px 12px; border: 1px solid #CFD2C5; border-radius: 3px; background: var(--white); color: var(--ink); font-size: 16px; }
 .fb-trap { position: absolute; left: -9999px; width: 1px; height: 1px; opacity: 0; }
 
+/* ---------- ライブのセトリ（setlist.html） ----------
+   年表の見た目（.hist-…）を土台に、セットリストのカード（.sl-live）と曲名の札（.sl-chip）を足しています。 */
+.sl-legend { display: grid; gap: 6px; margin: 14px 0 0; font-size: 11px; line-height: 1.6; color: var(--muted); }
+.sl-legend span { display: flex; align-items: baseline; gap: 8px; }
+.sl-legend .sl-conf { flex: none; }
+/* 確かさの札（確認済み・未確認・一部・映像） */
+.sl-conf { display: inline-block; padding: 1px 7px; border: 1px solid; border-radius: 10px; font-size: 10.5px; line-height: 1.6; white-space: nowrap; }
+.conf-ok { border-color: var(--accent); background: var(--accent); color: var(--white); }
+.conf-fan { border-color: #C9A24A; background: #FBF4E2; color: #6E5418; }
+.conf-part { border-color: var(--line-input); background: var(--card); color: var(--ink-2); }
+.conf-video { border-color: var(--accent-soft); background: var(--accent-tint); color: var(--accent); }
+/* ライブ：公演のカード */
+.sl-lives { padding-block: 8px 24px; }
+.sl-view { padding-bottom: 10px; }
+.sl-live { margin: 0 0 10px; border: 1px solid var(--line-card); border-radius: 10px; background: var(--card); }
+.sl-live summary { position: relative; display: block; padding: 14px 44px 14px 16px; cursor: pointer; list-style: none; }
+.sl-live summary::-webkit-details-marker { display: none; }
+.sl-live > summary::after { content: "＋"; position: absolute; right: 16px; top: 50%; transform: translateY(-50%); color: var(--muted); font-size: 16px; }
+.sl-live[open] > summary::after { content: "−"; }
+.sl-live summary:hover { background: var(--accent-tint); border-radius: 10px; }
+.sl-live-name { margin: 2px 0 2px; font-size: 15px; font-weight: 700; line-height: 1.55; text-wrap: pretty; }
+.sl-live-venue { display: flex; flex-wrap: wrap; gap: 2px 10px; margin: 0; font-size: 12px; color: var(--muted); }
+.sl-count { font-family: var(--f-mono); }
+.sl-live-body { padding: 0 16px 16px; border-top: 1px solid var(--rule); }
+.sl-songs { margin: 12px 0 0; padding-left: 2.4em; font-size: 14px; line-height: 1.5; }
+.sl-songs li { padding: 2px 0; }
+.sl-songs li::marker { font-family: var(--f-mono); font-size: 11px; color: var(--muted); }
+.sl-song { padding: 2px 0; border: 0; background: none; color: var(--ink); font: inherit; text-align: left; text-decoration: underline dotted var(--line-input); text-underline-offset: 4px; cursor: pointer; }
+.sl-song:hover { color: var(--accent); }
+.sl-memo { margin-left: 8px; font-size: 11px; color: var(--muted); }
+.sl-encore { margin: 14px 0 0; font-size: 12px; font-weight: 700; letter-spacing: .08em; color: var(--accent); }
+.sl-info { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 4px 12px; margin: 16px 0 0; padding-top: 12px; border-top: 1px dashed var(--rule); font-size: 12px; line-height: 1.7; }
+.sl-info dt { color: var(--muted); }
+.sl-info dd { margin: 0; color: var(--ink-2); overflow-wrap: anywhere; }
+.sl-info a { color: var(--accent); }
+/* 年表：曲名で探す欄と、曲名の札 */
+.sl-nenpyo { padding-block: 14px 24px; }
+.sl-finder { padding: 14px 16px; border: 1px solid var(--line-card); border-radius: 10px; background: var(--card); }
+.sl-finder-row { display: flex; gap: 8px; margin-top: 6px; }
+.sl-finder input { flex: 1; min-width: 0; max-width: 440px; padding: 11px 14px; border: 1px solid var(--line-input); border-radius: 8px; background: var(--field); color: var(--ink); font-size: 16px; }
+.sl-clear { flex: none; padding: 0 16px; border: 1px solid var(--line-input); border-radius: 8px; background: var(--white); color: var(--ink); font-size: 13px; }
+.sl-song-info { margin-top: 10px; }
+.sl-song-head { margin: 0; font-size: 14px; line-height: 1.7; }
+.sl-song-head b { color: var(--accent); }
+.sl-song-sub { margin: 4px 0 0; font-size: 12px; line-height: 1.7; color: var(--muted); }
+.sl-chips { display: flex; flex-wrap: wrap; align-items: center; gap: 5px; margin-top: 8px; }
+.sl-chip { padding: 4px 9px; border: 1px solid var(--line-entry); border-radius: 14px; background: var(--card); color: var(--ink); font-size: 12px; line-height: 1.4; cursor: pointer; }
+.sl-chip small { font-family: var(--f-mono); font-size: 10.5px; color: var(--muted); }
+.sl-chip:hover { background: var(--accent-tint); }
+.sl-chip.on { border-color: var(--accent); background: var(--accent); color: var(--white); }
+.sl-unplayed { margin-top: 12px; padding-top: 10px; border-top: 1px dashed var(--rule); }
+.sl-unplayed > summary { cursor: pointer; list-style: none; position: relative; padding-right: 28px; font-size: 13px; }
+.sl-unplayed > summary::-webkit-details-marker { display: none; }
+.sl-unplayed > summary::after { content: "＋"; position: absolute; right: 2px; top: 50%; transform: translateY(-50%); color: var(--muted); font-size: 14px; }
+.sl-unplayed[open] > summary::after { content: "−"; }
+.sl-unplayed > summary small { font-family: var(--f-mono); font-size: 11px; color: var(--muted); }
+.sl-unplayed-view { padding-block: 14px 24px; }
+.sl-unplayed-head { margin: 0; font-size: 14px; }
+.sl-unplayed-head b { color: var(--accent); font-size: 16px; }
+.sl-unplayed-year { display: grid; grid-template-columns: 3.2em minmax(0, 1fr); gap: 8px; margin-top: 8px; font-size: 13px; line-height: 1.6; }
+.sl-unplayed-y { font-family: var(--f-mono); font-size: 12px; color: var(--muted); padding-top: 1px; }
+.sl-unplayed-list { margin: 0; padding: 0; list-style: none; }
+.sl-unplayed-list small { font-size: 11px; color: var(--muted); }
+.sl-enc-mark { padding: 0 2px 0 6px; font-size: 10.5px; color: var(--accent); letter-spacing: .05em; }
+.sl-enc-mark::before { content: "／ "; color: var(--muted); }
+.hist-title .sl-to-live { color: inherit; text-decoration: underline dotted var(--line-input); text-underline-offset: 4px; }
+.hist-title .sl-to-live:hover { color: var(--accent); }
+@media (min-width: 701px) {
+  .sl-legend { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .setlist-page .hist-view.sl-view { position: static; width: auto; height: auto; margin: 0; overflow: visible; clip-path: none; white-space: normal; }
+  .sl-live-name { font-size: 17px; }
+  .setlist-page .sl-chips { grid-column: 2; }
+}
 /* ---------- ほかの端末に引き継ぐ（保存データの管理の中） ---------- */
 .transfer { margin-top: 24px; padding-top: 18px; border-top: 1px solid var(--rule); }
 .transfer h3 { margin: 0 0 8px; font-size: 15px; font-weight: 700; }
@@ -782,6 +855,103 @@ button.title-link { padding: 0; border: 0; background: none; font: inherit; text
 .person-articles:hover { text-decoration: underline; }
 .empty-alt { display: flex; flex-wrap: wrap; justify-content: center; gap: 8px; margin: 4px 0 14px; }
 .empty-alt:empty { display: none; }
+/* ライブ：ツアーの中の公演（押すとセットリストが開く） */
+.conf-none { border-color: var(--rule); background: var(--paper); color: var(--muted-2); }
+.sl-shows { border-top: 1px solid var(--rule); }
+.sl-show { border-bottom: 1px solid var(--rule); }
+.sl-show:last-child { border-bottom: 0; }
+.sl-show summary { position: relative; display: flex; flex-wrap: wrap; align-items: baseline; gap: 2px 10px; padding: 11px 40px 11px 16px; cursor: pointer; list-style: none; font-size: 13px; }
+.sl-show summary::-webkit-details-marker { display: none; }
+.sl-show summary::after { content: "＋"; position: absolute; right: 16px; top: 50%; transform: translateY(-50%); color: var(--muted); font-size: 14px; }
+.sl-show[open] > summary::after { content: "−"; }
+.sl-show summary:hover { background: var(--accent-tint); }
+.sl-show time { font-family: var(--f-mono); font-size: 12px; color: var(--muted); }
+.sl-show-venue { flex: 1 1 12em; min-width: 0; color: var(--ink); }
+.sl-show-meta { display: inline-flex; align-items: baseline; gap: 8px; font-family: var(--f-mono); font-size: 11px; color: var(--muted); }
+.sl-show .sl-live-body { border-top: 1px dashed var(--rule); background: var(--paper); }
+.sl-none { margin: 12px 0 0; font-size: 13px; color: var(--muted); }
+.sl-played { margin: 6px 0 0; font-size: 12px; line-height: 1.8; color: var(--ink-2); }
+.sl-played b { color: var(--accent); margin-right: 2px; }
+.sl-played a { color: inherit; text-decoration: underline dotted var(--line-input); text-underline-offset: 3px; overflow-wrap: anywhere; }
+@media (min-width: 701px) {
+  .setlist-page .sl-played { grid-column: 2; }
+}
+/* ランキング：よく演奏された曲の順位と、回数の横棒 */
+.sl-ranking { padding-block: 8px 24px; }
+.sl-ranking > .sl-song-sub { margin: 0 0 12px; }
+.sl-rank { margin: 0; padding: 0; list-style: none; border-top: 1px solid var(--rule); }
+.sl-rank-row { display: grid; grid-template-columns: 2.4em minmax(0, 1fr) auto; align-items: center; gap: 4px 10px; padding: 10px 2px; border-bottom: 1px solid var(--rule); }
+.sl-rank-no { font-family: var(--f-mono); font-size: 13px; color: var(--muted); text-align: right; font-variant-numeric: tabular-nums; }
+.sl-rank-row.top .sl-rank-no { font-size: 17px; font-weight: 700; color: var(--accent); }
+.sl-rank-main { display: grid; gap: 5px; min-width: 0; }
+.sl-rank-main .sl-song { font-size: 14px; line-height: 1.45; overflow-wrap: anywhere; }
+.sl-rank-bar { display: block; height: 6px; border-radius: 3px; background: var(--accent-tint); overflow: hidden; }
+.sl-rank-bar > span { display: block; height: 100%; border-radius: 3px; background: var(--live); }
+.sl-rank-row.top .sl-rank-bar > span { background: var(--accent); }
+.sl-rank-n { font-size: 11px; color: var(--muted); text-align: right; white-space: nowrap; font-variant-numeric: tabular-nums; }
+.sl-rank-n b { font-size: 15px; color: var(--ink); }
+.sl-rank-n small { display: block; font-size: 10.5px; color: var(--muted); }
+.sl-rank-more { display: block; margin: 14px auto 0; min-height: 44px; }
+.sl-rank-row.last { background: var(--accent-tint); border-radius: 6px; }
+/* RAD LIVE SET LIST：上の帯のタブ（すき間なく一続きに並べ、下に紺の細い線。選んでいるタブは紺で、少しだけ背が高い。
+   どのタブも同じ幅で、入りきらないときは左右にスクロールできる。「参加公演」のタブだけは、選ぶと「お気に入り」の色） */
+.setlist-page .hist-tabs-bar { border-bottom: 0; }
+.sl-tabs { position: relative; display: flex; align-items: flex-end; padding-top: 10px; border-bottom: 2px solid var(--accent); overflow-x: auto; overscroll-behavior-x: contain; scrollbar-width: none; -webkit-overflow-scrolling: touch; }
+.sl-tabs::-webkit-scrollbar { display: none; }
+.sl-tab { flex: 1 0 112px; min-height: 38px; padding: 8px 6px; border: 1px solid var(--line-entry); border-bottom: 0; border-left-width: 0; border-radius: 8px 8px 0 0; background: var(--sunk); color: var(--muted); font-size: 14px; white-space: nowrap; }
+.sl-tab:first-child, .sl-tab[aria-selected="true"] + .sl-tab { border-left-width: 1px; }
+.sl-tab:hover { color: var(--ink); background: var(--accent-tint); }
+.sl-tab[aria-selected="true"] { min-height: 46px; padding-block: 12px 8px; border-color: var(--accent); background: var(--accent); color: var(--white); font-size: 15px; font-weight: 700; }
+.sl-tab[data-view="mine"][aria-selected="true"] { border-color: var(--fav, #B23F5C); background: var(--fav, #B23F5C); }
+/* 参加公演：行ったライブの名前と、印をつけた公演日だけ */
+.sl-mine { padding-block: 14px 24px; }
+.sl-mine-item { margin: 0 0 10px; padding: 14px 16px; border: 1px solid var(--line-card); border-radius: 10px; background: var(--card); }
+.sl-mine-name { margin: 0 0 8px; font-size: 15px; font-weight: 700; line-height: 1.55; text-wrap: pretty; }
+.sl-mine-name a { color: inherit; text-decoration: underline dotted var(--line-input); text-underline-offset: 4px; }
+.sl-mine-dates { display: flex; flex-wrap: wrap; gap: 6px; margin: 0; padding: 0; list-style: none; }
+.sl-mine-dates a { display: inline-block; padding: 4px 12px; border-radius: 999px; background: var(--fav-tint, #F7E8EC); color: var(--fav, #B23F5C); font-family: var(--f-mono); font-size: 13px; text-decoration: none; }
+.sl-mine-empty { margin: 0; padding: 18px 4px; font-size: 14px; line-height: 1.8; color: var(--muted); }
+@media (max-width: 380px) { .sl-tab { font-size: 13px; padding-inline: 4px; } .sl-tab[aria-selected="true"] { font-size: 14px; } }
+
+/* 区分・年代・並び順の「ドロップダウンメニュー」：押したときだけ選択肢が開く */
+.sl-drops { display: flex; flex-wrap: wrap; gap: 8px; padding-block: 14px 6px; }
+.sl-drop { position: relative; }
+.sl-drop-btn { display: flex; align-items: center; gap: 8px; min-height: 42px; padding: 8px 14px; border: 1px solid var(--line-entry); border-radius: 999px; background: var(--white); color: var(--ink); font-size: 14px; }
+.sl-drop-btn:hover { border-color: var(--line-card-hover); }
+.sl-drop-btn[aria-expanded="true"] { border-color: var(--accent); }
+.sl-drop-label { font-size: 11px; color: var(--muted); }
+.sl-drop-value { font-weight: 700; }
+.sl-drop-arrow { width: 7px; height: 7px; margin: -3px 2px 0 4px; border-right: 1.5px solid currentColor; border-bottom: 1.5px solid currentColor; transform: rotate(45deg); }
+.sl-drop-btn[aria-expanded="true"] .sl-drop-arrow { margin-top: 4px; transform: rotate(225deg); }
+.sl-drop-menu { position: absolute; top: calc(100% + 4px); left: 0; z-index: 20; display: grid; min-width: 100%; padding: 6px; border: 1px solid var(--line-entry); border-radius: 10px; background: var(--card); box-shadow: var(--shadow); }
+.sl-drop-menu[hidden] { display: none; }
+.sl-drop-item { display: flex; align-items: center; justify-content: space-between; gap: 16px; min-height: 44px; padding: 8px 12px; border: 0; border-radius: 6px; background: none; color: var(--ink); font-size: 15px; text-align: left; white-space: nowrap; }
+.sl-drop-item:hover { background: var(--accent-tint); }
+.sl-drop-item .n { font-size: 12px; color: var(--muted); font-variant-numeric: tabular-nums; }
+.sl-drop-item[aria-current="true"] { background: var(--accent-tint); color: var(--accent); font-weight: 700; }
+.sl-drop-item:disabled { opacity: .4; }
+/* 「行ったライブ」の印（足あとのアイコン）：RAD LIVE SET LIST と RADWIMPSの歩み で共通。押すと、記事の「お気に入り」と同じ色になる */
+.att-btn { flex: none; display: inline-flex; align-items: center; justify-content: center; gap: 6px; width: 40px; height: 40px; margin: -8px 0 -8px 6px; padding: 0; border: 0; border-radius: 50%; background: none; color: var(--muted); font-size: 12px; line-height: 1.2; white-space: nowrap; vertical-align: middle; }
+.att-btn::before { content: ""; width: 26px; height: 26px; background: currentColor; opacity: .55; -webkit-mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cg transform='rotate%28-12 7.5 8%29'%3E%3Cpath d='M7.5 1.2c2.6 0 4.1 2.3 4.1 5.2 0 2.3-.8 3.8-1.4 4.6H4.8C4 10.2 3.4 8.800 3.4 6.600 3.4 3.500 5 1.200 7.5 1.200z'/%3E%3Cpath d='M5.200 12.300h4.700l.6 2.800c.2 1.300-.8 2.500-2.900 2.500s-3.100-1.200-2.900-2.500z'/%3E%3C/g%3E%3Cg transform='translate%289.500 5.800%29 rotate%28-12 7.5 8%29'%3E%3Cpath d='M7.5 1.200c2.600 0 4.100 2.300 4.100 5.200 0 2.300-.8 3.800-1.400 4.600H4.8C4 10.2 3.4 8.800 3.4 6.600 3.4 3.500 5 1.200 7.5 1.200z'/%3E%3Cpath d='M5.200 12.300h4.700l.6 2.800c.2 1.300-.8 2.500-2.900 2.500s-3.100-1.200-2.900-2.500z'/%3E%3C/g%3E%3C/svg%3E") center / contain no-repeat; mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cg transform='rotate%28-12 7.5 8%29'%3E%3Cpath d='M7.5 1.2c2.6 0 4.1 2.3 4.1 5.2 0 2.3-.8 3.8-1.4 4.6H4.8C4 10.2 3.4 8.800 3.4 6.600 3.4 3.500 5 1.200 7.5 1.200z'/%3E%3Cpath d='M5.200 12.300h4.700l.6 2.800c.2 1.300-.8 2.500-2.900 2.500s-3.100-1.200-2.900-2.500z'/%3E%3C/g%3E%3Cg transform='translate%289.500 5.800%29 rotate%28-12 7.5 8%29'%3E%3Cpath d='M7.5 1.200c2.600 0 4.100 2.300 4.100 5.200 0 2.300-.8 3.800-1.400 4.600H4.8C4 10.2 3.4 8.800 3.4 6.600 3.4 3.500 5 1.200 7.5 1.200z'/%3E%3Cpath d='M5.200 12.300h4.700l.6 2.800c.2 1.300-.8 2.500-2.900 2.500s-3.100-1.200-2.900-2.500z'/%3E%3C/g%3E%3C/svg%3E") center / contain no-repeat; }
+.att-btn:hover { color: var(--ink); }
+.att-btn[aria-pressed="true"] { background: var(--fav-tint, #F7E8EC); color: var(--fav, #B23F5C); }
+.att-btn[aria-pressed="true"]::before { opacity: 1; }
+.att-chip { width: auto; height: auto; min-height: 36px; margin: 0; padding: 4px 14px 4px 8px; border: 1px solid var(--line-input); border-radius: 999px; background: var(--white); color: var(--muted); }
+.att-chip[aria-pressed="true"] { border-color: var(--fav, #B23F5C); }
+.att-chip::before { width: 18px; height: 18px; }
+.att-count { display: inline-block; padding: 2px 10px; border: 1px solid var(--fav-tint, #F7E8EC); border-radius: 999px; background: var(--fav-tint, #F7E8EC); color: var(--fav, #B23F5C); font-size: 11.5px; font-weight: 700; white-space: nowrap; }
+.att-count[hidden] { display: none; }
+.hist-sub .att-count { margin-left: 10px; }
+.sl-live-venue .att-count { margin-top: 4px; }
+/* 歩みのページ：行った公演を選ぶ欄 */
+.att-line { margin: 8px 0 0; }
+.att-shows { margin: 8px 0 0; }
+.att-shows > summary { display: flex; align-items: center; gap: 8px; min-height: 36px; cursor: pointer; list-style: none; font-size: 12.5px; color: var(--accent); }
+.att-shows > summary::-webkit-details-marker { display: none; }
+.att-shows > summary::after { content: "＋"; margin-left: auto; color: var(--muted); }
+.att-shows[open] > summary::after { content: "−"; }
+.att-chips { display: flex; flex-wrap: wrap; gap: 6px; padding-block: 6px 4px; }
+.att-chips .att-btn { font-size: 12px; font-variant-numeric: tabular-nums; }
 
 /* とても幅のせまい画面（折りたたみスマホの小さい外側の画面など、300px 以下）：横にはみ出さないよう、見出しの帯を詰め、探す入口を1列にする */
 @media (max-width: 300px) {
