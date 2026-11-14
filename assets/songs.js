@@ -129,9 +129,9 @@ function renderFilters() {
   const box = $("#songKinds");
   box.replaceChildren();
   for (const f of FILTERS) {
-    const n = kinds(songs.filter((s) => match(s, f.slug, "")));
+    const n = works(songs.filter((s) => match(s, f.slug, "")));
     if (!n) continue;
-    box.append(el("button", { type: "button", "aria-pressed": String(f.slug === current), "data-kind": f.slug, "aria-label": `${f.name} ${n}曲` },
+    box.append(el("button", { type: "button", "aria-pressed": String(f.slug === current), "data-kind": f.slug, "aria-label": `${f.name} ${n}作品` },
       el("span", { text: f.name }), el("small", { text: String(n) })));
   }
 }
@@ -210,6 +210,9 @@ let folded = false; // 「すべて閉じる」を選んだあとは、作品の
 
 // 曲数：シングルのカップリングが、あとでアルバムに入るなど、2つの作品に載る曲は、1曲と数える
 const kinds = (arr) => new Set(arr.map((s) => s.title)).size;
+
+// 作品数：タブの数字に使う（アルバム・シングル・サウンドトラックの数。動画公開は1本ずつ数える）
+const works = (arr) => new Set(arr.map((s) => `${s.y}|${s.m || 0}|${s.d || 0}|${relName(s)}`)).size;
 
 // 発売順の項目の名前：アルバム名・シングル名。動画公開は、作品名が「YouTube で公開」で札と重なるので、曲名を出す
 const relName = (s) => (s.kind === "動画公開" ? s.title : s.work || s.title);
