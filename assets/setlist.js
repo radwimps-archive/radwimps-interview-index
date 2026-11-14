@@ -290,6 +290,9 @@ function renderTimeline() {
 
 function renderMine() {
   const box = $("#mine");
+  // 作り直しても、開いていたものは開いたままにする
+  const openTours = new Set([...box.querySelectorAll("details.sl-mine-item[open]")].map((d) => d.dataset.tour));
+  const openShows = new Set([...box.querySelectorAll("details.sl-show[open]")].map((d) => d.dataset.ak));
   const list = [];
   for (const t of [...tours].reverse()) {
     const ls = t.lives.filter((l) => attended.has(l.ak));
@@ -301,11 +304,20 @@ function renderMine() {
     box.append(el("p", { class: "sl-mine-empty", text: "まだ、行ったライブはありません。「ライブ」や「年表」で、公演の足あとのアイコンを押すと、ここに並びます。" }));
     return;
   }
-  // ライブ名・日付を押すと、「ライブ」のその公演に移る
+  // ライブ名を押す → 行った公演日が出る → 公演日を押す → セトリが開く
   for (const { t, ls } of list) {
-    box.append(el("section", { class: "sl-mine-item" },
-      el("h2", { class: "sl-mine-name" }, el("a", { href: `#${t.id}`, class: "sl-to-live", "data-tour": t.id, text: t.name })),
-      el("ul", { class: "sl-mine-dates" }, ...ls.map((l) => el("li", {}, el("a", { href: `#${liveId(l)}`, class: "sl-to-live", "data-live": liveId(l), "data-tour": t.id, text: dateLabel(l) }))))));
+    const one = ls.length === 1;
+    const card = el("details", { class: "sl-live sl-mine-item", "data-tour": t.id, open: openTours.has(t.id) || null },
+      el("summary", {},
+        el("h2", { class: "sl-live-name", text: t.name }),
+        el("p", { class: "sl-live-venue" }, one ? [dateLabel(ls[0]), ls[0].venue].filter(Boolean).join(" ／ ") : `${ls.length}公演に参加`)),
+      el("div", { class: "sl-shows" }, ...ls.map((l) => {
+        const row = showRow(l, openShows.has(l.ak));
+        row.removeAttribute("id"); // 「ライブ」のタブと id が重ならないように
+        row.dataset.ak = l.ak;
+        return row;
+      })));
+    box.append(card);
   }
 }
 attended.onChange(() => { if (lives.length) renderMine(); });
@@ -385,6 +397,7 @@ function setView(v, { scroll = false } = {}) {
   view = VIEWS.includes(v) && !(v === "unplayed" && !catalog.length) ? v : "live";
   for (const b of document.querySelectorAll(".sl-tab")) b.setAttribute("aria-selected", String(b.dataset.view === view));
   $("#mine").hidden = view !== "mine";
+  $("#tabs").dataset.view = view;
   $("#lives").hidden = view !== "live";
   $("#nenpyo").hidden = view !== "nenpyo";
   $("#ranking").hidden = view !== "ranking";
