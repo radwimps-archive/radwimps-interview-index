@@ -132,3 +132,34 @@ test("parseArticles：見出しに必要な列がないとエラー", () => {
   const r = parseArticles("状態,年\n公開,2024");
   assert.ok(r.errors.some((e) => /「タイトル」の列がありません/.test(e.msg)));
 });
+
+/* ---------- 楽曲一覧（songs.csv） ---------- */
+import { parseSongs } from "../assets/data.js";
+const SONG_HEAD = "曲名,初めて出た作品,種類,年,月,日,アルバム,タイアップ,歌詞URL,メモ";
+const songsOf = (...rows) => parseSongs([SONG_HEAD, ...rows].join("\n"));
+
+test("parseSongs：発売日の順に並べ、歌詞サイトの URL だけをリンクにする", () => {
+  const r = songsOf(
+    "賜物,賜物,配信,2025,4,18,あにゅー,NHK 連続テレビ小説『あんぱん』主題歌,https://www.uta-net.com/song/1/,",
+    "有心論,有心論,シングル,2006,7,26,,,https://example.com/lyrics/yushinron,");
+  assert.deepEqual(r.songs.map((s) => s.title), ["有心論", "賜物"]);
+  assert.equal(r.songs[1].lyrics, "https://www.uta-net.com/song/1/");
+  assert.equal(r.songs[0].lyrics, "", "許諾の確かでないサイトの URL はリンクにしない");
+  assert.equal(r.errors.length, 0);
+  assert.equal(r.warnings.length, 1);
+});
+
+test("parseSongs：長いメモ（歌詞の書き写しを防ぐ）・使えない種類・曲名の重複", () => {
+  const r = songsOf(`テスト,テスト,アルバム,2020,,,,,,${"あ".repeat(121)}`, "テスト2,x,LP,2020,,,,,,", "テスト2,x,配信,2021,,,,,,");
+  assert.equal(r.errors.length, 2);
+  assert.match(r.errors[0].msg, /歌詞の本文/);
+  assert.match(r.errors[1].msg, /種類「LP」/);
+  assert.equal(r.songs.length, 1);
+});
+
+test("data/songs.csv：書式の問題がない", async () => {
+  const { readFileSync } = await import("node:fs");
+  const r = parseSongs(readFileSync(new URL("../data/songs.csv", import.meta.url), "utf8"));
+  assert.deepEqual(r.errors, []);
+  assert.ok(r.songs.length > 100);
+});

@@ -466,6 +466,68 @@ export function parseHistory(text) {
   return { events, errors, warnings };
 }
 
+/* ---------- 楽曲一覧（songs.csv） ---------- */
+
+// 「種類」の列に書ける値（その曲が初めて出た形）。この順番で、楽曲一覧のページの絞り込みに並びます。
+export const SONG_KINDS = ["アルバム", "シングル", "配信", "サウンドトラック", "動画公開"];
+// 「歌詞URL」に書けるサイト（歌詞の掲載を JASRAC などから許諾されている歌詞サイトと、公式の配信・公式サイト）。
+// ※ 歌詞の本文は、このサイトには載せません（許諾がないため）。歌詞は、ここに書いたサイトへのリンクで見てもらいます。
+export const LYRIC_HOSTS = ["petitlyrics.com", "www.petitlyrics.com", "www.uta-net.com", "uta-net.com", "utaten.com", "www.utaten.com", "j-lyric.net", "music.apple.com", "open.spotify.com", "radwimps.jp"];
+// 「メモ」に書ける長さ。歌詞の本文を書き写してしまわないように、短い一言だけにします。
+export const SONG_NOTE_MAX = 120;
+
+const SONG_COLUMNS = {
+  "曲名": "title", "読み": "yomi", "初めて出た作品": "work", "種類": "kind", "年": "y", "月": "m", "日": "d",
+  "アルバム": "album", "タイアップ": "tieup", "歌詞URL": "lyrics", "メモ": "note"
+};
+const SONG_REQUIRED = ["曲名", "年"];
+
+// 戻り値：{ songs: 曲の一覧（古い順）, errors, warnings }
+export function parseSongs(text) {
+  const songs = [], errors = [], warnings = [];
+  const err = (line, msg) => errors.push({ line, msg });
+  const warn = (line, msg) => warnings.push({ line, msg });
+  const { rows, lines, unclosedQuote, lastLine } = parseCSV(text);
+  if (unclosedQuote) err(lastLine, "「\"」で始めた項目が閉じられていません。\" の数を確かめてください");
+  if (!rows.length || rows.every((r) => r.every((c) => !c.trim()))) { err(1, "ファイルが空です"); return { songs, errors, warnings }; }
+  const col = readHeader(rows, SONG_COLUMNS, SONG_REQUIRED, errors, warnings);
+  if (errors.length) return { songs, errors, warnings };
+  const seen = new Map();
+  for (let r = 1; r < rows.length; r++) {
+    const cells = rows[r], line = lines[r];
+    if (cells.every((c) => !c.trim())) continue;
+    const get = (key) => (col[key] === undefined ? "" : String(cells[col[key]] ?? "").trim());
+    const before = errors.length;
+    const title = get("title");
+    if (!title) err(line, "曲名が空欄です");
+    if (!get("y")) err(line, "年が空欄です");
+    const date = get("y") ? readDate(get("y"), get("m"), get("d"), line, err) : "";
+    const kind = nfkc(get("kind"));
+    if (kind && !SONG_KINDS.includes(kind)) err(line, `種類「${kind}」は使えません。${SONG_KINDS.join("・")} のどれかを書いてください`);
+    const key = nfkc(title).toLowerCase();
+    if (title && seen.has(key)) warn(line, `曲名「${title}」は ${seen.get(key)} 行目にもあります`);
+    else if (title) seen.set(key, line);
+    let lyrics = get("lyrics");
+    if (lyrics && !(/^https:\/\/[^\s"<>]+$/.test(lyrics) && LYRIC_HOSTS.includes(hostOf(lyrics)))) {
+      warn(line, `歌詞URL は、許諾を受けた歌詞サイトか公式の配信の https:// の URL だけ使えます（${LYRIC_HOSTS.filter((h) => !h.startsWith("www.")).join("・")}）。このリンクは出ません`);
+      lyrics = "";
+    }
+    const yomi = nfkc(get("yomi")).replace(/\s+/g, "");
+    if (yomi && !/^[ぁ-ゖァ-ヺー]+$/.test(yomi)) warn(line, `読み「${yomi}」は、ひらがなで書いてください（50音順の並びに使います）`);
+    const note = get("note");
+    if ([...note].length > SONG_NOTE_MAX) err(line, `メモが長すぎます（${SONG_NOTE_MAX}文字まで）。歌詞の本文は、このサイトには書けません`);
+    for (const k of ["title", "work", "album", "tieup"]) {
+      if ([...get(k)].length > 200) err(line, "長すぎる項目があります。歌詞の本文は、このサイトには書けません");
+    }
+    if (errors.length > before) continue;
+    const [y, m, d] = date.split("-").map((v) => (v ? +v : 0));
+    songs.push({ line, i: songs.length, title, yomi, work: get("work"), kind: kind || "アルバム", y, m, d,
+      album: get("album"), tieup: get("tieup"), lyrics, note });
+  }
+  songs.sort((a, b) => a.y - b.y || a.m - b.m || a.d - b.d || a.i - b.i);
+  return { songs, errors, warnings };
+}
+
 /* ---------- CSV の1行を作る（記事データ作成ツール用） ---------- */
 
 export const ARTICLE_HEADER = ["状態", "年", "月", "日", "媒体", "種類", "カテゴリ", "タイトル", "URL", "メンバー", "対談相手", "タグ", "言語", "メモ", "説明", "公演日", "ライブ名", "会場", "id"];

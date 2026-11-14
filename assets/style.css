@@ -789,6 +789,94 @@ button.title-link { padding: 0; border: 0; background: none; font: inherit; text
 .empty-alt { display: flex; flex-wrap: wrap; justify-content: center; gap: 8px; margin: 4px 0 14px; }
 .empty-alt:empty { display: none; }
 
+/* ---------- 楽曲一覧（songs.html） ---------- */
+.song-lyric-note { margin: 10px 0 0; padding: 9px 12px; border-left: 3px solid var(--accent-soft); background: var(--card); font-size: 11.5px; line-height: 1.7; color: var(--ink-2); }
+.song-kinds { padding-block: 0 4px; }
+.song-kinds .hist-tab small { display: inline; }
+.song-kinds .hist-tab[aria-pressed="true"] { border-color: var(--accent); background: var(--accent); color: var(--white); }
+.song-kinds .hist-tab[aria-pressed="true"] small { color: var(--accent-soft); }
+.song-list { padding-block: 0 24px; }
+.song-items { list-style: none; margin: 0; padding: 0; }
+.song-item { padding: 14px 0; border-bottom: 1px solid var(--rule); }
+.song-item:last-child { border-bottom: 0; }
+.song-title { margin: 0 0 3px; font-size: 15px; font-weight: 700; line-height: 1.55; color: var(--ink); overflow-wrap: anywhere; }
+.song-meta { display: flex; flex-wrap: wrap; align-items: center; gap: 2px 10px; margin: 0; font-size: 12px; color: var(--muted); }
+.song-meta time { font-family: var(--f-mono); letter-spacing: .02em; }
+.song-kind { padding: 1px 7px; border-radius: 3px; background: var(--accent-tint); color: var(--accent); font-size: 10.5px; }
+.song-sub { margin: 3px 0 0; font-size: 12px; line-height: 1.7; color: var(--muted); }
+.song-tieup::before { content: "タイアップ："; color: var(--muted-2); }
+.song-links { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; margin-top: 8px; }
+.song-label { font-size: 11.5px; color: var(--muted); margin-right: 2px; }
+.song-btn { display: inline-flex; align-items: center; min-height: 34px; padding: 0 11px; border: 1px solid var(--line-entry); border-radius: 17px; background: var(--card); color: var(--ink); font-size: 12px; text-decoration: none; white-space: nowrap; }
+.song-btn:hover { border-color: var(--accent); color: var(--accent); }
+.song-lyrics { border-color: var(--accent-soft); }
+.song-articles { color: var(--accent); }
+@media (min-width: 701px) {
+  .song-items { display: grid; grid-template-columns: 1fr 1fr; column-gap: 28px; }
+  .song-item:nth-last-child(2):nth-child(odd) { border-bottom: 0; }
+}
+.song-order-btn { height: 45px; padding: 0 12px; border: 1px solid var(--line-entry); border-radius: 5px; background: var(--card); color: var(--ink); font-size: 13px; }
+.song-order-btn[aria-pressed="true"] { border-color: var(--accent); background: var(--accent-tint); color: var(--accent); font-weight: 700; }
+.song-row .hist-year-head span { font-family: var(--f-body); font-size: 26px; font-weight: 700; }
+@media (min-width: 701px) { .song-row .hist-year-head span { font-size: 30px; } }
+/* 検索と並び順の帯：上の帯のすぐ下に残る。ボタンと検索窓の高さは 45px。スクロールしたら（.stuck）上下の余白をつめる */
+.song-sentinel { height: 1px; }
+.song-bar { position: sticky; top: calc(60px + env(safe-area-inset-top, 0px)); z-index: 10; background: var(--paper); border-bottom: 1px solid transparent; transition: border-color .2s; }
+.song-bar.stuck { border-bottom-color: var(--rule); box-shadow: 0 4px 8px rgba(38, 41, 35, .06); }
+.song-bar-inner { display: flex; align-items: center; gap: 8px; padding-block: 10px; transition: padding .2s; }
+.song-search { flex: 1; min-width: 0; height: 45px; }
+.song-order { flex: none; display: flex; gap: 4px; }
+.song-bar.stuck .song-bar-inner { padding-block: 6px; }
+.song-tools { padding-block: 2px 0; }
+/* 幅のせまいスマホ：並び順のボタンを少しつめる */
+@media (max-width: 389px) { .song-order-btn { padding-inline: 8px; font-size: 12px; } }
+@media (prefers-reduced-motion: reduce) { .song-bar, .song-bar-inner { transition: none; } }
+.song-shops { margin-top: 6px; }
+.song-shop { min-height: 32px; font-size: 11.5px; color: var(--ink-2); }
+.song-shop .pr { margin-left: 5px; padding: 0 3px; font-size: 8.5px; }
+
+/* 楽曲一覧：曲名を押すと CD の購入リンクが開く */
+.song-title-btn { padding: 0; border: 0; background: none; font: inherit; color: inherit; text-align: left; cursor: pointer; text-decoration: underline dotted; text-underline-offset: 4px; }
+.song-title-btn::after { content: " ▾"; font-size: .7em; color: var(--muted, #888); }
+.song-title-btn[aria-expanded="true"] { color: var(--accent); }
+.song-title-btn[aria-expanded="true"]::after { content: " ▴"; }
+.song-buy { margin: 2px 0 8px; padding: 8px 10px; border-radius: 6px; background: var(--accent-tint); }
+.song-buy[hidden] { display: none; }
+
+/* 楽曲一覧：歌詞を開くとき（新しいタブ／このタブ） */
+.song-open { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; padding-block: 4px 6px; }
+.song-open .song-label { margin-right: 2px; }
+.song-open-btn { min-height: 36px; padding: 0 12px; border: 1px solid var(--line-entry); border-radius: 999px; background: var(--card); color: var(--ink); font-size: 13px; }
+.song-open-btn[aria-pressed="true"] { border-color: var(--accent); background: var(--accent-tint); color: var(--accent); font-weight: 700; }
+
+/* 楽曲一覧（発売順）：年・発売日・作品名（アルバム／シングル）の見出し。作品名は、年より小さく、曲名より大きく */
+.song-release { padding-block: 18px; }
+.song-release-work { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 10px; margin: 0 0 4px; font-size: 20px; font-weight: 700; line-height: 1.4; color: var(--ink); overflow-wrap: anywhere; }
+@media (min-width: 701px) { .song-release-work { font-size: 24px; } }
+
+/* 楽曲一覧：曲名の隣に「歌詞」「MV」「記事」を左詰めで並べる（入りきらないときは次の行へ） */
+.song-head { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 12px; margin-bottom: 3px; }
+.song-head .song-title { margin: 0; }
+.song-head .song-links { margin-top: 0; }
+.song-head .song-links:empty { display: none; }
+
+/* 楽曲一覧：曲名を押すと「歌詞」「MV」が開く／作品名を押すと「CD を探す」が開く */
+.song-panel { margin: 2px 0 6px; }
+.song-panel[hidden] { display: none; }
+.song-work-btn { padding: 0; border: 0; background: none; font: inherit; color: inherit; text-align: left; cursor: pointer; text-decoration: underline dotted; text-underline-offset: 5px; overflow-wrap: anywhere; }
+.song-work-btn::after { content: " ▾"; font-size: .6em; color: var(--muted, #888); }
+.song-work-btn[aria-expanded="true"] { color: var(--accent); }
+.song-work-btn[aria-expanded="true"]::after { content: " ▴"; }
+.song-release-work + .song-buy { margin: 2px 0 8px; }
+
+/* 楽曲一覧：作品ごとの曲の開閉（件数のボタン）／「作品の曲の一覧」のすべて開く・閉じる */
+.song-open[hidden] { display: none; }
+.song-fold-btn { min-height: 32px; padding: 0 10px; border: 1px solid var(--line-entry); border-radius: 16px; background: var(--card); color: var(--muted); font: inherit; font-size: 12px; cursor: pointer; }
+.song-fold-btn::after { content: " ▴"; font-size: .8em; }
+.song-fold-btn[aria-expanded="false"]::after { content: " ▾"; }
+.song-fold-btn:hover { border-color: var(--accent); color: var(--accent); }
+.song-items[hidden] { display: none; }
+
 /* とても幅のせまい画面（折りたたみスマホの小さい外側の画面など、300px 以下）：横にはみ出さないよう、見出しの帯を詰め、探す入口を1列にする */
 @media (max-width: 300px) {
   .header-inner { gap: 6px; padding-right: 8px; }
@@ -809,3 +897,15 @@ button.title-link { padding: 0; border: 0; background: none; font: inherit; text
   .entry-tabs button { padding-inline: 12px; column-gap: 6px; }
   .entry-tabs strong { font-size: 14px; }
 }
+
+/* 楽曲一覧：種類の絞り込みボタンは1列に並べ、入りきらない分は左右に動かして見る（スクロールバーは出さない） */
+.song-kinds { flex-wrap: nowrap; overflow-x: auto; margin-inline: -16px; padding-inline: 16px; scroll-padding-inline: 16px; overscroll-behavior-x: contain; scrollbar-width: none; -webkit-overflow-scrolling: touch; }
+.song-kinds::-webkit-scrollbar { display: none; }
+/* 楽曲一覧：種類の絞り込みはタブの見た目（下線のついた文字。今見ている種類は色と太い下線） */
+.song-kinds { gap: 0; padding-block: 0; margin-bottom: 6px; border-bottom: 1px solid var(--rule); }
+.song-kinds .hist-tab { min-height: 44px; padding: 0 12px; border: 0; border-bottom: 3px solid transparent; border-radius: 0; background: none; align-items: center; color: var(--muted); font-size: 14px; }
+.song-kinds .hist-tab:hover { background: none; color: var(--accent); }
+.song-kinds .hist-tab[aria-pressed="true"] { border-color: var(--accent); background: none; color: var(--accent); font-weight: 700; }
+.song-kinds .hist-tab[aria-pressed="true"] small { color: var(--accent); }
+.song-kinds .hist-tab:first-child { padding-left: 4px; }
+.song-kinds .hist-tab::before { content: none; }
