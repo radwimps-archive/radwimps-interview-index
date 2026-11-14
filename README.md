@@ -40,7 +40,7 @@ index.html            サイトの骨組みと文章
 maker.html            記事データ作成ツール
 history.html          「RADWIMPSの歩み」（年表）のページ
 setlist.html          「RAD LIVE SET LIST」（ライブのセトリ）（公演ごとのセットリストと、曲の年表）のページ
-members.html          「メンバー・人物紹介」のページ
+members.html          「メンバー紹介」のページ
 404.html              ない URL を開いたときのページ
 assets/
   style.css           見た目（色など）

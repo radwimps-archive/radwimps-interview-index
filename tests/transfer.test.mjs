@@ -9,7 +9,17 @@ test("引き継ぎ：作った文字を読むと、同じ記録に戻る", async
   const later = ["2026-natalie-noda", "hirose-toyokeizai-961946"], read = ["a", "b", "日本語のid"];
   const code = await encodeMarks({ later, read });
   assert.match(code, /^[zu][A-Za-z0-9_-]+$/, "URL にそのまま使える文字だけ");
-  assert.deepEqual(await decodeMarks(code), { later, read });
+  assert.deepEqual(await decodeMarks(code), { later, read, favorites: [] });
+});
+
+test("引き継ぎ：お気に入りも一緒に引き継げる", async () => {
+  const later = ["a"], read = ["b"], favorites = ["2026-natalie-noda", "c"];
+  assert.deepEqual(await decodeMarks(await encodeMarks({ later, read, favorites })), { later, read, favorites });
+});
+
+test("引き継ぎ：お気に入りが入る前に作ったリンクも読める", async () => {
+  const code = "u" + btoa(JSON.stringify({ v: 1, l: ["x"], r: ["y"] })).replace(/=+$/, "");
+  assert.deepEqual(await decodeMarks(code), { later: ["x"], read: ["y"], favorites: [] });
 });
 
 test("引き継ぎ：たくさんあっても短く縮む", async () => {
@@ -24,5 +34,5 @@ test("引き継ぎ：壊れた文字は読まない（null）", async () => {
 
 test("引き継ぎ：おかしな id は取り除く", async () => {
   const code = "u" + btoa(JSON.stringify({ v: 1, l: ["ok", 5, "", "x".repeat(200), "ok"], r: "no" })).replace(/=+$/, "");
-  assert.deepEqual(await decodeMarks(code), { later: ["ok"], read: [] });
+  assert.deepEqual(await decodeMarks(code), { later: ["ok"], read: [], favorites: [] });
 });

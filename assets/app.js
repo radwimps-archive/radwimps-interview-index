@@ -2,8 +2,8 @@
 // 画面の動きを担当するプログラムです。
 //   1. data/articles.csv（記事）と data/releases.csv（年ごとの主なリリース）を読み込む
 //   2. 探す入口（人・曲や作品・年代・ライブ）、検索、種類のタブ、「さらに絞り込む」で記事一覧を絞り込む
-//   3. 記事をカードで表示する（12件ずつ。「続きを表示」で12件ずつ増やす）
-//   4. 「あとで読む」と「既読」を、このブラウザに保存する（「保存データの管理」でファイルへの書き出し・読み込みも）
+//   3. 記事をカードで表示する（最初は12件。「続きを表示」を押すと、残りをすべて出す）
+//   4. 「お気に入り」「あとで読む」「既読」を、このブラウザに保存する（「保存データの管理」でファイルへの書き出し・読み込み・引き継ぎも）
 //   5. 運営管理（URL の末尾に #admin）：記事の追加・修正を GitHub に保存する（中身は assets/admin.js）
 // 記事を増やしたり直したりするときは、このファイルではなく data/articles.csv を編集します。
 // 絞り込みの状態は URL（例：?person=野田洋次郎&format=all）に入るので、そのままブックマークや共有ができます。
@@ -20,7 +20,7 @@ import { feedbackUrl, hasFeedback, usesForm, repoUrl, setupBeta, KIND } from "./
 
 /* ---------- 共通の道具 ---------- */
 
-const STORE_MARKS = "radwimps-interview-index:marks"; // あとで読む・既読の保存場所の名前（以前の「お気に入り」もここ）
+const STORE_MARKS = "radwimps-interview-index:marks"; // お気に入り・あとで読む・既読の保存場所の名前
 const PAGE_SIZE = 12;                                 // 一覧に一度に出す件数
 
 const $ = (s) => document.querySelector(s);
@@ -56,12 +56,12 @@ const F_DEFAULT = {
   year: "",     // 記事が公開された年
   tour: "",     // ライブ名（ツアー・イベント）
   q: "",        // キーワード
-  format: "text", // 種類のタブ：text＝記事・資料　video＝動画インタビュー　radio＝ラジオ　release＝リリース情報　all＝すべて
+  format: "text", // 種類のタブ：text＝記事　video＝動画　radio＝ラジオ　all＝すべて（リリース情報は「すべて」にだけ出る）
   cat: "",      // 内容（カテゴリ）
   media: "",    // 掲載メディア
   lang: "",     // 言語（ja / en / es / other）
   kind: "",     // 資料の種類（「種類」列の値）
-  status: "",   // 読書の状態：later＝あとで読む　unread＝未読　read＝既読
+  status: "",   // 読書の状態：fav＝お気に入り　later＝あとで読む　unread＝未読　read＝既読
   sort: "new"   // 並び順：new / old / media
 };
 const F = { ...F_DEFAULT };
@@ -82,12 +82,12 @@ const S = {
 };
 
 function cleanMarks(m) {
-  const out = { bm: {}, lt: {}, rd: {} }; // lt：あとで読む　rd：既読　bm：以前の「お気に入り（★）」
-  for (const key of ["bm", "lt", "rd"]) {
+  const out = { bm: {}, lt: {}, rd: {}, fv: {} }; // fv：お気に入り（何度でも読み返す）　lt：あとで読む　rd：既読　bm：以前の「お気に入り（★）」
+  for (const key of ["bm", "lt", "rd", "fv"]) {
     const src = m && m[key];
     if (src && typeof src === "object") for (const id of Object.keys(src)) if (src[id] && id.length < 160) out[key][id] = 1;
   }
-  // 以前の「お気に入り（★）」は、デザインの変更で「あとで読む」にまとめました
+  // 以前の「お気に入り（★）」は、デザインの変更で「あとで読む」にまとめました（今の「お気に入り」は fv で、別のものです）
   for (const id of Object.keys(out.bm)) out.lt[id] = 1;
   out.bm = {};
   return out;
@@ -97,13 +97,14 @@ const saveMarks = () => save(STORE_MARKS, S.marks);
 /* ---------- URL と絞り込みの条件 ---------- */
 
 const VALID = {
-  entry: ["", "people", "works", "years", "live"], scope: ["", "any", "about"], format: ["text", "video", "radio", "release", "all"],
-  status: ["", "later", "unread", "read"], sort: ["new", "old", "media"]
+  entry: ["", "people", "works", "years", "live"], scope: ["", "any", "about"], format: ["text", "video", "radio", "all"],
+  status: ["", "fav", "later", "unread", "read"], sort: ["new", "old", "media"]
 };
 function readURL() {
   const p = new URLSearchParams(location.search);
   for (const k of Object.keys(F_DEFAULT)) {
     let v = p.has(k) ? String(p.get(k)).slice(0, 200) : F_DEFAULT[k];
+    if (k === "format" && v === "release") v = "all"; // 以前の「リリース情報」タブのリンクは「すべて」で開く
     if (VALID[k] && !VALID[k].includes(v)) v = F_DEFAULT[k];
     F[k] = v;
   }
@@ -130,14 +131,14 @@ function readHash() {
   let key;
   try { key = decodeURIComponent(raw); } catch { key = raw; }
   if (key === "admin" || key === "admin-add") return { page: "admin", openNew: key === "admin-add" };
-  if (key === "later") { resetFilters(); F.status = "later"; F.format = "all"; }
+  if (key === "later" || key === "favorites") { resetFilters(); F.status = key === "later" ? "later" : "fav"; F.format = "all"; }
   else if (key === "videos") { resetFilters(); F.format = "video"; }
   else if (key.startsWith("c-")) {
     const c = CATEGORIES.find((x) => x.slug === key.slice(2));
     if (c) { resetFilters(); F.cat = c.name; }
   } else if (key === "add") return { page: "list", dialog: "add" };
   else if (key === "mypage") return { page: "list", dialog: "backup" };
-  return { page: "list", clear: ["later", "videos", "articles"].includes(key) || key.startsWith("c-") };
+  return { page: "list", clear: ["later", "favorites", "videos", "articles"].includes(key) || key.startsWith("c-") };
 }
 
 /* ---------- データの読み込み ---------- */
@@ -164,7 +165,7 @@ function ingest(text) {
   S.parsed = parsed;
   S.items = parsed.items.filter((it) => it.state === "公開").map(prep);
   buildChoices();
-  // 人物紹介などから ?person=… で開いたとき（タブの指定がなければ）、記事のあるタブに合わせる
+  // メンバー紹介などから ?person=… で開いたとき（タブの指定がなければ）、記事のあるタブに合わせる
   if (!new URLSearchParams(location.search).has("format") && (F.person || F.work || F.year)) fitFormat();
 }
 
@@ -217,7 +218,7 @@ function fillSelect(sel, first, options, value) {
 }
 
 const LANG_LABEL = { ja: "日本語", en: "英語", es: "スペイン語", other: "その他の言語" };
-const STATUS_LABEL = { later: "あとで読む", unread: "未読", read: "既読" };
+const STATUS_LABEL = { fav: "お気に入り", later: "あとで読む", unread: "未読", read: "既読" };
 function renderSelects() {
   const present = (fn) => [...new Set(S.items.map(fn).flat().filter(Boolean))];
   const cats = present((it) => it.categories);
@@ -263,6 +264,7 @@ const isLiveView = () => F.entry === "live" || !!F.tour || F.kind === LIVE_KIND;
 function passes(it, ts) {
   if (F.format !== "all" && it.format !== F.format && !isLiveView()) return false;
   if (isLiveView() && it.kind !== LIVE_KIND) return false;
+  if (F.status === "fav" && !S.marks.fv[it.id]) return false;
   if (F.status === "later" && !S.marks.lt[it.id]) return false;
   if (F.status === "unread" && S.marks.rd[it.id]) return false;
   if (F.status === "read" && !S.marks.rd[it.id]) return false;
@@ -279,16 +281,18 @@ function passes(it, ts) {
 }
 
 // 種類のタブごとの件数（今のタブ以外の条件はそのまま）。今のタブに1件もないときに、ほかのタブへ案内するのに使います
-const FORMAT_NAMES = { text: "記事・資料", video: "動画インタビュー", radio: "ラジオ", release: "リリース情報" };
+//   リリース情報はタブがないので、「すべて」の件数にだけ数えます
+const FORMAT_NAMES = { text: "記事", video: "動画", radio: "ラジオ", all: "すべて" };
+const FORMAT_TABS = ["text", "video", "radio"];
 function formatCounts() {
-  const keep = F.format, ts = terms(), counts = { text: 0, video: 0, radio: 0, release: 0 };
+  const keep = F.format, ts = terms(), counts = { text: 0, video: 0, radio: 0, all: 0 };
   F.format = "all";
-  for (const it of S.items) if (passes(it, ts)) counts[it.format]++;
+  for (const it of S.items) if (passes(it, ts)) { counts.all++; if (FORMAT_TABS.includes(it.format)) counts[it.format]++; }
   F.format = keep;
   return counts;
 }
-// 人・作品・年を選んだとき、今のタブに1件もなければ、記事のあるタブに切り替える（1つのタブだけならそのタブ、いくつかなら「すべて」）
-//   ここで切り替えたタブは、次に選び直したとき「記事・資料」に戻してから合わせ直す（自分で選んだタブはそのまま）
+// 人・作品・年を選んだとき、今のタブに1件もなければ、記事のあるタブに切り替える（1つのタブだけならそのタブ、いくつか・リリース情報だけなら「すべて」）
+//   ここで切り替えたタブは、次に選び直したとき「記事」に戻してから合わせ直す（自分で選んだタブはそのまま）
 let autoFormat = "";
 function fitFormat() {
   if (autoFormat && F.format === autoFormat) F.format = "text";
@@ -296,8 +300,9 @@ function fitFormat() {
   if (F.format === "all" || isLiveView()) return;
   const c = formatCounts();
   if (c[F.format]) return;
-  const has = Object.keys(c).filter((k) => c[k]);
-  if (has.length) F.format = autoFormat = has.length === 1 ? has[0] : "all";
+  const has = FORMAT_TABS.filter((k) => c[k]);
+  if (has.length === 1) F.format = autoFormat = has[0];
+  else if (c.all) F.format = autoFormat = "all";
 }
 
 function filtered() {
@@ -352,7 +357,6 @@ function renderEntry() {
     const years = [...new Set(S.items.map((it) => it._y).filter(Boolean))].sort().reverse();
     const rel = F.year && S.releases[F.year] ? S.releases[F.year] : [];
     html = `<label class="panel-label">記事が公開された年<select id="yearChoice"><option value="">すべての年</option>${years.map((y) => `<option value="${y}"${F.year === y ? " selected" : ""}>${y}年</option>`).join("")}</select></label>`
-      + `<div class="person-chips panel-chips">${years.map((y) => chip("data-pick-year", y, y, F.year === y)).join("")}</div>`
       + (rel.length ? `<p class="browse-note">${esc(F.year)}年の主なリリース：${rel.map((r) => esc((r.label ? r.label + " " : "") + r.name)).join(" ／ ")}</p>` : "")
       + `<p class="browse-note">${ENTRY_NOTES.years}</p>`;
   } else if (F.entry === "live") {
@@ -386,6 +390,7 @@ function filterPeople(text) {
 /* ---------- 描画：記事カード ---------- */
 
 const BOOKMARK = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6.5 3.8h11v16.4L12 16.1l-5.5 4.1z" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/></svg>';
+const HEART = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 20.2s-7.6-4.6-7.6-10.1A4.3 4.3 0 0 1 12 7.6a4.3 4.3 0 0 1 7.6 2.5c0 5.5-7.6 10.1-7.6 10.1z" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/></svg>';
 const WORK_NAMES = new Set(WORKS.map((w) => w.name));
 const GENERIC_TAGS = new Set(["MV出演者", "PR", "インタビュー", "対談", "映画", "タイアップ", "対バン", "ワールドツアー", "フェス・イベント", "劇伴", "ライブ", "ラジオ", "テレビ", "RADWIMPS", "ソロ", "ドラマ", "CM"]);
 
@@ -417,7 +422,7 @@ function whoLine(it) {
   return "";
 }
 function card(it) {
-  const saved = !!S.marks.lt[it.id], read = !!S.marks.rd[it.id];
+  const saved = !!S.marks.lt[it.id], read = !!S.marks.rd[it.id], fav = !!S.marks.fv[it.id];
   const isVideo = it.kind === VIDEO_KIND, isRadio = it.kind === RADIO_KIND, isLive = it.kind === LIVE_KIND;
   const category = [isVideo ? "▶ 動画" : isRadio ? "ラジオ" : "", it.categories.join("・"), it.kind !== INTERVIEW_KIND && !isVideo && !isRadio ? it.kind : ""].filter(Boolean).join(" · ");
   const verb = isVideo ? "見る" : isRadio ? "聴く" : "読む"; // 掲載元のリンクの読み上げ（○○で見る・聴く・読む）
@@ -428,7 +433,8 @@ function card(it) {
   return `<article class="article-card${isVideo ? " is-video" : isRadio ? " is-radio" : ""}${read ? " is-read" : ""}" data-id="${esc(it.id)}" aria-label="${esc(it.title)}">`
     + (read ? '<span class="read-label">✓ 既読</span>' : "")
     + `<div class="card-top"><time class="card-date"${it.date ? ` datetime="${esc(it.date)}"` : ""}>${isLive && it.date ? "記事公開：" : ""}${esc(date)}</time>`
-    + `<div class="card-actions"><button type="button" class="save-button" data-act="later" aria-pressed="${saved}" aria-label="${esc(it.title)}を${saved ? "あとで読むから外す" : "あとで読むに保存"}">${BOOKMARK}</button></div></div>`
+    + `<div class="card-actions"><button type="button" class="save-button fav-button" data-act="fav" aria-pressed="${fav}" aria-label="${esc(it.title)}を${fav ? "お気に入りから外す" : "お気に入りに追加"}">${HEART}</button>`
+    + `<button type="button" class="save-button" data-act="later" aria-pressed="${saved}" aria-label="${esc(it.title)}を${saved ? "あとで読むから外す" : "あとで読むに保存"}">${BOOKMARK}</button></div></div>`
     + `<div class="card-main">${thumbnail(it)}<div class="card-copy">`
     + (category ? `<p class="card-category">${esc(category)}</p>` : "")
     + `<h3 class="card-title"><a href="${esc(it.url)}" target="_blank" rel="noopener noreferrer" data-open>${esc(it.title)}<span class="sr">（新しいタブで開きます）</span></a></h3>`
@@ -465,6 +471,7 @@ function groupHtml(g) {
 }
 
 function headingText() {
+  if (F.status === "fav") return "お気に入り";
   if (F.status === "later") return "あとで読む";
   if (isLiveView()) return F.tour || "ライブレポート";
   if (F.person) return `${F.person}の記事`;
@@ -474,15 +481,14 @@ function headingText() {
   if (F.q) return `「${F.q}」の検索結果`;
   if (F.format === "video") return "動画インタビュー";
   if (F.format === "radio") return "ラジオ";
-  if (F.format === "release") return "リリース情報";
   return "新しく掲載された記事";
 }
 function viewNote() {
+  if (F.status === "fav") return "何度でも読み返したい記事です。読んでも消えません。このブラウザに保存しています。";
   if (F.status === "later") return "「あとで読む」に保存した記事です。このブラウザに保存しています。";
   if (F.cat) return CATEGORIES.find((c) => c.name === F.cat)?.desc || "";
   if (F.format === "video" && !isLiveView()) return "インタビュー・対談の映像です。リンクから YouTube などを新しいタブで開きます。";
   if (F.format === "radio" && !isLiveView()) return "メンバーが出演したラジオ番組の放送回です。リンクから YouTube などを新しいタブで開いて聴けます。";
-  if (F.format === "release" && !isLiveView()) return "発売・公開のお知らせや、雑誌の掲載号の案内です。インタビュー本文ではありません。";
   return "";
 }
 
@@ -510,7 +516,16 @@ function render() {
   if (!listMode) { renderAdmin(); writeURL(); return; }
 
   // 上の部品の状態を、条件に合わせる
-  for (const b of $$("#formatTabs [data-format]")) b.setAttribute("aria-pressed", String(!isLiveView() && F.format === b.dataset.format));
+  // 「お気に入り」「あとで読む」のタブは、読書の状態（F.status）で選ばれる。それ以外のタブは、状態が「お気に入り」「あとで読む」でないときに選ばれる
+  const marked = F.status === "fav" || F.status === "later";
+  for (const b of $$("#formatTabs [data-format]")) {
+    const f = b.dataset.format;
+    const on = isLiveView() ? false : f === "fav" || f === "later" ? F.status === f : !marked && F.format === f;
+    b.setAttribute("aria-pressed", String(on));
+  }
+  // 入りきらないときは左右にスクロールできる。選んでいるタブが見える位置まで動かす
+  const tabs = $("#formatTabs"), cur = tabs.querySelector('[aria-pressed="true"]');
+  if (cur && tabs.scrollWidth > tabs.clientWidth) tabs.scrollTo({ left: cur.offsetLeft - (tabs.clientWidth - cur.offsetWidth) / 2, behavior: "auto" });
   if ($("#q").value !== F.q) $("#q").value = F.q;
   $("#qclear").hidden = !F.q;
   if (!S.loaded) return;
@@ -547,8 +562,11 @@ function render() {
   }
   for (const img of grid.querySelectorAll("img[data-thumb]")) img.addEventListener("error", () => img.remove(), { once: true });
   $("#loadMore").hidden = shown >= list.length;
+  $("#loadMore").textContent = `続きを表示（残り ${list.length - shown} 件）`;
   $("#empty").hidden = list.length > 0;
-  $("#emptyText").textContent = F.status === "later" && !list.length && !F.q
+  $("#emptyText").textContent = F.status === "fav" && !list.length && !F.q
+    ? "まだ「お気に入り」の記事はありません。カードの右上のハートを押すと、ここに集まります。"
+    : F.status === "later" && !list.length && !F.q
     ? "まだ「あとで読む」に保存した記事はありません。カードの右上のしおりを押すと、ここに集まります。"
     : "条件を変えて、もう一度探してみてください。";
   // 今のタブには無くても、ほかのタブにあるときは、そのタブへのボタンを出す
@@ -574,9 +592,15 @@ function scrollToList() {
 /* ---------- メニュー ---------- */
 
 function renderMenu() {
-  $("#laterCount").textContent = String(Object.keys(S.marks.lt).filter((id) => S.items.some((it) => it.id === id)).length || Object.keys(S.marks.lt).length);
+  const shownCount = (k) => String(Object.keys(S.marks[k]).filter((id) => S.items.some((it) => it.id === id)).length || Object.keys(S.marks[k]).length);
+  // 数は、「お気に入り」「あとで読む」のタブに小さく出す（0 のときは出さない）
+  for (const [id, k] of [["laterCount", "lt"], ["favCount", "fv"]]) {
+    const n = shownCount(k);
+    $("#" + id).textContent = n;
+    $("#" + id).hidden = n === "0";
+  }
   $("#adminLink").hidden = !S.admin;
-  const cur = S.page === "admin" ? "admin" : F.status === "later" ? "later" : "list";
+  const cur = S.page === "admin" ? "admin" : F.status === "later" ? "later" : F.status === "fav" ? "fav" : "list";
   for (const a of $$("#menuClip [data-go]")) {
     if (a.dataset.go === cur) a.setAttribute("aria-current", "page"); else a.removeAttribute("aria-current");
   }
@@ -589,7 +613,7 @@ $("#menuClip").addEventListener("click", (e) => {
   if (!go) return;
   e.preventDefault();
   setMenuOpen(false, { focusBack: false });
-  goList(() => { if (go.dataset.go === "later") { F.status = "later"; F.format = "all"; } });
+  goList();
 });
 $("#adminLink").addEventListener("click", () => setMenuOpen(false, { focusBack: false }));
 
@@ -618,10 +642,9 @@ $("#entryTabs").addEventListener("click", (e) => {
   apply();
 });
 $("#entryPanel").addEventListener("click", (e) => {
-  const p = e.target.closest("[data-pick-person]"), w = e.target.closest("[data-pick-work]"), y = e.target.closest("[data-pick-year]");
+  const p = e.target.closest("[data-pick-person]"), w = e.target.closest("[data-pick-work]");
   if (p) { const v = p.dataset.pickPerson; F.person = F.person === v ? "" : v; if (!F.person) F.scope = ""; fitFormat(); apply(); }
   else if (w) { const v = w.dataset.pickWork; F.work = F.work === v ? "" : v; fitFormat(); apply(); }
-  else if (y) { const v = y.dataset.pickYear; F.year = F.year === v ? "" : v; fitFormat(); apply(); }
 });
 $("#entryPanel").addEventListener("change", (e) => {
   const t = e.target;
@@ -681,7 +704,9 @@ $("#emptyAlt").addEventListener("click", (e) => {
 $("#formatTabs").addEventListener("click", (e) => {
   const b = e.target.closest("[data-format]");
   if (!b) return;
-  F.format = b.dataset.format;
+  const f = b.dataset.format;
+  if (f === "fav" || f === "later") { F.status = f; F.format = "all"; } // 種類は問わず、印をつけた記事だけを出す
+  else { if (F.status === "fav" || F.status === "later") F.status = ""; F.format = f; }
   if (isLiveView()) { F.entry = F.entry === "live" ? "" : F.entry; F.tour = ""; if (F.kind === LIVE_KIND) F.kind = ""; }
   apply();
 });
@@ -692,7 +717,7 @@ for (const [id, key] of Object.entries(SELECT_KEYS)) {
     F[key] = e.target.value;
     if (key === "person" && !F.person) F.scope = "";
     // 資料の種類で「動画」「ラジオ」などを選んだら、その種類が出るタブに切り替える（「すべて」のタブのときはそのまま）
-    if (key === "kind" && F.kind && F.format !== "all" && F.kind !== LIVE_KIND) F.format = formatOf(F.kind);
+    if (key === "kind" && F.kind && F.format !== "all" && F.kind !== LIVE_KIND) F.format = FORMAT_TABS.includes(formatOf(F.kind)) ? formatOf(F.kind) : "all";
     apply();
   });
 }
@@ -706,7 +731,7 @@ $("#activeFilters").addEventListener("click", (e) => {
 });
 $("#loadMore").addEventListener("click", () => {
   const before = $$("#grid .article-card").length;
-  S.limit += PAGE_SIZE;
+  S.limit = Infinity; // 一度押せば、残りをすべて出す（何度も押さなくてよいように）
   render();
   $$("#grid .article-card")[before]?.querySelector("a")?.focus({ preventScroll: true });
 });
@@ -717,13 +742,13 @@ function syncFilterPanel() { filterPanel.open = isWide(); }
 matchMedia("(min-width: 701px)").addEventListener("change", syncFilterPanel);
 filterPanel.querySelector("summary").addEventListener("click", (e) => { if (isWide()) e.preventDefault(); });
 
-/* ---------- あとで読む・既読 ---------- */
+/* ---------- お気に入り・あとで読む・既読 ---------- */
 
 function setMark(kind, id, on) {
   if (on) S.marks[kind][id] = 1; else delete S.marks[kind][id];
   saveMarks();
   renderMenu();
-  const needsRedraw = (kind === "lt" && F.status === "later") || (kind === "rd" && (F.status === "unread" || F.status === "read"));
+  const needsRedraw = (kind === "fv" && F.status === "fav") || (kind === "lt" && F.status === "later") || (kind === "rd" && (F.status === "unread" || F.status === "read"));
   if (needsRedraw) { render(); return; }
   // カードだけをその場で直す（一覧が動かないように）
   for (const el of $$(`#grid .article-card[data-id="${CSS.escape(id)}"]`)) {
@@ -741,6 +766,7 @@ $("#grid").addEventListener("click", (e) => {
   const act = e.target.closest("[data-act]");
   const tag = e.target.closest("[data-tag]");
   if (act && act.dataset.act === "later") { const on = !S.marks.lt[id]; setMark("lt", id, on); toast(on ? "あとで読むに保存しました" : "あとで読むから外しました"); return; }
+  if (act && act.dataset.act === "fav") { const on = !S.marks.fv[id]; setMark("fv", id, on); toast(on ? "お気に入りに追加しました" : "お気に入りから外しました"); return; }
   if (act && act.dataset.act === "read") { setMark("rd", id, !S.marks.rd[id]); return; }
   if (tag) { F.q = tag.dataset.tag; apply(); scrollToList(); return; }
   // 記事を開いたら、既読にする
@@ -795,9 +821,10 @@ function showBackup() {
     h("p", { class: "modal-eyebrow", text: "MY DATA" }),
     h("h2", { id: "modalTitle", text: "保存データの管理" }),
     h("ul", { class: "counts" },
+      h("li", null, h("span", { text: "お気に入り" }), h("b", { text: `${count("fv")} 件` })),
       h("li", null, h("span", { text: "あとで読む" }), h("b", { text: `${count("lt")} 件` })),
       h("li", null, h("span", { text: "既読" }), h("b", { text: `${count("rd")} 件` }))),
-    h("p", { text: "「あとで読む」と「既読」は、このブラウザだけに保存しています。ほかの端末で使いたいときは、下の「ほかの端末に引き継ぐ」でリンク（QR コード）を作ってください。機種変更やブラウザのデータ消去の前に、ファイルに書き出しておくこともできます。" }),
+    h("p", { text: "「お気に入り」「あとで読む」「既読」は、このブラウザだけに保存しています。ほかの端末で使いたいときは、下の「ほかの端末に引き継ぐ」でリンク（QR コード）を作ってください。機種変更やブラウザのデータ消去の前に、ファイルに書き出しておくこともできます。" }),
     h("div", { class: "panelbtns" }, exportBtn, importBtn), file, msg,
     transferBox()
   ];
@@ -816,10 +843,10 @@ function transferBox() {
   const out = h("div", { class: "transfer-out", hidden: true });
   const tmsg = h("p", { class: "msg", role: "status" });
   make.addEventListener("click", async () => {
-    const later = Object.keys(S.marks.lt), read = Object.keys(S.marks.rd);
+    const later = Object.keys(S.marks.lt), read = Object.keys(S.marks.rd), favorites = Object.keys(S.marks.fv);
     tmsg.classList.remove("err");
-    if (!later.length && !read.length) { tmsg.textContent = "まだ「あとで読む」も「既読」もありません。"; return; }
-    const url = location.origin + location.pathname + TRANSFER + await encodeMarks({ later, read });
+    if (!later.length && !read.length && !favorites.length) { tmsg.textContent = "まだ「お気に入り」も「あとで読む」も「既読」もありません。"; return; }
+    const url = location.origin + location.pathname + TRANSFER + await encodeMarks({ later, read, favorites });
     const copy = h("button", { type: "button", class: "btn", text: "リンクをコピー" });
     const field = h("input", { type: "text", readonly: true, class: "transfer-url", "aria-label": "引き継ぎ用のリンク", value: url });
     copy.addEventListener("click", async () => {
@@ -842,7 +869,7 @@ function transferBox() {
     kids.push(field, h("div", { class: "panelbtns" }, copy));
     out.replaceChildren(...kids);
     out.hidden = false;
-    tmsg.textContent = `あとで読む ${later.length} 件・既読 ${read.length} 件のリンクを作りました。`;
+    tmsg.textContent = `お気に入り ${favorites.length} 件・あとで読む ${later.length} 件・既読 ${read.length} 件のリンクを作りました。`;
   });
   return h("section", { class: "transfer" },
     h("h3", { text: "ほかの端末に引き継ぐ" }),
@@ -867,31 +894,32 @@ async function receiveTransfer() {
   no.addEventListener("click", closeModal);
   yes.addEventListener("click", () => {
     const add = (kind, list) => { let n = 0; for (const id of list) if (!S.marks[kind][id]) { S.marks[kind][id] = 1; n++; } return n; };
-    const nl = add("lt", data.later), nr = add("rd", data.read);
+    const nf = add("fv", data.favorites), nl = add("lt", data.later), nr = add("rd", data.read);
     saveMarks();
     renderMenu();
     render();
     yes.remove(); no.textContent = "閉じる";
-    msg.textContent = `追加しました（あとで読む ${nl} 件・既読 ${nr} 件）。今ある記録はそのまま残ります。`;
+    msg.textContent = `追加しました（お気に入り ${nf} 件・あとで読む ${nl} 件・既読 ${nr} 件）。今ある記録はそのまま残ります。`;
   });
   openModal([
     h("p", { class: "modal-eyebrow", text: "TRANSFER" }),
     h("h2", { id: "modalTitle", text: "記録を引き継ぐ" }),
     h("ul", { class: "counts" },
+      h("li", null, h("span", { text: "お気に入り" }), h("b", { text: `${data.favorites.length} 件` })),
       h("li", null, h("span", { text: "あとで読む" }), h("b", { text: `${data.later.length} 件` })),
       h("li", null, h("span", { text: "既読" }), h("b", { text: `${data.read.length} 件` }))),
-    h("p", { text: "ほかの端末の「あとで読む」「既読」を、このブラウザに追加しますか？ 今ある記録は消えません。" }),
+    h("p", { text: "ほかの端末の「お気に入り」「あとで読む」「既読」を、このブラウザに追加しますか？ 今ある記録は消えません。" }),
     h("div", { class: "panelbtns" }, yes, no), msg
   ]);
 }
 
 function exportMarks(msg) {
-  const data = { app: "radwimps-interview-index", version: 3, exportedAt: new Date().toISOString(), bookmarks: [], later: Object.keys(S.marks.lt), read: Object.keys(S.marks.rd) };
+  const data = { app: "radwimps-interview-index", version: 4, exportedAt: new Date().toISOString(), bookmarks: [], favorites: Object.keys(S.marks.fv), later: Object.keys(S.marks.lt), read: Object.keys(S.marks.rd) };
   const d = new Date();
   const name = `radwimps-archive-backup-${d.getFullYear()}${String(d.getMonth() + 1).padStart(2, "0")}${String(d.getDate()).padStart(2, "0")}.json`;
   downloadFile(name, JSON.stringify(data, null, 2), "application/json");
   msg.classList.remove("err");
-  msg.textContent = `あとで読む ${data.later.length} 件・既読 ${data.read.length} 件をファイルに書き出しました。`;
+  msg.textContent = `お気に入り ${data.favorites.length} 件・あとで読む ${data.later.length} 件・既読 ${data.read.length} 件をファイルに書き出しました。`;
 }
 async function importMarks(file, msg) {
   try {
@@ -899,11 +927,12 @@ async function importMarks(file, msg) {
     if (!data || data.app !== "radwimps-interview-index") throw new Error("not a backup");
     const ids = (v) => (Array.isArray(v) ? v.filter((x) => typeof x === "string" && x.length < 160) : []);
     const add = (kind, list) => { let n = 0; for (const id of ids(list)) if (!S.marks[kind][id]) { S.marks[kind][id] = 1; n++; } return n; };
-    const nl = add("lt", [...ids(data.later), ...ids(data.bookmarks)]), nr = add("rd", data.read); // 以前の「お気に入り」は、あとで読むへ
+    const nf = add("fv", data.favorites); // 今の「お気に入り」（バージョン4から）
+    const nl = add("lt", [...ids(data.later), ...ids(data.bookmarks)]), nr = add("rd", data.read); // 以前の「お気に入り（★）」は、あとで読むへ
     saveMarks();
     render();
     msg.classList.remove("err");
-    msg.textContent = `読み込みました（あとで読む ${nl} 件・既読 ${nr} 件を追加）。今ある記録はそのまま残ります。`;
+    msg.textContent = `読み込みました（お気に入り ${nf} 件・あとで読む ${nl} 件・既読 ${nr} 件を追加）。今ある記録はそのまま残ります。`;
   } catch {
     msg.classList.add("err");
     msg.textContent = "このファイルは読み込めませんでした。このサイトで書き出したバックアップファイルを選んでください。";
@@ -1018,15 +1047,20 @@ function renderAdmin() {
   $("#admRepoNote").hidden = !!REPO;
   renderAnalytics();
 }
-// 運営管理の「アクセス状況」（集計のしくみは assets/analytics.js。数字は Cloudflare の画面で見ます）
+// 運営管理の「アクセス状況」（集計のしくみは assets/analytics.js。グラフは assets/stats.js を、開いたときだけ読み込みます）
+let statsView = null, statsLoading = false;
 function renderAnalytics() {
   const box = $("#admAnalytics");
   if (analyticsOn) {
-    box.replaceChildren(
-      h("p", { class: "ok", text: "アクセス数を集計しています（Cloudflare Web Analytics）。" }),
-      h("ul", { class: "admlinks" }, h("li", null, h("a", { href: DASHBOARD_URL, target: "_blank", rel: "noopener noreferrer" },
-        h("span", { text: "アクセス状況を見る" }), h("small", { text: "見られた回数・よく見られたページ・どこから来たか・端末の種類など（Cloudflare へのログインが必要）" })))),
-      h("p", { class: "hint", text: "この端末は管理者モードなので、ここからのアクセスは数えていません。数字が画面に出るまで、数分かかることがあります。" }));
+    if (statsView || statsLoading) return;
+    statsLoading = true;
+    box.replaceChildren(h("p", { class: "hint", text: "読み込んでいます…" }));
+    import("./stats.js").then((m) => { statsView = m.mountStats(box, { dashboardUrl: DASHBOARD_URL }); })
+      .catch(() => {
+        box.replaceChildren(h("p", { class: "msg err", text: "アクセス状況を読み込めませんでした。ページを開き直してください。" }),
+          h("ul", { class: "admlinks" }, h("li", null, h("a", { href: DASHBOARD_URL, target: "_blank", rel: "noopener noreferrer" }, h("span", { text: "Cloudflare の画面で見る" })))));
+      })
+      .finally(() => { statsLoading = false; });
   } else {
     box.replaceChildren(
       h("p", { text: "まだ集計していません。無料の Cloudflare Web Analytics に登録して、出てきた「token」を assets/config.js の analytics に書くと、集計が始まります（Cookie は使わず、個人情報も集めません）。" }),

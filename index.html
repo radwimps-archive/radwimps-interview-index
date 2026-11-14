@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <!-- 安全のための決まり（CSP）：このサイトと、決めた所（YouTube の埋め込み・サムネイル、GitHub の API）以外からは、プログラムや画像を読み込みません。
      HTML の中に直接 <script> や style="…" を書くと動かなくなるので、assets フォルダのファイルに書いてください。 -->
-<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' https://static.cloudflareinsights.com; style-src 'self'; img-src 'self' data: https://i.ytimg.com; font-src 'self'; connect-src 'self' https://api.github.com https://api.web3forms.com https://cloudflareinsights.com; frame-src https://www.youtube-nocookie.com https://www.youtube.com; object-src 'none'; base-uri 'self'; form-action 'self'; upgrade-insecure-requests">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' https://static.cloudflareinsights.com; style-src 'self'; img-src 'self' data: https://i.ytimg.com; font-src 'self'; connect-src 'self' https://api.github.com https://api.web3forms.com https://cloudflareinsights.com https://*.workers.dev; frame-src https://www.youtube-nocookie.com https://www.youtube.com; object-src 'none'; base-uri 'self'; form-action 'self'; upgrade-insecure-requests">
 <meta name="referrer" content="strict-origin-when-cross-origin">
 <title>RADWIMPS Archives — 好きな曲から、気になる人から。</title>
 <meta name="description" content="RADWIMPS とメンバーのインタビュー・対談・ライブレポートを、人・曲や作品・年代・ライブから探せる、非公式の索引サイトです。">
@@ -35,15 +35,14 @@
 <header class="header" id="header">
   <div class="header-inner">
     <button id="menuBtn" class="hamburger" type="button" aria-expanded="false" aria-controls="menuClip" aria-label="メニューを開く"><span></span><span></span><span></span></button>
-    <a href="./" class="brand" id="brand" aria-label="RADWIMPS Archives トップへ"><span class="brand-symbol" aria-hidden="true">r<span>．</span></span><span class="brand-text">RADWIMPS<span>INTERVIEW ARCHIVES</span></span></a>
+    <a href="./" class="brand" id="brand" aria-label="RADWIMPS Archives トップへ"><span class="brand-text">RADWIMPS<span>Archives</span></span></a>
   </div>
   <div class="menu-clip" id="menuClip" inert aria-hidden="true">
     <nav class="menu-panel" aria-label="メニュー">
       <a class="nav-item" href="./" data-go="list">記事一覧 <span aria-hidden="true">↗</span></a>
-      <a class="nav-item" href="./?status=later" data-go="later">あとで読む <span id="laterCount">0</span></a>
       <a class="nav-item" href="history.html">RADWIMPSの歩み <span aria-hidden="true">↗</span></a>
       <a class="nav-item" href="setlist.html">RAD LIVE SET LIST <span aria-hidden="true">↗</span></a>
-      <a class="nav-item" href="members.html">メンバー・人物紹介 <span aria-hidden="true">↗</span></a>
+      <a class="nav-item" href="members.html">メンバー紹介 <span aria-hidden="true">↗</span></a>
       <button class="nav-item" type="button" data-act="add">記事を追加 <span aria-hidden="true">＋</span></button>
       <a class="nav-item" href="#admin" id="adminLink" hidden>運営管理 <span aria-hidden="true">↗</span></a>
     </nav>
@@ -54,7 +53,7 @@
   <!-- 記事一覧（いつもの画面） -->
   <div id="listView">
     <section class="hero wrap" aria-labelledby="heroTitle">
-      <p class="eyebrow">RADWIMPS INTERVIEW ARCHIVES</p>
+      <p class="eyebrow">RADWIMPS Archives</p>
       <h1 id="heroTitle">好きな曲から、<span>気になる人から。</span></h1>
       <p class="hero-description">RADWIMPSの音楽と歩みを、語られた言葉からたどる。</p>
     </section>
@@ -101,10 +100,11 @@
       </div>
 
       <div class="format-tabs" id="formatTabs" role="group" aria-label="記事の種類">
-        <button type="button" data-format="text" aria-pressed="true">記事・資料</button>
-        <button type="button" data-format="video" aria-pressed="false">▶ 動画インタビュー</button>
+        <button type="button" data-format="fav" aria-pressed="false">お気に入り<small id="favCount" hidden>0</small></button>
+        <button type="button" data-format="later" aria-pressed="false">あとで読む<small id="laterCount" hidden>0</small></button>
+        <button type="button" data-format="text" aria-pressed="true">記事</button>
+        <button type="button" data-format="video" aria-pressed="false">▶ 動画</button>
         <button type="button" data-format="radio" aria-pressed="false">ラジオ</button>
-        <button type="button" data-format="release" aria-pressed="false">リリース情報</button>
         <button type="button" data-format="all" aria-pressed="false">すべて</button>
       </div>
 
@@ -125,7 +125,7 @@
               <div class="sidebar-note">
                 <span class="small-symbol" aria-hidden="true">＊</span>
                 <p>気になる言葉を、少しずつ。</p>
-                <span>あとで読む・既読は、このブラウザに記録されます。</span>
+                <span>お気に入り・あとで読む・既読は、このブラウザに記録されます。</span>
                 <button type="button" data-act="backup">保存データの管理 ↗</button>
               </div>
             </div>
@@ -201,7 +201,7 @@
 
 <!-- フッター -->
 <footer class="site-footer wrap">
-  <div class="footer-brand">RADWIMPS <span>INTERVIEW ARCHIVES</span></div>
+  <div class="footer-brand">RADWIMPS Archives</div>
   <p>UNOFFICIAL FAN ARCHIVE · 本人・所属事務所・各媒体とは関係ありません。</p>
   <div class="footer-links">
     <button type="button" data-act="backup">保存データの管理 ↗</button>
@@ -239,7 +239,7 @@
   <p>リンク先でインタビューやライブレポートの内容が読める・見られる・聴けるものを載せています。有料会員限定のもの（ファンクラブ「ボクンチ」など）は載せていません。ラジオ番組の放送回は「ラジオ」のタブに、雑誌の掲載号の案内や発売のお知らせなど、本文が読めない資料は「リリース情報」のタブに分けています。</p>
   <p>「説明」は、記事の内容がわかるように運営が書いた紹介文で、掲載元の文章の転載ではありません。掲載日が「年」や「年・月」までのものは、確認できた範囲で記載しています。掲載元のタイトルを確認できなかった記事には、内容がわかる見出しを付けています。</p>
   <p>リンクは定期的に確認し、開けなくなった記事は一覧から外しています。主な出典は、RADWIMPS 公式サイトの MEDIA 欄と、各媒体の記事ページです。</p>
-  <p><span data-analytics="off">このサイトでは、アクセス解析（訪問者の記録）や広告のための追跡はしていません。</span><span data-analytics="on" hidden>このサイトでは、どのページがどれくらい見られているかを知るために、Cloudflare Web Analytics でアクセス数を数えています。Cookie は使わず、名前やメールアドレスなどの個人を特定できる情報は集めていません。広告のための追跡はしていません。</span>「あとで読む」「既読」は、このブラウザの中だけに保存され、運営を含めほかの人には送られません（ブラウザのデータを消すと消えます。「保存データの管理」から、ファイルに書き出したり、引き継ぎ用のリンクでほかの端末に移したりできます。リンクの中身もサーバーには送られません）。動画のサムネイル画像と再生には YouTube（Google）のしくみを使っているため、その部分には YouTube と Google の決まりが適用されます。</p>
+  <p><span data-analytics="off">このサイトでは、アクセス解析（訪問者の記録）や広告のための追跡はしていません。</span><span data-analytics="on" hidden>このサイトでは、どのページがどれくらい見られているかを知るために、Cloudflare Web Analytics でアクセス数を数えています。Cookie は使わず、名前やメールアドレスなどの個人を特定できる情報は集めていません。広告のための追跡はしていません。</span>「お気に入り」「あとで読む」「既読」は、このブラウザの中だけに保存され、運営を含めほかの人には送られません（ブラウザのデータを消すと消えます。「保存データの管理」から、ファイルに書き出したり、引き継ぎ用のリンクでほかの端末に移したりできます。リンクの中身もサーバーには送られません）。動画のサムネイル画像と再生には YouTube（Google）のしくみを使っているため、その部分には YouTube と Google の決まりが適用されます。</p>
 </template>
 
 <div id="toast" class="toast" role="status" aria-live="polite"></div>
