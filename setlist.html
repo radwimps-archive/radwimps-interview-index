@@ -25,8 +25,8 @@
 <meta name="twitter:image" content="https://radwimps-archive.github.io/radwimps-interview-index/assets/ogp.png">
 <meta name="theme-color" content="#FFFFFF">
 <link rel="icon" href="assets/icon.svg" type="image/svg+xml">
-<link rel="stylesheet" href="assets/style.css?v=20261114b">
-<script type="module" src="assets/setlist.js?v=20261114b"></script>
+<link rel="stylesheet" href="assets/style.css?v=20261114c">
+<script type="module" src="assets/setlist.js?v=20261114c"></script>
 </head>
 <body class="history-page setlist-page">
 <a href="#lives" class="skip">セットリストへ移動</a>
@@ -65,6 +65,15 @@
       <button type="button" role="tab" class="sl-tab" id="tabRank" data-view="ranking" aria-selected="false" aria-controls="ranking">ランキング</button>
       <button type="button" role="tab" class="sl-tab" id="tabUnplayed" data-view="unplayed" aria-selected="false" aria-controls="unplayedView" hidden>ライブ未演奏</button>
     </div>
+  </div>
+
+  <!-- 検索窓：どのタブでも使えます（タブごとに、入れた言葉を覚えています） -->
+  <div class="sl-search wrap">
+    <label class="sl-search-box">
+      <span class="sl-search-icon" aria-hidden="true"></span>
+      <span class="sl-visually-hidden">このタブの中を検索</span>
+      <input id="viewSearch" type="search" autocomplete="off" autocapitalize="off" enterkeyhint="search" placeholder="ライブ名・会場・曲名で探す">
+    </label>
   </div>
 
   <!-- 参加公演：行ったライブ（足あとのマークを付けた公演）のライブ名と公演日だけ -->
