@@ -971,3 +971,6 @@ button.title-link { padding: 0; border: 0; background: none; font: inherit; text
   .entry-tabs button { padding-inline: 12px; column-gap: 6px; }
   .entry-tabs strong { font-size: 14px; }
 }
+
+/* 歌った人の見出し（【kZm】など） */
+.sl-part { margin: 16px 0 2px; padding-left: 8px; border-left: 3px solid var(--accent); font-size: 13px; font-weight: 700; color: var(--ink); }

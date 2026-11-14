@@ -517,7 +517,17 @@ export function parseSetlists(text) {
     if (!name) err(line, "ライブ名が空欄です");
     if (!get("date")) err(line, "公演日が空欄です（「2019-08-29」のように書きます。日にちがわからないときは「2019-08」）");
     const date = readDateCell(get("date"), line, err);
-    const songs = (s) => splitList(s, /[／]/).map(splitSong);
+    // 「【kZm】」のように【 】だけの項目は、そこからあとの曲を歌った人の見出し（曲には数えません）
+    const songs = (s) => {
+      let part = "";
+      const out = [];
+      for (const item of splitList(s, /[／]/)) {
+        const h = item.match(/^【([^【】]+)】$/);
+        if (h) part = h[1].trim();
+        else out.push(part ? { ...splitSong(item), part } : splitSong(item));
+      }
+      return out;
+    };
     const main = songs(get("main")), encore = songs(get("encore"));
     // 曲の区切りは全角の「／」だけ（半角の「/」は曲名の一部として読む）
     if (/\//.test(get("main") + get("encore"))) warn(line, "曲の区切りは全角の「／」です。半角の「/」は曲名の一部として読みます");
