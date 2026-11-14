@@ -94,7 +94,7 @@ body::before { content: ""; position: fixed; inset: 0 0 auto; height: env(safe-a
 
 /* 3本線のボタン：開くと「×」になる（上下の線が 8px 中央へ寄って ±45° 回転、真ん中の線は消える）。開いている間は朱色 */
 .hamburger { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 5px; width: 44px; height: 44px; flex: none; padding: 0; border: 0; background: none; color: var(--ink); }
-.hamburger span { display: block; width: 24px; height: 3px; border-radius: 2px; background: currentColor; transition: transform .3s var(--ease), opacity .3s var(--ease); }
+.hamburger span { display: block; width: 24px; height: 3px; border-radius: 2px; background: currentColor; transition: transform .4s var(--ease), opacity .3s var(--ease); }
 .hamburger[aria-expanded="true"] { color: var(--accent); }
 .hamburger[aria-expanded="true"] span:nth-child(1) { transform: translateY(8px) rotate(45deg); }
 .hamburger[aria-expanded="true"] span:nth-child(2) { opacity: 0; }
@@ -106,8 +106,15 @@ body::before { content: ""; position: fixed; inset: 0 0 auto; height: env(safe-a
 .brand-text span { display: block; font-weight: 300; letter-spacing: .29em; }
 
 /* メニュー：開くと、画面いっぱいに 0.3 秒でふわっと広がる。帯（ボタンとロゴ）はそのまま上に残る */
-.menu-clip { position: fixed; inset: 0; z-index: 1; padding-top: calc(60px + env(safe-area-inset-top, 0px)); overflow-y: auto; overscroll-behavior: contain; background: var(--white); opacity: 0; visibility: hidden; pointer-events: none; transition: opacity .3s var(--ease), visibility 0s linear .3s; }
-.menu-clip.open { opacity: 1; visibility: visible; pointer-events: auto; transition: opacity .3s var(--ease), visibility 0s; }
+.menu-clip { position: fixed; inset: 0; z-index: 1; padding-top: calc(60px + env(safe-area-inset-top, 0px)); overflow-y: auto; overscroll-behavior: contain; background: var(--white); opacity: 0; visibility: hidden; pointer-events: none; transition: opacity .35s ease, visibility 0s linear .35s; }
+.menu-clip.open { opacity: 1; visibility: visible; pointer-events: auto; transition: opacity .4s ease, visibility 0s; }
+/* 公式サイトと同じく、背景がふわっと現れたあと、項目が少しずつ（ぼかしから）くっきり現れる。閉じるときは項目も一緒にすっと消える */
+.menu-panel .nav-item { opacity: 0; filter: blur(6px); transform: translateY(6px); transition: opacity .2s ease, filter .2s ease, transform .2s ease; }
+.menu-clip.open .menu-panel .nav-item { opacity: 1; filter: none; transform: none; transition: opacity .5s ease var(--d, .1s), filter .5s ease var(--d, .1s), transform .5s ease var(--d, .1s); }
+.menu-panel .nav-item:nth-child(2) { --d: .16s; }
+.menu-panel .nav-item:nth-child(3) { --d: .22s; }
+.menu-panel .nav-item:nth-child(4) { --d: .28s; }
+.menu-panel .nav-item:nth-child(5) { --d: .34s; }
 .menu-panel { display: flex; flex-direction: column; max-width: 542px; padding: 6px 0 14px; }
 .nav-item { display: flex; align-items: center; justify-content: space-between; gap: 12px; min-height: 60px; margin: 0 20px; padding: 0 4px; border: 0; border-bottom: 1px solid var(--rule); background: none; color: var(--ink); font-size: 17px; font-weight: 600; letter-spacing: .02em; text-align: left; text-decoration: none; white-space: nowrap; }
 .nav-item:last-child { border-bottom: 0; }
