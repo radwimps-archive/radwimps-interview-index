@@ -28,25 +28,9 @@ const LYRIC_SITES = [
 ];
 // 「聴く」：配信の曲は、音楽サブスクリプションの検索結果を開きます（曲ごとのページの URL がなくても、曲名と RADWIMPS で見つかります）
 const q = (...w) => encodeURIComponent(["RADWIMPS", ...w].join(" "));
-// 歌詞のリンクを「新しいタブ」で開くか「このタブ」で開くか（ページ上の切り替えで選び、この端末に覚えておきます）
-const STORE_OPEN = "radwimps-interview-index:lyric-open";
-let lyricOpen = "new";
-try { if (localStorage.getItem(STORE_OPEN) === "same") lyricOpen = "same"; } catch { /* 保存できない端末では毎回「新しいタブ」 */ }
-function applyOpen(a) {
-  const same = lyricOpen === "same";
-  if (same) a.removeAttribute("target"); else a.setAttribute("target", "_blank");
-  a.setAttribute("aria-label", `${a.dataset.label}（${same ? "このタブ" : "新しいタブ"}で開く）`);
-}
+// 歌詞のリンクは、いつも新しいタブで開きます（2026-11-14 に「このタブ」との切り替えはやめました）
 function lyricLink(href, label, text) {
-  const a = el("a", { class: "song-btn song-lyrics", href, rel: "noopener noreferrer", "data-label": label, text });
-  applyOpen(a);
-  return a;
-}
-function setOpen(v) {
-  lyricOpen = v === "same" ? "same" : "new";
-  try { localStorage.setItem(STORE_OPEN, lyricOpen); } catch { /* 覚えられなくても、このページを開いている間は効きます */ }
-  for (const b of document.querySelectorAll(".song-open-btn")) b.setAttribute("aria-pressed", String(b.dataset.open === lyricOpen));
-  for (const a of document.querySelectorAll("a.song-lyrics")) applyOpen(a);
+  return el("a", { class: "song-btn song-lyrics", href, target: "_blank", rel: "noopener noreferrer", "aria-label": `${label}（新しいタブで開く）`, text });
 }
 
 const LISTEN = [
@@ -309,8 +293,6 @@ function backToList() {
   const top = box.getBoundingClientRect().top + scrollY - 60 - bar.offsetHeight;
   if (scrollY > top) scrollTo({ top });
 }
-$("#songOpen").addEventListener("click", (e) => { const b = e.target.closest("[data-open]"); if (b) setOpen(b.dataset.open); });
-setOpen(lyricOpen);
 // 曲の開閉：作品ごと（件数のボタン）と、すべて（「曲の一覧」の2つのボタン）
 function setFolded(shut, btn) {
   if (btn) { // 作品ひとつだけ
