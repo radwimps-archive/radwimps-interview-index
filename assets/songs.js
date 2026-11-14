@@ -56,8 +56,9 @@ const LISTEN = [
 ];
 // 「買う」：CD の作品は、通販サイトの検索結果を開きます。
 //   タワーレコードは、config.js の towerAffiliate（バリューコマースの sid・pid）を書くとアフィリエイトリンクになり、「PR」が出ます（年表と同じ）。
-//   Amazon は config.js の amazonTag（Amazon アソシエイトのトラッキング ID）を書くとアフィリエイトリンクになります。楽天は今はふつうのリンクです。
+//   Amazon は config.js の amazonTag（Amazon アソシエイトのトラッキング ID）を書くとアフィリエイトリンクになります。楽天は config.js の rakutenAffiliate（楽天アフィリエイトの ID）を書くとアフィリエイトリンクになります。
 const AFF = config.towerAffiliate || {};
+const rakutenId = /^[0-9a-f]{8}(\.[0-9a-f]{8}){3}$/.test(config.rakutenAffiliate || "") ? config.rakutenAffiliate : "";
 const towerAff = !!(AFF.sid && AFF.pid);
 const amazonTag = /^[\w-]+-22$/.test(config.amazonTag || "") ? config.amazonTag : "";
 const BUY = [
@@ -66,7 +67,10 @@ const BUY = [
     return towerAff ? `https://ck.jp.ap.valuecommerce.com/servlet/referral?sid=${encodeURIComponent(AFF.sid)}&pid=${encodeURIComponent(AFF.pid)}&vc_url=${encodeURIComponent(plain)}` : plain;
   } },
   { name: "Amazon", aff: !!amazonTag, url: (w) => `https://www.amazon.co.jp/s?k=${q(w)}&i=music${amazonTag ? `&tag=${amazonTag}` : ""}` },
-  { name: "楽天", aff: false, url: (w) => `https://search.rakuten.co.jp/search/mall/${q(w)}/` }
+  { name: "楽天", aff: !!rakutenId, url: (w) => {
+    const plain = `https://search.rakuten.co.jp/search/mall/${q(w)}/`;
+    return rakutenId ? `https://hb.afl.rakuten.co.jp/hgc/${rakutenId}/?pc=${encodeURIComponent(plain)}&link_type=text` : plain;
+  } }
 ];
 // CD で買える作品の名前：CD で出た曲は初めて出た作品、配信の曲は、あとで入ったアルバム（なければ買うリンクは出さない）
 const CD_KINDS = ["シングル", "アルバム", "サウンドトラック"];
