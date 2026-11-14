@@ -1,5 +1,5 @@
 // assets/attended.js
-// 「行ったライブ」の印（ブックマーク）。「RAD LIVE SET LIST」と「RADWIMPSの歩み」で同じ印を使うので、片方で付けるともう片方にも出ます。
+// 「行ったライブ」の印（足あとのアイコンのブックマーク）。「RAD LIVE SET LIST」と「RADWIMPSの歩み」で同じ印を使うので、片方で付けるともう片方にも出ます。
 // 印はこの端末のブラウザ（localStorage）だけに保存します（サーバーには送りません）。別の端末とは共有されません。
 // 公演ごとの印の名前（キー）は、公演日（例：2018-06-20）。同じ日に2公演あるときは、2つ目から「2018-06-20#2」のように番号をつけます。
 
@@ -44,11 +44,12 @@ export function assignKeys(lives) {
 }
 
 const shortVenue = (v) => (v || "").replace(/（.*）$/, "");
-// 1公演の「行った」ボタン。押すたびに入れる・外す。ほかの同じ公演のボタンも、sync() で一緒に変わる
-export function attendButton(l, { label = "行った" } = {}) {
+// 1公演の「行った」ボタン（足あとのアイコン）。押すたびに入れる・外す。ほかの同じ公演のボタンも、sync() で一緒に変わる
+//   label を渡すと、アイコンのとなりにその文字（日付・会場など）を出す。渡さないときはアイコンだけ
+export function attendButton(l, { label = "" } = {}) {
   const name = `${l.date.replace(/-/g, ".")} ${shortVenue(l.venue)}`.trim();
-  const b = el("button", { type: "button", class: "att-btn", "data-ak": l.ak, "aria-pressed": String(attended.has(l.ak)), "aria-label": `「${name}」を行ったライブに入れる`, title: "行ったライブの印（この端末だけに保存されます）" }, el("span", { text: label }));
-  return b;
+  return el("button", { type: "button", class: "att-btn" + (label ? " att-chip" : ""), "data-ak": l.ak, "aria-pressed": String(attended.has(l.ak)), "aria-label": `「${name}」を行ったライブに入れる`, title: "行ったライブ（この端末だけに保存されます）" },
+    label ? el("span", { text: label }) : null);
 }
 // 複数の公演（ツアーなど）の「行った ○／○公演」の表示
 export function attendCount(lives) {
