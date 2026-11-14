@@ -162,10 +162,10 @@ function songItem(s, inRelease) {
     el("time", { text: dateLabel(s) }),
     el("span", { class: "song-kind", text: kindLabel(s.kind) }),
     s.work && s.work !== s.title ? (cdBuy ? workBtn(`「${s.work}」`, cdBuy) : el("span", { text: s.kind === "動画公開" ? s.work : `「${s.work}」` })) : null);
+  // 曲名の下に出す一言は、タイアップと、メジャーデビューシングルの印だけ（ほかの「メモ」は、画面には出さない。歌のない曲の判定などにだけ使う）
   const subs = [];
-  if (s.album && s.album !== s.work) subs.push(el("p", { class: "song-sub", text: `アルバム「${s.album}」に収録` }));
   if (s.tieup) subs.push(el("p", { class: "song-sub song-tieup", text: s.tieup }));
-  if (s.note) subs.push(el("p", { class: "song-sub", text: s.note }));
+  if (/^メジャーデビュー/.test(s.note)) subs.push(el("p", { class: "song-sub", text: s.note }));
 
   const links = el("div", { class: "song-links song-panel", id: `lyr${++uid}`, hidden: true });
   const after = [];
