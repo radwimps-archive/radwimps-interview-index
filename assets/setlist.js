@@ -149,10 +149,10 @@ function tourCard(t, open) {
 
 /* ---------- 検索窓（どのタブでも。タブごとに入れた言葉を覚える） ---------- */
 
-const queries = { mine: "", live: "", nenpyo: "", ranking: "", unplayed: "" };
+const queries = { mine: "", live: "", nenpyo: "", ranking: "" };
 const PLACEHOLDERS = {
   mine: "行ったライブを、ライブ名・会場・曲名で探す", live: "ライブ名・会場・曲名で探す", nenpyo: "年表を、ライブ名・会場・曲名で絞る",
-  ranking: "曲名で探す", unplayed: "曲名で探す"
+  ranking: "曲名で探す"
 };
 // ツアー・ライブが検索の言葉に合うか。ライブ名・会場・日付はゆるく（ひらがなでも英名に合う）、曲名・ゲストは文字をそろえて探す
 function hitTour(t, query) {
@@ -212,13 +212,12 @@ function unplayedYears(list) {
 function renderUnplayed() {
   const panel = $("#unplayedBody"), tab = $("#tabUnplayed");
   if (!catalog.length) { tab.hidden = true; return; }
-  const all = unplayedList(), q = queries.unplayed;
-  const list = q ? all.filter((c) => looseMatchAll(`${c.title} ${c.work || ""}`, q)) : all;
+  const list = unplayedList();
   // 「ライブ未演奏」のタブ
   panel.replaceChildren(
-    el("p", { class: "sl-unplayed-head" }, el("b", { text: `${list.length} 曲` }), q ? `（未演奏の ${all.length} 曲のうち）` : `（全 ${catalog.length} 曲のうち）・発売の古い順`),
+    el("p", { class: "sl-unplayed-head" }, el("b", { text: `${list.length} 曲` }), `（全 ${catalog.length} 曲のうち）・発売の古い順`),
     el("p", { class: "sl-song-sub", text: UNPLAYED_NOTE }),
-    ...(q && !list.length ? [noHit(q)] : unplayedYears(list)));
+    ...unplayedYears(list));
   tab.hidden = false;
 }
 
@@ -393,6 +392,7 @@ function setView(v, { scroll = false } = {}) {
   view = VIEWS.includes(v) && !(v === "unplayed" && !catalog.length) ? v : "live";
   searchBox.value = queries[view];
   searchBox.placeholder = PLACEHOLDERS[view];
+  searchBox.closest(".sl-search").hidden = view === "unplayed"; // ライブ未演奏は曲数が少ないので、検索窓は出さない
   for (const b of document.querySelectorAll(".sl-tab")) b.setAttribute("aria-selected", String(b.dataset.view === view));
   $("#mine").hidden = view !== "mine";
   $("#tabs").dataset.view = view;

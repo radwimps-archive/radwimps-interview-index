@@ -790,9 +790,6 @@ button.title-link { padding: 0; border: 0; background: none; font: inherit; text
 .sl-info a { color: var(--accent); }
 /* 年表：曲名で探す欄と、曲名の札 */
 .sl-nenpyo { padding-block: 14px 24px; }
-.sl-finder { padding: 14px 16px; border: 1px solid var(--line-card); border-radius: 10px; background: var(--card); }
-.sl-finder-row { display: flex; gap: 8px; margin-top: 6px; }
-.sl-finder input { flex: 1; min-width: 0; max-width: 440px; padding: 11px 14px; border: 1px solid var(--line-input); border-radius: 8px; background: var(--field); color: var(--ink); font-size: 16px; }
 .sl-clear { flex: none; padding: 0 16px; border: 1px solid var(--line-input); border-radius: 8px; background: var(--white); color: var(--ink); font-size: 13px; }
 .sl-song-info { margin-top: 10px; }
 .sl-song-head { margin: 0; font-size: 14px; line-height: 1.7; }
