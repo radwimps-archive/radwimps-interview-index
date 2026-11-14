@@ -212,6 +212,7 @@ function workBtn(text, panel) {
   return el("button", { type: "button", class: "song-work-btn", "aria-expanded": "false", "aria-controls": panel.id, title: "押すと、CD を探すリンクが開きます" }, text);
 }
 let uid = 0;
+let folded = false; // 「すべて閉じる」を選んだあとは、作品の曲を閉じた状態で並べる
 
 function render() {
   const q = norm(query);
@@ -223,6 +224,7 @@ function render() {
   if (!list.length) { box.append(el("p", { class: "hist-loading", text: "見つかりませんでした。言葉を変えて探してみてください。" })); return; }
   // 発売順は年ごと、50音順は「あ行」「か行」…「英数字」ごとにまとめる
   const kana = order === "kana";
+  $("#songFold").hidden = kana; // 曲の開閉は、発売順（作品ごとの見出しがあるとき）だけ
   const sorted = kana ? [...list].sort((a, b) => (a.row === ABC) - (b.row === ABC) || a.sortKey.localeCompare(b.sortKey, "ja") || a.title.localeCompare(b.title, "ja")) : list;
   const groups = new Map();
   // 発売順：年 → 作品（アルバム・シングル）ごと。同じ作品・同じ日の曲をひとまとめにする
@@ -238,14 +240,16 @@ function render() {
       continue;
     }
     const f = items[0];
+    const olId = `ol${++uid}`;
+    const shut = folded && !q; // 検索中は、見つかった曲を隠さない
     const day = f.m ? `${pad(f.m)}${f.d ? "." + pad(f.d) : ""}` : "";
     const work = f.work || f.title;
     const cdBuy = CD_KINDS.includes(f.kind) ? buyPanel(work) : null;
     box.append(el("section", { class: "hist-year song-release", "aria-labelledby": id },
-      el("h2", { id, class: "hist-year-head" }, el("span", { text: String(f.y) }), day ? el("time", { class: "song-release-date", text: day }) : null, el("small", { text: `${items.length} 曲` })),
+      el("h2", { id, class: "hist-year-head" }, el("span", { text: String(f.y) }), day ? el("time", { class: "song-release-date", text: day }) : null, el("button", { type: "button", class: "song-fold-btn", "aria-expanded": String(!shut), "aria-controls": olId, title: "押すと、この作品の曲を開く・閉じる" }, `${items.length} 曲`)),
       el("p", { class: "song-release-work" }, cdBuy ? workBtn(work, cdBuy) : el("span", { text: work }), el("span", { class: "song-kind", text: kindLabel(f.kind) })),
       cdBuy,
-      el("ol", { class: "song-items" }, ...items.map((x) => songItem(x, true)))));
+      el("ol", { class: "song-items", id: olId, hidden: shut }, ...items.map((x) => songItem(x, true)))));
   }
 }
 
@@ -275,8 +279,27 @@ function backToList() {
 }
 $("#songOpen").addEventListener("click", (e) => { const b = e.target.closest("[data-open]"); if (b) setOpen(b.dataset.open); });
 setOpen(lyricOpen);
+// 曲の開閉：作品ごと（件数のボタン）と、すべて（「曲の一覧」の2つのボタン）
+function setFolded(shut, btn) {
+  if (btn) { // 作品ひとつだけ
+    btn.setAttribute("aria-expanded", String(!shut));
+    const ol = document.getElementById(btn.getAttribute("aria-controls"));
+    if (ol) ol.hidden = shut;
+    return;
+  }
+  folded = shut;
+  for (const b of document.querySelectorAll(".song-fold-btn")) {
+    b.setAttribute("aria-expanded", String(!shut));
+    const ol = document.getElementById(b.getAttribute("aria-controls"));
+    if (ol) ol.hidden = shut;
+  }
+  for (const b of document.querySelectorAll("#songFold [data-fold]")) b.setAttribute("aria-pressed", String((b.dataset.fold === "shut") === shut));
+}
+$("#songFold").addEventListener("click", (e) => { const b = e.target.closest("[data-fold]"); if (b) setFolded(b.dataset.fold === "shut"); });
 // 曲名を押すと、購入リンクを開く・閉じる
 $("#songs").addEventListener("click", (e) => {
+  const fb = e.target.closest(".song-fold-btn");
+  if (fb) { setFolded(fb.getAttribute("aria-expanded") === "true", fb); return; }
   const b = e.target.closest(".song-title-btn, .song-work-btn");
   if (!b) return;
   const panel = document.getElementById(b.getAttribute("aria-controls"));

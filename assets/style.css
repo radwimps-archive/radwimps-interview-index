@@ -860,3 +860,11 @@ dialog.modal::backdrop { background: rgba(23, 32, 24, .5); -webkit-backdrop-filt
 .song-work-btn[aria-expanded="true"] { color: var(--accent); }
 .song-work-btn[aria-expanded="true"]::after { content: " ▴"; }
 .song-release-work + .song-buy { margin: 2px 0 8px; }
+
+/* 楽曲一覧：作品ごとの曲の開閉（件数のボタン）／「作品の曲の一覧」のすべて開く・閉じる */
+.song-open[hidden] { display: none; }
+.song-fold-btn { min-height: 32px; padding: 0 10px; border: 1px solid var(--line-entry); border-radius: 16px; background: var(--card); color: var(--muted); font: inherit; font-size: 12px; cursor: pointer; }
+.song-fold-btn::after { content: " ▴"; font-size: .8em; }
+.song-fold-btn[aria-expanded="false"]::after { content: " ▾"; }
+.song-fold-btn:hover { border-color: var(--accent); color: var(--accent); }
+.song-items[hidden] { display: none; }
