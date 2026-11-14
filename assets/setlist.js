@@ -11,11 +11,11 @@
 //           楽曲一覧（data/songs.csv）にない曲（未発表の曲・カバー・映画の劇伴など）は入れない。区分（国内ツアーなど）と年代で絞れる。多い順・少ない順を切り替えられる（1回も演奏していない曲は入れない）。曲名を押すと、年表でその曲を演奏したライブだけになる
 //   ライブ未演奏：楽曲一覧にあって、どの公演のセトリにも出てこない曲（#unplayed。songs.csv がないときはタブごと出しません）
 
-import { parseCSV, parseSetlists, songKey, SETLIST_CONFIDENCE, SETLIST_CATEGORIES } from "./data.js?v=20261114c";
+import { parseCSV, parseSetlists, songKey, SETLIST_CONFIDENCE, SETLIST_CATEGORIES } from "./data.js?v=20261115a";
 import { h as el, setupMenu, isAdminDevice } from "./ui.js";
 import { feedbackUrl, hasFeedback, setupBeta, KIND } from "./feedback.js";
-import { looseMatch, looseMatchAll, fold } from "./search.js?v=20261114c";
-import { attended, attendButton, attendCount, assignKeys, sync as syncAttend, setupAttendClicks } from "./attended.js?v=20261114c";
+import { looseMatch, looseMatchAll, fold } from "./search.js?v=20261115a";
+import { attended, attendButton, attendCount, assignKeys, sync as syncAttend, setupAttendClicks } from "./attended.js?v=20261115a";
 import "./analytics.js";
 
 const $ = (s) => document.querySelector(s);
@@ -164,6 +164,16 @@ function hitTour(t, query) {
   const whole = fold(query);
   return looseMatch(names, query) || (whole !== "" && inner.includes(whole)) || parts.every(one);
 }
+// 並び順のボタン（「新しい順 ⇅」など。押すたびに逆になる）。desc＝新しい順・多い順、asc＝古い順・少ない順
+const sortState = { mine: "desc", live: "desc", nenpyo: "asc", ranking: "desc" };
+const SORT_LABELS = { mine: ["新しい順", "古い順"], live: ["新しい順", "古い順"], nenpyo: ["新しい順", "古い順"], ranking: ["多い順", "少ない順"] };
+const isAsc = (v) => sortState[v] === "asc";
+function sortButton(v, rerender) {
+  const label = SORT_LABELS[v][isAsc(v) ? 1 : 0];
+  const b = el("button", { type: "button", class: "sl-sort", "aria-label": `並び順を切り替える（いまは${label}）` }, label, el("span", { class: "sl-sort-arrow", "aria-hidden": "true", text: "⇅" }));
+  b.addEventListener("click", () => { sortState[v] = isAsc(v) ? "desc" : "asc"; if (v === "ranking") rankAll = false; rerender(); });
+  return b;
+}
 const noHit = (q) => el("p", { class: "sl-mine-empty", text: `「${q}」に合うものは、見つかりませんでした。ひらがなや英語、ライブ名の一部でも探せます。` });
 
 function renderLives() {
@@ -173,9 +183,9 @@ function renderLives() {
   const list = tours.filter((t) => hitTour(t, q));
   const n = list.reduce((s, t) => s + t.lives.length, 0);
   box.replaceChildren(el("p", { class: "hist-view sl-view" }, el("b", { text: "ツアー・ライブごと" }),
-    el("span", { text: `${list.length} 件・${n} 公演・新しい順` })));
+    el("span", { text: `${list.length} 件・${n} 公演` }), sortButton("live", renderLives)));
   if (q && !list.length) box.append(noHit(q));
-  [...list].reverse().forEach((t, i) => box.append(tourCard(t, i === 0 && !q)));
+  (isAsc("live") ? list : [...list].reverse()).forEach((t, i) => box.append(tourCard(t, i === 0 && !q)));
 }
 
 /* ---------- 年表：年ごとのツアーと、演奏した曲 ---------- */
@@ -238,8 +248,9 @@ function renderTimeline() {
   box.replaceChildren();
   const rec = song ? songs.get(song) : null;
   const list = (rec ? tours.filter((t) => rec.plays.some((p) => p.live.tour === t)) : tours).filter((t) => hitTour(t, queries.nenpyo));
+  box.append(el("p", { class: "hist-view sl-view" }, el("b", { text: "年ごと" }), el("span", { text: `${list.length} 件` }), sortButton("nenpyo", renderTimeline)));
   const years = new Map();
-  for (const t of list) (years.get(t.y) || years.set(t.y, []).get(t.y)).push(t);
+  for (const t of (isAsc("nenpyo") ? list : [...list].reverse())) (years.get(t.y) || years.set(t.y, []).get(t.y)).push(t);
   for (const [y, items] of years) {
     const ol = el("ol", { class: "hist-list" });
     for (const t of items) {
@@ -279,12 +290,12 @@ function renderMine() {
   const openTours = new Set([...box.querySelectorAll("details.sl-mine-item[open]")].map((d) => d.dataset.tour));
   const openShows = new Set([...box.querySelectorAll("details.sl-show[open]")].map((d) => d.dataset.ak));
   const list = [];
-  for (const t of [...tours].reverse()) {
+  for (const t of (isAsc("mine") ? tours : [...tours].reverse())) {
     const ls = t.lives.filter((l) => attended.has(l.ak));
     if (ls.length && hitTour(t, queries.mine)) list.push({ t, ls });
   }
   const n = list.reduce((s, x) => s + x.ls.length, 0);
-  box.replaceChildren(el("p", { class: "hist-view sl-view" }, el("b", { text: "参加公演" }), el("span", { text: n ? `${list.length} 件・${n} 公演・新しい順` : "" })));
+  box.replaceChildren(el("p", { class: "hist-view sl-view" }, el("b", { text: "参加公演" }), el("span", { text: n ? `${list.length} 件・${n} 公演` : "" }), n ? sortButton("mine", renderMine) : null));
   if (!n && queries.mine) { box.append(noHit(queries.mine)); return; }
   if (!n) {
     box.append(el("p", { class: "sl-mine-empty", text: "まだ、行ったライブはありません。「ライブ」や「年表」で、公演の足あとのアイコンを押すと、ここに並びます。" }));
@@ -339,12 +350,13 @@ function renderRanking() {
   const { rows, total } = rankRows();
   const max = rows[0]?.n || 1;
   // 少ない順：回数の少ない曲から（同じ回数は曲名順）。0回の曲は、もともと数に入らないので出ません
-  const ordered = rows;
+  const asc = isAsc("ranking");
+  const ordered = asc ? [...rows].sort((a, b) => a.n - b.n || a.title.localeCompare(b.title, "ja")) : rows;
   const cut = ordered[Math.min(RANK_TOP, ordered.length) - 1];
   // はじめは30曲まで（30曲目と同じ回数の曲は、あわせて出します）
   const q = queries.ranking;
   // 検索の言葉があるときは、30曲の区切りをやめて、合う曲をすべて出す
-  const shown = q ? ordered.filter((r) => looseMatchAll(r.title, q)) : rankAll || !cut ? ordered : ordered.filter((r) => r.n >= cut.n);
+  const shown = q ? ordered.filter((r) => looseMatchAll(r.title, q)) : rankAll || !cut ? ordered : ordered.filter((r) => (asc ? r.n <= cut.n : r.n >= cut.n));
   const ol = el("ol", { class: "sl-rank" });
   for (const r of shown) {
     const bar = el("span", { class: "sl-rank-bar", "aria-hidden": "true" }, el("span", {}));
@@ -358,7 +370,7 @@ function renderRanking() {
   }
   box.replaceChildren(
     el("p", { class: "hist-view sl-view" }, el("b", { text: "すべて" }),
-      el("span", { text: total ? `セトリがある ${total} 公演・${rows.length} 曲` : "セトリがある公演は、まだありません" })),
+      el("span", { text: total ? `セトリがある ${total} 公演・${rows.length} 曲` : "セトリがある公演は、まだありません" }), rows.length ? sortButton("ranking", renderRanking) : null),
     el("p", { class: "sl-song-sub", text: "数字は、その曲を演奏した公演の数です（1つの公演で2回やっても1回。1回も演奏していない曲は入れていません" + (catalog.length ? "。楽曲一覧に載っていない曲（未発表の曲・ほかの人の曲のカバー・映画の劇伴）も入れていません" : "") + "）。% は、セトリがある公演のうち何割で演奏したか。曲名を押すと、その曲を演奏したライブが年表で並びます。" }),
     ...(q && !shown.length ? [noHit(q)] : []),
     ol);
