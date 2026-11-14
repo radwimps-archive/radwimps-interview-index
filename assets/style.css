@@ -183,6 +183,8 @@ body::before { content: ""; position: fixed; inset: 0 0 auto; height: env(safe-a
 .format-tabs::-webkit-scrollbar { display: none; }
 .format-tabs button { flex: 1 0 auto; min-height: 42px; padding: 9px 16px; border: 1px solid var(--line-entry); border-bottom: 0; border-left-width: 0; border-radius: 8px 8px 0 0; background: var(--sunk); color: var(--muted); font-size: 14px; white-space: nowrap; }
 .format-tabs button:first-child, .format-tabs button[aria-pressed="true"] + button { border-left-width: 1px; }
+/* 「記事」のタブは、「▶ 動画」のタブと同じ大きさにそろえる（余白で広げる） */
+.format-tabs button[data-format="text"], .format-tabs button[data-format="video"] { flex-basis: 6.6em; min-width: 6.6em; }
 .format-tabs small { margin-left: 4px; font-size: .85em; font-variant-numeric: tabular-nums; opacity: .8; }
 .format-tabs small[hidden] { display: none; }
 .format-tabs button:hover { color: var(--ink); background: var(--accent-tint); }
