@@ -37,7 +37,7 @@ function load(text) {
   const { events, errors } = parseHistory(text);
   // 書き間違いは公開前のチェックでエラーになるので、ここでは読めた行だけを並べる
   if (errors.length) console.warn("年表のデータに、直すところがあります", errors);
-  return events.map((e) => ({ ...e, cat: e.cats[0], tower: towerUrl(e.tower) }));
+  return events.map((e) => ({ ...e, cat: e.cats[0] }));
 }
 
 function renderTabs() {
@@ -72,7 +72,7 @@ function renderTimeline() {
         el("p", { class: "hist-meta" },
           e.m ? el("time", { text: dateLabel(e) }) : null,
           ...(e.cats || [e.cat]).map((c) => el("span", { class: `hist-cat cat-${c.slug}`, text: c.name }))),
-        titleLine(e),
+        ...titleLine(e),
         e.note ? el("p", { class: "hist-sub", text: e.note }) : null,
         videoLine(e)));
     }
@@ -116,41 +116,67 @@ function mvSongs() {
   return mvCache;
 }
 
-// タワーレコードのリンク。CSV には、検索する言葉（例：RADWIMPS 人間開花）か、tower.jp の商品ページの URL を書く。
-// config.js にバリューコマースの sid・pid を書くと、アフィリエイトリンクになる。
+// 「CD を探す」のお店（タワーレコード・Amazon・楽天）。楽曲一覧の「CD を探す」と同じ形です。
+//   CSV の「タワーレコード」の列には、検索する言葉（例：RADWIMPS 人間開花）か、tower.jp の商品ページの URL を書く。
+//   Amazon と楽天は、検索する言葉で探す（商品ページの URL を書いた行は「RADWIMPS 作品名」で探す）。
+//   config.js にバリューコマースの sid・pid（タワーレコード）、amazonTag（Amazon）、rakutenAffiliate（楽天）を書くと、
+//   そのお店のリンクがアフィリエイトリンクになり、「PR」が出ます。空欄のお店は、ふつうのリンクです。
 const AFF = config.towerAffiliate || {};
-const affiliateOn = !!(AFF.sid && AFF.pid);
-function towerUrl(v) {
-  if (!v) return "";
-  const plain = /^https:\/\/tower\.jp\/[^\s"<>]*$/.test(v) ? v : `https://tower.jp/search/item/${encodeURIComponent(v)}`;
-  if (!affiliateOn) return plain;
-  return `https://ck.jp.ap.valuecommerce.com/servlet/referral?sid=${encodeURIComponent(AFF.sid)}&pid=${encodeURIComponent(AFF.pid)}&vc_url=${encodeURIComponent(plain)}`;
+const towerAff = !!(AFF.sid && AFF.pid);
+const amazonTag = /^[\w-]+-22$/.test(config.amazonTag || "") ? config.amazonTag : "";
+const rakutenId = /^[0-9a-f]{8}(\.[0-9a-f]{8}){3}$/.test(config.rakutenAffiliate || "") ? config.rakutenAffiliate : "";
+const SHOPS = [
+  { name: "タワレコ", aff: towerAff, url: (v) => {
+    const plain = /^https:\/\/tower\.jp\/[^\s"<>]*$/.test(v) ? v : `https://tower.jp/search/item/${encodeURIComponent(v)}`;
+    return towerAff ? `https://ck.jp.ap.valuecommerce.com/servlet/referral?sid=${encodeURIComponent(AFF.sid)}&pid=${encodeURIComponent(AFF.pid)}&vc_url=${encodeURIComponent(plain)}` : plain;
+  } },
+  { name: "Amazon", aff: !!amazonTag, url: (v, word) => `https://www.amazon.co.jp/s?k=${encodeURIComponent(word)}&i=music${amazonTag ? `&tag=${amazonTag}` : ""}` },
+  { name: "楽天", aff: !!rakutenId, url: (v, word) => {
+    const plain = `https://search.rakuten.co.jp/search/mall/${encodeURIComponent(word)}/`;
+    return rakutenId ? `https://hb.afl.rakuten.co.jp/hgc/${rakutenId}/?pc=${encodeURIComponent(plain)}&link_type=text` : plain;
+  } }
+];
+const affiliateOn = SHOPS.some((s) => s.aff);
+let buyId = 0;
+// 作品名を押すと、出来事のすぐ下に開く「CD を探す」の行
+function buyPanel(e, name) {
+  const word = /^https:/.test(e.tower) ? `RADWIMPS ${name}` : e.tower;
+  return el("p", { class: "hist-buy", id: `buy${++buyId}`, hidden: "" },
+    el("span", { class: "hist-buy-label", text: "CD を探す" }),
+    ...SHOPS.map((s) => el("a", { class: "hist-shop", href: s.url(e.tower, word), target: "_blank",
+      rel: s.aff ? "sponsored noopener noreferrer" : "noopener noreferrer",
+      "aria-label": `「${name}」を${s.name}で探す（新しいタブ）${s.aff ? "（広告）" : ""}` },
+      `${s.name} ↗`, s.aff ? el("span", { class: "pr", text: "PR" }) : null)));
 }
 
-// 出来事の見出し。いちばん初めの「」か『』の中（作品名・ライブ名）を、リンクにする。
-//   リリース：タワーレコード（CSV の「タワーレコード」の列）
-//   ライブ：特設サイト、なければ公式サイトのライブ情報のページ（「特設サイト」の列）
-//   リンクにするのは作品名の文字だけ（行全体にはしない）。点線の下線で、控えめに示す。
+// 出来事の見出し。いちばん初めの「」か『』の中（作品名・ライブ名）を、押せるようにする。
+//   リリース（CSV の「タワーレコード」の列がある行）：押すと、すぐ下に「CD を探す」（タワレコ・Amazon・楽天）が開く
+//   ライブなど：特設サイト、なければ公式サイトのライブ情報のページ（「特設サイト」の列）へのリンク
+//   押せるのは作品名の文字だけ（行全体にはしない）。点線の下線で、控えめに示す。
+//   見出しと、開く行（「CD を探す」）を配列で返す
 function titleLine(e) {
   const p = el("p", { class: "hist-title" });
   const href = e.tower || e.site;
   const m = href ? e.title.match(/[「『]/) : null;
-  if (!m) { p.textContent = e.title; return p; }
+  if (!m) { p.textContent = e.title; return [p]; }
   const open = m.index, close = e.title.indexOf(m[0] === "「" ? "」" : "』", open + 1);
-  if (close < 0) { p.textContent = e.title; return p; }
+  if (close < 0) { p.textContent = e.title; return [p]; }
   const name = e.title.slice(open + 1, close);
-  const tower = !!e.tower;
+  if (e.tower) {
+    const panel = buyPanel(e, name);
+    const b = el("button", { type: "button", class: "title-link title-buy", "aria-expanded": "false", "aria-controls": panel.id,
+      title: `押すと「${name}」の CD を探すお店（タワレコ・Amazon・楽天）が開きます` }, name);
+    p.append(e.title.slice(0, open + 1), b, e.title.slice(close));
+    return [p, panel];
+  }
   const a = el("a", {
-    class: "title-link", href, target: "_blank",
-    rel: tower && affiliateOn ? "sponsored noopener noreferrer" : "noopener noreferrer",
-    title: tower ? `「${name}」をタワーレコードで見る（新しいタブで開きます）`
-      : /radwimps\.jp\/live(_archive)?\//.test(href) ? `「${name}」の公式サイトのライブ情報（新しいタブで開きます）`
+    class: "title-link", href, target: "_blank", rel: "noopener noreferrer",
+    title: /radwimps\.jp\/live(_archive)?\//.test(href) ? `「${name}」の公式サイトのライブ情報（新しいタブで開きます）`
       : /radwimps\.jp\/news\//.test(href) ? `「${name}」についての公式サイトのお知らせ（新しいタブで開きます）`
       : /\/\/radwimps\.jp\//.test(href) ? `「${name}」の特設サイト（新しいタブで開きます）` : `「${name}」の公式ページ（新しいタブで開きます）`
   }, name);
   p.append(e.title.slice(0, open + 1), a, e.title.slice(close));
-  if (tower && affiliateOn) p.append(el("span", { class: "pr", text: "PR", title: "広告（アフィリエイトリンク）" }));
-  return p;
+  return [p];
 }
 
 // 動画（MV・予告編など）。CSV の「動画」の列に「ラベル=YouTube の ID か URL」を「 | 」で区切って書く。
@@ -247,7 +273,15 @@ const headerH = () => $("#header").getBoundingClientRect().height;
 
 const tapIsAccident = () => tap.touch && (tap.moved || tap.scrolling);
 $("#timeline").addEventListener("click", (e) => {
-  if (e.target.closest("a.title-link")) { if (tapIsAccident()) e.preventDefault(); return; }
+  if (e.target.closest("a.title-link, a.hist-shop")) { if (tapIsAccident()) e.preventDefault(); return; }
+  const buy = e.target.closest(".title-buy");
+  if (buy) {
+    if (tapIsAccident()) return;
+    const open = buy.getAttribute("aria-expanded") !== "true";
+    buy.setAttribute("aria-expanded", String(open));
+    document.getElementById(buy.getAttribute("aria-controls")).hidden = !open;
+    return;
+  }
   const btn = e.target.closest(".vbtn");
   if (!btn || tapIsAccident()) return;
   const wasOpen = btn.getAttribute("aria-expanded") === "true";
