@@ -903,3 +903,11 @@ button.title-link { padding: 0; border: 0; background: none; font: inherit; text
 /* 楽曲一覧：種類の絞り込みボタンは1列に並べ、入りきらない分は左右に動かして見る（スクロールバーは出さない） */
 .song-kinds { flex-wrap: nowrap; overflow-x: auto; margin-inline: -16px; padding-inline: 16px; scroll-padding-inline: 16px; overscroll-behavior-x: contain; scrollbar-width: none; -webkit-overflow-scrolling: touch; }
 .song-kinds::-webkit-scrollbar { display: none; }
+/* 楽曲一覧：種類の絞り込みはタブの見た目（下線のついた文字。今見ている種類は色と太い下線） */
+.song-kinds { gap: 0; padding-block: 0; margin-bottom: 6px; border-bottom: 1px solid var(--rule); }
+.song-kinds .hist-tab { min-height: 44px; padding: 0 12px; border: 0; border-bottom: 3px solid transparent; border-radius: 0; background: none; align-items: center; color: var(--muted); font-size: 14px; }
+.song-kinds .hist-tab:hover { background: none; color: var(--accent); }
+.song-kinds .hist-tab[aria-pressed="true"] { border-color: var(--accent); background: none; color: var(--accent); font-weight: 700; }
+.song-kinds .hist-tab[aria-pressed="true"] small { color: var(--accent); }
+.song-kinds .hist-tab:first-child { padding-left: 4px; }
+.song-kinds .hist-tab::before { content: none; }
