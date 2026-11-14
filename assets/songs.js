@@ -157,18 +157,18 @@ function match(s, kind, q) {
 function songItem(s, inRelease) {
   // 発売順では、日付と作品名は「発売ごとの見出し」に出すので、曲の行には種類の札だけ。50音順では今までどおり日付・作品名も出す
   // （種類の札も、発売順では作品名の隣に1つだけ出す）
-  const cdBuy = !inRelease && CD_KINDS.includes(s.kind) && s.work ? buyPanel(s.work) : null;
+  // 作品名を押すと開く行：CD の作品は「CD を探す」、配信シングルは「聴く」（配信サービス）
+  const linkBox = inRelease ? null : releasePanel(s.kind, s.work || s.title, s.base);
   const meta = inRelease ? null : el("p", { class: "song-meta" },
     el("time", { text: dateLabel(s) }),
     el("span", { class: "song-kind", text: kindLabel(s.kind) }),
-    s.work && s.work !== s.title ? (cdBuy ? workBtn(`「${s.work}」`, cdBuy) : el("span", { text: s.kind === "動画公開" ? s.work : `「${s.work}」` })) : null);
+    linkBox ? workBtn(`「${s.work || s.title}」`, linkBox) : s.work && s.work !== s.title ? el("span", { text: s.kind === "動画公開" ? s.work : `「${s.work}」` }) : null);
   // 曲名の下に出す一言は、タイアップと、メジャーデビューシングルの印だけ（ほかの「メモ」は、画面には出さない。歌のない曲の判定などにだけ使う）
   const subs = [];
   if (s.tieup) subs.push(el("p", { class: "song-sub song-tieup", text: s.tieup }));
   if (/^メジャーデビュー/.test(s.note)) subs.push(el("p", { class: "song-sub", text: s.note }));
 
   const links = el("div", { class: "song-links song-panel", id: `lyr${++uid}`, hidden: true });
-  const after = [];
   // 歌のない曲（「メモ」が「インスト」「スキット」で始まる曲）と、歌詞を載せない曲（「歌詞非公開」で始まる曲）には、「歌詞」を出さない
   if (/^(インスト|スキット|歌詞非公開)/.test(s.note)) {
     // 何も出さない
@@ -187,11 +187,6 @@ function songItem(s, inRelease) {
     const label = s.video.kind === "MV" ? "MV" : s.video.kind;
     links.append(el("a", { class: "song-btn", href: youtube(s.video.id), target: "_blank", rel: "noopener noreferrer", "aria-label": `「${s.title}」の${label}を YouTube で見る`, text: `▶ ${label}` }));
   }
-  // 聴く（配信の曲）・買う（CD の作品）
-  if (s.kind === "配信") {
-    after.push(el("div", { class: "song-links song-shops" }, el("span", { class: "song-label", text: "聴く" }),
-      ...LISTEN.map((m) => el("a", { class: "song-btn song-shop", href: m.url(s.base), target: "_blank", rel: "noopener noreferrer", "aria-label": `「${s.title}」を${m.name}で聴く（新しいタブ）`, text: `${m.name} ↗` }))));
-  }
   // 曲名を押すと、「歌詞」「MV・ライブ映像」が曲名の下に開きます。「記事」は曲名の隣に出したままです
   let title = el("h3", { class: "song-title", text: s.title }), panel = null;
   if (links.children.length) {
@@ -199,7 +194,18 @@ function songItem(s, inRelease) {
     title = el("h3", { class: "song-title" }, el("button", { type: "button", class: "song-title-btn", "aria-expanded": "false", "aria-controls": links.id, title: "押すと、歌詞などが開きます" }, s.title));
   }
   const art = s.articles ? el("a", { class: "song-btn song-articles", href: `./?work=${encodeURIComponent(s.base)}&format=all`, text: `記事 ${s.articles}件` }) : null;
-  return el("li", { class: "song-item" }, el("div", { class: "song-head" }, title, art), panel, meta, cdBuy, ...subs, ...after);
+  return el("li", { class: "song-item" }, el("div", { class: "song-head" }, title, art), panel, meta, linkBox, ...subs);
+}
+function releasePanel(kind, work, base) {
+  if (CD_KINDS.includes(kind)) return buyPanel(work);
+  if (kind === "配信") return listenPanel(work, base || work);
+  return null;
+}
+// 配信シングルの作品名を押すと開く「聴く」（Spotify・Apple Music・YouTube Music）
+function listenPanel(work, base) {
+  return el("div", { class: "song-links song-buy", id: `buy${++uid}`, hidden: true }, el("span", { class: "song-label", text: "聴く" }),
+    ...LISTEN.map((m) => el("a", { class: "song-btn song-shop", href: m.url(base), target: "_blank", rel: "noopener noreferrer",
+      "aria-label": `「${work}」を${m.name}で聴く（新しいタブ）`, text: `${m.name} ↗` })));
 }
 // 作品名（アルバム名・シングル名）を押すと開く「CD を探す」（タワレコ・Amazon・楽天）
 function buyPanel(work) {
@@ -209,7 +215,7 @@ function buyPanel(work) {
       "aria-label": `「${work}」の CD を${m.name}で探す（新しいタブ）`, text: `${m.name} ↗` }, m.aff ? el("span", { class: "pr", text: "PR" }) : null)));
 }
 function workBtn(text, panel) {
-  return el("button", { type: "button", class: "song-work-btn", "aria-expanded": "false", "aria-controls": panel.id, title: "押すと、CD を探すリンクが開きます" }, text);
+  return el("button", { type: "button", class: "song-work-btn", "aria-expanded": "false", "aria-controls": panel.id, title: "押すと、リンクが開きます" }, text);
 }
 let uid = 0;
 let folded = false; // 「すべて閉じる」を選んだあとは、作品の曲を閉じた状態で並べる
@@ -261,7 +267,7 @@ function render() {
       const f = items[0];
       const olId = `ol${++uid}`;
       const work = relName(f);
-      const cdBuy = CD_KINDS.includes(f.kind) ? buyPanel(work) : null;
+      const cdBuy = releasePanel(f.kind, work, f.work === f.title || !f.work ? f.base : work);
       ol.append(el("li", { class: "hist-item song-release" },
         el("p", { class: "hist-meta" }, el("time", { text: dateLabel(f) }),
           el("button", { type: "button", class: "song-fold-btn", "aria-expanded": String(!shut), "aria-controls": olId, title: "押すと、この作品の曲を開く・閉じる" }, `${items.length} 曲`)),
