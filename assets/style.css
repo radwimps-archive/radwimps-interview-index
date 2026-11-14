@@ -793,9 +793,6 @@ button.title-link { padding: 0; border: 0; background: none; font: inherit; text
 
 /* ---------- 楽曲一覧（songs.html） ---------- */
 .song-lyric-note { margin: 10px 0 0; padding: 9px 12px; border-left: 3px solid var(--accent-soft); background: var(--card); font-size: 11.5px; line-height: 1.7; color: var(--ink-2); }
-.song-kinds { padding-block: 0 4px; }
-.song-kinds .hist-tab small { display: inline; }
-.song-kinds .hist-tab::before { content: none; }
 .song-list { padding-block: 0 24px; }
 .song-items { list-style: none; margin: 0; padding: 0; }
 .song-item { padding: 14px 0; border-bottom: 1px solid var(--rule); }
@@ -899,6 +896,9 @@ button.title-link { padding: 0; border: 0; background: none; font: inherit; text
   .entry-tabs strong { font-size: 14px; }
 }
 
-/* 楽曲一覧：種類の絞り込みボタンは1列に並べ、入りきらない分は左右に動かして見る（スクロールバーは出さない） */
-.song-kinds { flex-wrap: nowrap; overflow-x: auto; padding-block: 4px; margin-inline: -16px; padding-inline: 16px; scroll-padding-inline: 16px; overscroll-behavior-x: contain; scrollbar-width: none; -webkit-overflow-scrolling: touch; }
+/* 楽曲一覧：種類のタブは、記事一覧の「記事・動画・ラジオ・すべて」と同じ作り（.format-tabs）。曲の一覧のほうは帯が別にあるので、上には残さない。タブが多いので、入りきらない分は左右に動かす */
+.song-kinds { position: static; margin-bottom: 14px; padding-inline: 0; overflow-x: auto; overscroll-behavior-x: contain; scrollbar-width: none; -webkit-overflow-scrolling: touch; }
 .song-kinds::-webkit-scrollbar { display: none; }
+.song-kinds button { flex: none; padding-inline: 12px; }
+.song-kinds button[aria-pressed="true"] { flex-grow: 0; }
+.song-kinds button small { margin-left: 5px; font-size: .85em; font-weight: 400; font-variant-numeric: tabular-nums; opacity: .8; }

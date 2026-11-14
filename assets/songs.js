@@ -131,7 +131,7 @@ function renderFilters() {
   for (const f of FILTERS) {
     const n = kinds(songs.filter((s) => match(s, f.slug, "")));
     if (!n) continue;
-    box.append(el("button", { type: "button", role: "tab", class: "hist-tab", "aria-selected": String(f.slug === current), "data-kind": f.slug, "aria-label": `${f.name} ${n}曲` },
+    box.append(el("button", { type: "button", "aria-pressed": String(f.slug === current), "data-kind": f.slug, "aria-label": `${f.name} ${n}曲` },
       el("span", { text: f.name }), el("small", { text: String(n) })));
   }
 }
@@ -273,18 +273,9 @@ $("#songKinds").addEventListener("click", (e) => {
   const b = e.target.closest("[data-kind]");
   if (!b) return;
   current = b.dataset.kind;
-  for (const x of document.querySelectorAll("#songKinds [data-kind]")) x.setAttribute("aria-selected", String(x === b));
+  for (const x of document.querySelectorAll("#songKinds [data-kind]")) x.setAttribute("aria-pressed", String(x === b));
   render();
   backToList();
-});
-// 左右の矢印キーでタブを移動（歩みのタブと同じ）
-$("#songKinds").addEventListener("keydown", (e) => {
-  if (e.key !== "ArrowRight" && e.key !== "ArrowLeft") return;
-  const bs = [...document.querySelectorAll("#songKinds [data-kind]")];
-  const i = bs.findIndex((b) => b.getAttribute("aria-selected") === "true");
-  const next = bs[(i + (e.key === "ArrowRight" ? 1 : bs.length - 1)) % bs.length];
-  next.click();
-  document.querySelector(`#songKinds [data-kind="${next.dataset.kind}"]`).focus();
 });
 // 並び順（発売順・50音順）。URL の ?sort=kana で、50音順で開けます
 function setOrder(o) {
