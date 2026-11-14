@@ -226,30 +226,46 @@ function render() {
   const kana = order === "kana";
   $("#songFold").hidden = kana; // 曲の開閉は、発売順（作品ごとの見出しがあるとき）だけ
   const sorted = kana ? [...list].sort((a, b) => (a.row === ABC) - (b.row === ABC) || a.sortKey.localeCompare(b.sortKey, "ja") || a.title.localeCompare(b.title, "ja")) : list;
-  const groups = new Map();
-  // 発売順：年 → 作品（アルバム・シングル）ごと。同じ作品・同じ日の曲をひとまとめにする
-  const key = (x) => (kana ? x.row : `${x.y}|${x.m || 0}|${x.d || 0}|${x.work || x.title}`);
-  for (const s of sorted) { const g = key(s); (groups.get(g) || groups.set(g, []).get(g)).push(s); }
-  let n = 0;
-  for (const [g, items] of groups) {
-    const id = `sg${n++}`;
-    if (kana) {
+  if (kana) {
+    const groups = new Map();
+    for (const s of sorted) (groups.get(s.row) || groups.set(s.row, []).get(s.row)).push(s);
+    let n = 0;
+    for (const [g, items] of groups) {
+      const id = `sg${n++}`;
       box.append(el("section", { class: "hist-year song-row", "aria-labelledby": id },
         el("h2", { id, class: "hist-year-head" }, el("span", { text: String(g) }), el("small", { text: `${items.length} 曲` })),
         el("ol", { class: "song-items" }, ...items.map((x) => songItem(x, false)))));
-      continue;
     }
-    const f = items[0];
-    const olId = `ol${++uid}`;
-    const shut = folded && !q; // 検索中は、見つかった曲を隠さない
-    const day = f.m ? `${pad(f.m)}${f.d ? "." + pad(f.d) : ""}` : "";
-    const work = f.work || f.title;
-    const cdBuy = CD_KINDS.includes(f.kind) ? buyPanel(work) : null;
-    box.append(el("section", { class: "hist-year song-release", "aria-labelledby": id },
-      el("h2", { id, class: "hist-year-head" }, el("span", { text: String(f.y) }), day ? el("time", { class: "song-release-date", text: day }) : null, el("button", { type: "button", class: "song-fold-btn", "aria-expanded": String(!shut), "aria-controls": olId, title: "押すと、この作品の曲を開く・閉じる" }, `${items.length} 曲`)),
-      el("p", { class: "song-release-work" }, cdBuy ? workBtn(work, cdBuy) : el("span", { text: work }), el("span", { class: "song-kind", text: kindLabel(f.kind) })),
-      cdBuy,
-      el("ol", { class: "song-items", id: olId, hidden: shut }, ...items.map((x) => songItem(x, true)))));
+    return;
+  }
+  // 発売順：「RADWIMPSの歩み」と同じく、年の見出しは1回だけ。年の中に、作品（アルバム・シングル）ごとの項目を、日付つきで並べる
+  // （同じ作品・同じ日の曲は、ひとつの項目にまとめる）
+  const years = new Map();
+  for (const s of sorted) {
+    const rel = years.get(s.y) || years.set(s.y, new Map()).get(s.y);
+    const k = `${s.m || 0}|${s.d || 0}|${s.work || s.title}`;
+    (rel.get(k) || rel.set(k, []).get(k)).push(s);
+  }
+  const shut = folded && !q; // 検索中は、見つかった曲を隠さない
+  for (const [y, rels] of years) {
+    const id = `sy${y}`;
+    const total = [...rels.values()].reduce((a, v) => a + v.length, 0);
+    const ol = el("ol", { class: "hist-list song-releases" });
+    for (const items of rels.values()) {
+      const f = items[0];
+      const olId = `ol${++uid}`;
+      const work = f.work || f.title;
+      const cdBuy = CD_KINDS.includes(f.kind) ? buyPanel(work) : null;
+      ol.append(el("li", { class: "hist-item song-release" },
+        el("p", { class: "hist-meta" }, el("time", { text: dateLabel(f) }),
+          el("button", { type: "button", class: "song-fold-btn", "aria-expanded": String(!shut), "aria-controls": olId, title: "押すと、この作品の曲を開く・閉じる" }, `${items.length} 曲`)),
+        el("p", { class: "song-release-work" }, cdBuy ? workBtn(work, cdBuy) : el("span", { text: work }), el("span", { class: "song-kind", text: kindLabel(f.kind) })),
+        cdBuy,
+        el("ol", { class: "song-items", id: olId, hidden: shut }, ...items.map((x) => songItem(x, true)))));
+    }
+    box.append(el("section", { class: "hist-year", id, "aria-labelledby": `${id}h` },
+      el("h2", { id: `${id}h`, class: "hist-year-head" }, el("span", { text: String(y) }), el("small", { text: `${total} 曲` })),
+      ol));
   }
 }
 
