@@ -141,7 +141,7 @@ function renderFilters() {
   const box = $("#songKinds");
   box.replaceChildren();
   for (const f of FILTERS) {
-    const n = songs.filter((s) => match(s, f.slug, "")).length;
+    const n = kinds(songs.filter((s) => match(s, f.slug, "")));
     if (!n) continue;
     box.append(el("button", { type: "button", class: "hist-tab", "aria-pressed": String(f.slug === current), "data-kind": f.slug, "aria-label": `${f.name} ${n}曲` },
       el("span", { text: f.name }), el("small", { text: String(n) })));
@@ -214,6 +214,9 @@ function workBtn(text, panel) {
 let uid = 0;
 let folded = false; // 「すべて閉じる」を選んだあとは、作品の曲を閉じた状態で並べる
 
+// 曲数：シングルのカップリングが、あとでアルバムに入るなど、2つの作品に載る曲は、1曲と数える
+const kinds = (arr) => new Set(arr.map((s) => s.title)).size;
+
 // 発売順の項目の名前：アルバム名・シングル名。動画公開は、作品名が「YouTube で公開」で札と重なるので、曲名を出す
 const relName = (s) => (s.kind === "動画公開" ? s.title : s.work || s.title);
 
@@ -221,7 +224,7 @@ function render() {
   const q = norm(query);
   const list = songs.filter((s) => match(s, current, q));
   const label = FILTERS.find((f) => f.slug === current).name;
-  $("#songView").replaceChildren(el("b", { text: current === "all" ? "すべての曲" : label }), el("span", { text: `${list.length} 曲` }));
+  $("#songView").replaceChildren(el("b", { text: current === "all" ? "すべての曲" : label }), el("span", { text: `${kinds(list)} 曲` }));
   const box = $("#songs");
   box.replaceChildren();
   if (!list.length) { box.append(el("p", { class: "hist-loading", text: "見つかりませんでした。言葉を変えて探してみてください。" })); return; }
@@ -236,7 +239,7 @@ function render() {
     for (const [g, items] of groups) {
       const id = `sg${n++}`;
       box.append(el("section", { class: "hist-year song-row", "aria-labelledby": id },
-        el("h2", { id, class: "hist-year-head" }, el("span", { text: String(g) }), el("small", { text: `${items.length} 曲` })),
+        el("h2", { id, class: "hist-year-head" }, el("span", { text: String(g) }), el("small", { text: `${kinds(items)} 曲` })),
         el("ol", { class: "song-items" }, ...items.map((x) => songItem(x, false)))));
     }
     return;
@@ -252,7 +255,7 @@ function render() {
   const shut = folded && !q; // 検索中は、見つかった曲を隠さない
   for (const [y, rels] of years) {
     const id = `sy${y}`;
-    const total = [...rels.values()].reduce((a, v) => a + v.length, 0);
+    const total = kinds([...rels.values()].flat());
     const ol = el("ol", { class: "hist-list song-releases" });
     for (const items of rels.values()) {
       const f = items[0];
@@ -359,7 +362,7 @@ if (BUY.some((m) => m.aff)) { $("#prTop").hidden = false; $("#prNote").hidden = 
     const [songText, articleText, historyText] = await Promise.all([get("data/songs.csv"), get("data/articles.csv"), get("data/history.csv")]);
     if (!songText) throw new Error("songs.csv を読めませんでした");
     songs = load(songText, articleText, historyText);
-    $("#songCount").textContent = `${songs.length}`;
+    $("#songCount").textContent = `${kinds(songs)}`;
     const p = new URLSearchParams(location.search);
     if (p.get("q")) { query = p.get("q").slice(0, 100); $("#songQ").value = query; }
     renderFilters();
