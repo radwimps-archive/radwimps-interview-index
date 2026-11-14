@@ -102,7 +102,8 @@ body::before { content: ""; position: fixed; inset: 0 0 auto; height: env(safe-a
 
 /* ロゴ：朱色の「r.」と、RADWIMPS / INTERVIEW ARCHIVES */
 .brand { display: flex; align-items: center; gap: 10px; color: var(--ink); text-decoration: none; }
-.brand-text { display: block; font-size: 19px; font-weight: 800; line-height: 1.3; letter-spacing: .5px; white-space: nowrap; }
+.brand-text { display: block; font-size: 18px; font-weight: 800; line-height: 1.25; letter-spacing: 1px; white-space: nowrap; }
+.brand-text span { display: block; font-weight: 300; letter-spacing: 1.6px; }
 
 /* メニュー：帯のすぐ下から 0.3 秒で降りてくる（帯より上には出ない） */
 .menu-clip { position: absolute; top: 60px; left: 0; right: 0; overflow: hidden; pointer-events: none; }
@@ -527,7 +528,7 @@ dialog.modal::backdrop { background: rgba(23, 32, 24, .5); -webkit-backdrop-filt
   .wrap { padding-inline: 40px; }
   .header-inner { gap: 14px; padding: 0 48px 0 20px; }
   .brand { gap: 12px; }
-  .brand-text { font-size: 21px; }
+  .brand-text { font-size: 20px; }
   .eyebrow { font-size: 9px; letter-spacing: .155em; }
   .hero { padding-block: 38px 25px; }
   .hero h1 { font-size: 30px; line-height: 1.6; letter-spacing: .025em; }
@@ -783,7 +784,8 @@ button.title-link { padding: 0; border: 0; background: none; font: inherit; text
 @media (max-width: 300px) {
   .header-inner { gap: 6px; padding-right: 8px; }
   .brand { gap: 6px; }
-  .brand-text { font-size: 15px; letter-spacing: .3px; }
+  .brand-text { font-size: 15px; letter-spacing: .6px; }
+  .brand-text span { letter-spacing: 1px; }
   .beta-badge { padding: 1px 4px; font-size: 10px; }
   .entry-tabs { grid-template-columns: minmax(0, 1fr); }
 }
