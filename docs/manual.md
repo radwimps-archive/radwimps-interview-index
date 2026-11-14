@@ -465,7 +465,7 @@ Google スプレッドシートを使う場合も同じ流れです：「ファ�
 | SNS でリンクを貼ったときの題名・説明・画像 | 各ページの `<head>` の `og:`・`twitter:` で始まる行。画像は `assets/ogp.png`（1200×630。差し替えるときも同じ名前・大きさで） |
 | 色 | `assets/style.css` の先頭（「色と書体」）。朱色は `--accent`、選んでいる印の濃い緑は `--green`、既読の緑は `--read-` で始まる色です |
 | 「種類」の選択肢 | `assets/data.js` の `KIND_ORDER`（「インタビュー」「動画」「ラジオ」「リリース情報」「ライブレポート」「ほかの人が語る」という名前を変えるときは、同じファイルの `INTERVIEW_KIND`・`VIDEO_KIND`・`RADIO_KIND`・`RELEASE_KIND`・`LIVE_KIND`・`OTHERS_KIND` も同じ名前に直します） |
-| 年表のカテゴリ（名前・順番・タブの短い名前） | `assets/data.js` の `HISTORY_CATEGORIES`。名前を変えたら、history.csv の「カテゴリ」列も同じ名前に直します。色は `assets/style.css` の `.cat-〇〇` です |
+| 年表のカテゴリ（名前・順番・タブの短い名前） | `assets/data.js` の `HISTORY_CATEGORIES`。名前を変えたら、history.csv の「カテゴリ」列も同じ名前に直します。色は `assets/style.css` の `.cat-〇〇` です（上のタブの色と、選んでいるタブの下の線の色になります）。タブはすき間なく一続きで、入りきらないときは左右にスクロールできます |
 | 「内容から選ぶ」のカテゴリ（名前・順番・説明） | `assets/data.js` の `CATEGORIES`。名前を変えたら、articles.csv の「カテゴリ」列も同じ名前に直します。`slug`（以前の URL の名前）は変えないでください |
 | 「載せない」サイトの一覧（注意を出すサイト） | `assets/data.js` の `APP_OR_STORE_HOSTS` |
 | 有料会員限定のサイトの一覧（エラーにするサイト） | `assets/data.js` の `PAID_MEMBERS_HOSTS` |

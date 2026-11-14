@@ -635,25 +635,22 @@ dialog.modal::backdrop { background: rgba(23, 32, 24, .5); -webkit-backdrop-filt
 .era-links a::after { content: " ↓"; font-family: var(--f-body); font-size: 12px; }
 .era-links a:hover { color: var(--accent); }
 .era-links .off { opacity: .4; }
-/* カテゴリのタブ：上の帯のすぐ下に残る */
-.hist-tabs-bar { position: sticky; top: calc(60px + env(safe-area-inset-top, 0px)); z-index: 10; background: var(--paper); border-bottom: 1px solid var(--rule); }
-/* スマホでは2段に折り返して、全部のタブが見えるように（件数はタブに出さず、年表のいちばん上に出す） */
-.hist-tabs { display: flex; flex-wrap: wrap; gap: 6px; padding-block: 8px; }
-.hist-tab { flex: none; display: inline-flex; align-items: baseline; gap: 6px; min-height: 36px; padding: 7px 12px; border: 1px solid var(--line-entry); border-radius: 20px; background: var(--card); color: var(--ink); font-size: 13px; white-space: nowrap; }
+/* カテゴリのタブ：上の帯のすぐ下に残る。すき間なく一続きに並べ、下に細い線。線の色は、選んでいるカテゴリの色。
+   入りきらないときは左右にスクロールできる（選んでいるタブは紺ではなく、そのカテゴリの色） */
+.hist-tabs-bar { position: sticky; top: calc(60px + env(safe-area-inset-top, 0px)); z-index: 10; background: var(--paper); }
+.hist-tabs { --cat: var(--accent); display: flex; align-items: flex-end; padding-top: 10px; border-bottom: 2px solid var(--cat); overflow-x: auto; overscroll-behavior-x: contain; scrollbar-width: none; -webkit-overflow-scrolling: touch; }
+.hist-tabs::-webkit-scrollbar { display: none; }
+.hist-tab { flex: 0 0 auto; display: inline-flex; align-items: center; justify-content: center; gap: 6px; min-height: 38px; padding: 8px 14px; border: 1px solid var(--line-entry); border-bottom: 0; border-left-width: 0; border-radius: 8px 8px 0 0; background: var(--sunk); color: var(--muted); font-size: 13.5px; white-space: nowrap; }
+.hist-tab:first-child, .hist-tab[aria-selected="true"] + .hist-tab { border-left-width: 1px; }
 .hist-tab .lbl-full { display: none; }
-.hist-tab small { display: none; font-size: 11px; color: var(--muted); font-variant-numeric: tabular-nums; }
+.hist-tab small { display: none; font-size: 11px; font-variant-numeric: tabular-nums; }
+.hist-tab:hover { color: var(--ink); background: var(--accent-tint); }
+.hist-tab[aria-selected="true"] { min-height: 46px; padding: 12px 18px 8px; border-color: var(--cat); background: var(--cat); color: var(--white); font-weight: 700; }
+.hist-tab[aria-selected="true"] small { color: inherit; opacity: .85; }
 /* 今見ているカテゴリの名前と件数（スマホだけ。パソコンではタブに件数が出るので、読み上げ用に隠して残す） */
 .hist-view { display: flex; align-items: baseline; gap: 8px; margin-block: 0; padding-block: 14px 0; font-size: 12px; color: var(--muted); }
 .hist-view b { font-weight: 700; color: var(--ink); }
 .hist-view:empty { display: none; }
-/* 幅のせまいスマホ（360px など）でも、タブが2段に収まるように少しつめる */
-@media (max-width: 389px) {
-  .hist-tabs { gap: 4px; }
-  .hist-tab { gap: 4px; padding-inline: 9px; }
-}
-.hist-tab:hover { background: var(--accent-tint); }
-.hist-tab[aria-selected="true"] { border-color: var(--accent); background: var(--accent); color: var(--white); }
-.hist-tab[aria-selected="true"] small { color: var(--accent-soft); }
 /* 年表：左に縦の線、年ごとに大きな数字 */
 .timeline { position: relative; padding-block: 8px 24px; }
 .hist-loading { padding: 40px 0; color: var(--muted); font-size: 13px; }
@@ -680,7 +677,8 @@ dialog.modal::backdrop { background: rgba(23, 32, 24, .5); -webkit-backdrop-filt
 .cat-mv { --cat: #8A4F7D; }
 .cat-solo { --cat: #B24A3B; }
 .cat-vxd { --cat: #2E7D6B; }
-.hist-tab:not(.cat-all)::before { content: ""; align-self: center; width: 7px; height: 7px; border-radius: 2px; background: var(--cat); }
+.cat-all { --cat: var(--accent); }
+.hist-tab:not(.cat-all)::before { content: ""; flex: none; width: 7px; height: 7px; border-radius: 2px; background: var(--cat); }
 .hist-tab[aria-selected="true"]::before { background: var(--white); }
 /* 見出しの中の作品名のリンク（タワーレコード・特設サイト）：点線の下線で控えめに */
 .title-link { color: inherit; text-decoration: underline dotted; text-decoration-color: var(--muted-2); text-decoration-thickness: 1.5px; text-underline-offset: 5px; -webkit-tap-highlight-color: transparent; }
@@ -724,8 +722,8 @@ button.title-link { padding: 0; border: 0; background: none; font: inherit; text
 .player-in-view .hist-top { visibility: hidden; }
 .hist-top { position: fixed; right: calc(16px + env(safe-area-inset-right, 0px)); bottom: calc(16px + env(safe-area-inset-bottom, 0px)); z-index: 15; width: 46px; height: 46px; border: 1px solid var(--line-input); border-radius: 50%; background: var(--white); color: var(--ink); font-size: 18px; box-shadow: var(--shadow); }
 @media (min-width: 701px) {
-  .hist-tabs { gap: 6px; padding-block: 12px; }
-  .hist-tab { min-height: 40px; padding: 9px 13px; }
+  .hist-tab { min-height: 40px; padding: 9px 12px; font-size: 13.5px; }
+  .hist-tab[aria-selected="true"] { min-height: 48px; padding: 13px 16px 9px; font-size: 14.5px; }
   .hist-tab .lbl-full { display: inline; }
   .hist-tab .lbl-short { display: none; }
   .hist-tab small { display: inline; }
