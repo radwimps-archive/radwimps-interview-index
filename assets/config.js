@@ -40,7 +40,7 @@ export default {
   feedback: { url: "", kind: "", page: "", content: "", device: "" },
 
   // アクセス数の集計（Cloudflare Web Analytics という無料のサービスを使います。マニュアル13-5）。
-  // cloudflare：Cloudflare の画面で出る「token」（英数字32文字）。書くと、記事一覧・年表・人物紹介のページが見られた回数を数え始めます。
+  // cloudflare：Cloudflare の画面で出る「token」（英数字32文字）。書くと、記事一覧・年表・メンバー紹介のページが見られた回数を数え始めます。
   //      Cookie は使わず、個人情報も集めません。空欄（""）のあいだは、何も数えません。
   analytics: { cloudflare: "aa44802ff1184f02a35106a09d079ba2" }
 };

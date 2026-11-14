@@ -28,7 +28,7 @@ export function cleanWorkerUrl(s) {
 }
 
 // ページの名前（パス → 日本語）
-const PAGE_NAMES = { "/": "記事一覧（トップ）", "/index.html": "記事一覧（トップ）", "/history.html": "RADWIMPSの歩み（年表）", "/members.html": "メンバー・人物紹介", "/maker.html": "作成ツール", "/404.html": "見つからないページ（404）" };
+const PAGE_NAMES = { "/": "記事一覧（トップ）", "/index.html": "記事一覧（トップ）", "/history.html": "RADWIMPSの歩み（年表）", "/members.html": "メンバー紹介", "/maker.html": "作成ツール", "/404.html": "見つからないページ（404）" };
 export function pageName(p) {
   const path = String(p || "/").replace(/^\/radwimps-interview-index(?=\/)/, "");
   return PAGE_NAMES[path] || path;
