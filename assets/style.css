@@ -851,3 +851,12 @@ dialog.modal::backdrop { background: rgba(23, 32, 24, .5); -webkit-backdrop-filt
 .song-head .song-title { margin: 0; }
 .song-head .song-links { margin-top: 0; }
 .song-head .song-links:empty { display: none; }
+
+/* 楽曲一覧：曲名を押すと「歌詞」「MV」が開く／作品名を押すと「CD を探す」が開く */
+.song-panel { margin: 2px 0 6px; }
+.song-panel[hidden] { display: none; }
+.song-work-btn { padding: 0; border: 0; background: none; font: inherit; color: inherit; text-align: left; cursor: pointer; text-decoration: underline dotted; text-underline-offset: 5px; overflow-wrap: anywhere; }
+.song-work-btn::after { content: " ▾"; font-size: .6em; color: var(--muted, #888); }
+.song-work-btn[aria-expanded="true"] { color: var(--accent); }
+.song-work-btn[aria-expanded="true"]::after { content: " ▴"; }
+.song-release-work + .song-buy { margin: 2px 0 8px; }

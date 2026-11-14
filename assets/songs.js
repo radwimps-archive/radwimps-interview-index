@@ -70,7 +70,6 @@ const BUY = [
 ];
 // CD で買える作品の名前：CD で出た曲は初めて出た作品、配信の曲は、あとで入ったアルバム（なければ買うリンクは出さない）
 const CD_KINDS = ["シングル", "アルバム", "サウンドトラック"];
-const cdWork = (s) => (CD_KINDS.includes(s.kind) ? s.work : s.album) || "";
 const youtube = (id) => `https://www.youtube.com/watch?v=${id}`;
 
 // 絞り込み：「シングル」には、CD のシングルと配信のシングル（データの種類が「配信」）の両方が入ります
@@ -158,16 +157,17 @@ function match(s, kind, q) {
 function songItem(s, inRelease) {
   // 発売順では、日付と作品名は「発売ごとの見出し」に出すので、曲の行には種類の札だけ。50音順では今までどおり日付・作品名も出す
   // （種類の札も、発売順では作品名の隣に1つだけ出す）
+  const cdBuy = !inRelease && CD_KINDS.includes(s.kind) && s.work ? buyPanel(s.work) : null;
   const meta = inRelease ? null : el("p", { class: "song-meta" },
     el("time", { text: dateLabel(s) }),
     el("span", { class: "song-kind", text: kindLabel(s.kind) }),
-    s.work && s.work !== s.title ? el("span", { text: s.kind === "動画公開" ? s.work : `「${s.work}」` }) : null);
+    s.work && s.work !== s.title ? (cdBuy ? workBtn(`「${s.work}」`, cdBuy) : el("span", { text: s.kind === "動画公開" ? s.work : `「${s.work}」` })) : null);
   const subs = [];
   if (s.album && s.album !== s.work) subs.push(el("p", { class: "song-sub", text: `アルバム「${s.album}」に収録` }));
   if (s.tieup) subs.push(el("p", { class: "song-sub song-tieup", text: s.tieup }));
   if (s.note) subs.push(el("p", { class: "song-sub", text: s.note }));
 
-  const links = el("div", { class: "song-links" });
+  const links = el("div", { class: "song-links song-panel", id: `lyr${++uid}`, hidden: true });
   const after = [];
   // 歌のない曲（「メモ」が「インスト」「スキット」で始まる曲）と、歌詞を載せない曲（「歌詞非公開」で始まる曲）には、「歌詞」を出さない
   if (/^(インスト|スキット|歌詞非公開)/.test(s.note)) {
@@ -192,24 +192,26 @@ function songItem(s, inRelease) {
     after.push(el("div", { class: "song-links song-shops" }, el("span", { class: "song-label", text: "聴く" }),
       ...LISTEN.map((m) => el("a", { class: "song-btn song-shop", href: m.url(s.base), target: "_blank", rel: "noopener noreferrer", "aria-label": `「${s.title}」を${m.name}で聴く（新しいタブ）`, text: `${m.name} ↗` }))));
   }
-  // CD の購入リンク：曲名を押すと、曲名のすぐ下に開きます
-  const cd = cdWork(s);
-  let title = el("h3", { class: "song-title", text: s.title }), buy = null;
-  if (cd) {
-    const plainWork = cd.replace(/[〜~].*$/, "").trim() || cd; // 「RADWIMPS 4〜おかずのごはん〜」→「RADWIMPS 4」で探す（長いと見つからないため）
-    const id = `buy${++buyCount}`;
-    buy = el("div", { class: "song-links song-buy", id, hidden: true }, el("span", { class: "song-label", text: `CD「${cd}」を探す` }),
-      ...BUY.map((m) => el("a", { class: "song-btn song-shop", href: m.url(plainWork), target: "_blank", rel: m.aff ? "sponsored noopener noreferrer" : "noopener noreferrer",
-        "aria-label": `「${cd}」の CD を${m.name}で探す（新しいタブ）`, text: `${m.name} ↗` }, m.aff ? el("span", { class: "pr", text: "PR" }) : null)));
-    title = el("h3", { class: "song-title" }, el("button", { type: "button", class: "song-title-btn", "aria-expanded": "false", "aria-controls": id, title: "押すと、CD の購入リンクが開きます" }, s.title));
+  // 曲名を押すと、「歌詞」「MV・ライブ映像」が曲名の下に開きます。「記事」は曲名の隣に出したままです
+  let title = el("h3", { class: "song-title", text: s.title }), panel = null;
+  if (links.children.length) {
+    panel = links;
+    title = el("h3", { class: "song-title" }, el("button", { type: "button", class: "song-title-btn", "aria-expanded": "false", "aria-controls": links.id, title: "押すと、歌詞などが開きます" }, s.title));
   }
-  if (s.articles) {
-    links.append(el("a", { class: "song-btn song-articles", href: `./?work=${encodeURIComponent(s.base)}&format=all`, text: `記事 ${s.articles}件` }));
-  }
-  // 曲名の隣に「歌詞」「MV」「記事」を左詰めで並べる
-  return el("li", { class: "song-item" }, el("div", { class: "song-head" }, title, links), buy, meta, ...subs, ...after);
+  const art = s.articles ? el("a", { class: "song-btn song-articles", href: `./?work=${encodeURIComponent(s.base)}&format=all`, text: `記事 ${s.articles}件` }) : null;
+  return el("li", { class: "song-item" }, el("div", { class: "song-head" }, title, art), panel, meta, cdBuy, ...subs, ...after);
 }
-let buyCount = 0;
+// 作品名（アルバム名・シングル名）を押すと開く「CD を探す」（タワレコ・Amazon・楽天）
+function buyPanel(work) {
+  const plainWork = work.replace(/[〜~].*$/, "").trim() || work; // 「RADWIMPS 4〜おかずのごはん〜」→「RADWIMPS 4」で探す（長いと見つからないため）
+  return el("div", { class: "song-links song-buy", id: `buy${++uid}`, hidden: true }, el("span", { class: "song-label", text: "CD を探す" }),
+    ...BUY.map((m) => el("a", { class: "song-btn song-shop", href: m.url(plainWork), target: "_blank", rel: m.aff ? "sponsored noopener noreferrer" : "noopener noreferrer",
+      "aria-label": `「${work}」の CD を${m.name}で探す（新しいタブ）`, text: `${m.name} ↗` }, m.aff ? el("span", { class: "pr", text: "PR" }) : null)));
+}
+function workBtn(text, panel) {
+  return el("button", { type: "button", class: "song-work-btn", "aria-expanded": "false", "aria-controls": panel.id, title: "押すと、CD を探すリンクが開きます" }, text);
+}
+let uid = 0;
 
 function render() {
   const q = norm(query);
@@ -238,9 +240,11 @@ function render() {
     const f = items[0];
     const day = f.m ? `${pad(f.m)}${f.d ? "." + pad(f.d) : ""}` : "";
     const work = f.work || f.title;
+    const cdBuy = CD_KINDS.includes(f.kind) ? buyPanel(work) : null;
     box.append(el("section", { class: "hist-year song-release", "aria-labelledby": id },
       el("h2", { id, class: "hist-year-head" }, el("span", { text: String(f.y) }), day ? el("time", { class: "song-release-date", text: day }) : null, el("small", { text: `${items.length} 曲` })),
-      el("p", { class: "song-release-work" }, el("span", { text: work }), el("span", { class: "song-kind", text: kindLabel(f.kind) })),
+      el("p", { class: "song-release-work" }, cdBuy ? workBtn(work, cdBuy) : el("span", { text: work }), el("span", { class: "song-kind", text: kindLabel(f.kind) })),
+      cdBuy,
       el("ol", { class: "song-items" }, ...items.map((x) => songItem(x, true)))));
   }
 }
@@ -273,7 +277,7 @@ $("#songOpen").addEventListener("click", (e) => { const b = e.target.closest("[d
 setOpen(lyricOpen);
 // 曲名を押すと、購入リンクを開く・閉じる
 $("#songs").addEventListener("click", (e) => {
-  const b = e.target.closest(".song-title-btn");
+  const b = e.target.closest(".song-title-btn, .song-work-btn");
   if (!b) return;
   const panel = document.getElementById(b.getAttribute("aria-controls"));
   const open = b.getAttribute("aria-expanded") !== "true";
