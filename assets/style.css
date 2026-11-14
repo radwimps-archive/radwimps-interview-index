@@ -838,3 +838,10 @@ dialog.modal::backdrop { background: rgba(23, 32, 24, .5); -webkit-backdrop-filt
 .song-open .song-label { margin-right: 2px; }
 .song-open-btn { min-height: 36px; padding: 0 12px; border: 1px solid var(--line-entry); border-radius: 999px; background: var(--card); color: var(--ink); font-size: 13px; }
 .song-open-btn[aria-pressed="true"] { border-color: var(--accent); background: var(--accent-tint); color: var(--accent); font-weight: 700; }
+
+/* 楽曲一覧（発売順）：年・発売日・作品名（アルバム／シングル）の見出し。作品名は、年より小さく、曲名より大きく */
+.song-release .hist-year-head { padding-top: 26px; padding-bottom: 2px; }
+.song-release .hist-year-head::before { top: 43px; }
+.song-release-date { font-family: var(--f-mono); font-size: 18px; letter-spacing: .02em; color: var(--muted); }
+.song-release-work { margin: 0 0 4px; font-size: 20px; font-weight: 700; line-height: 1.4; color: var(--ink); overflow-wrap: anywhere; }
+@media (min-width: 701px) { .song-release-date { font-size: 22px; } .song-release-work { font-size: 24px; } .song-release .hist-year-head::before { top: 48px; } }
