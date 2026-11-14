@@ -2,6 +2,7 @@
 // 「RAD LIVE SET LIST」（ライブのセトリ）のページの動き。データは data/setlists.csv です（ここを書き換えると、このページが変わります）。
 // CSV の「ライブ名」が同じ公演は、1つのツアー（またはイベント）としてまとめて表示します。
 // 上のタブ（フォルダの見出しの形）で、見え方を選べます（URL の末尾 #live・#nenpyo・#ranking・#unplayed でも開けます）。
+// 公演（日付・会場）の「行った」ボタン：行ったことのあるライブの印（ブックマーク）。「RADWIMPSの歩み」と同じ印で、連動します（attended.js）。
 // 区分・年代・並び順は「ドロップダウンメニュー」：ボタンを押したときだけ選択肢が開きます（dropdown()）。
 //   ライブ：ツアーごと。「区分」のメニューで「国内ツアー・海外ツアー・フェス・ボクンチ忘年会・番組出演・単発ライブ」に絞れる（CSV の「区分」）。ツアーを押すと全公演が並び、公演を押すとその日のセットリスト（曲順）が開く。新しいツアーが上
 //   年表　：年ごとに、ツアーと、そのツアーで演奏した曲を並べたもの。古いツアーが上。
@@ -13,6 +14,7 @@
 import { parseCSV, parseSetlists, songKey, SETLIST_CONFIDENCE, SETLIST_CATEGORIES } from "./data.js";
 import { h as el, setupMenu, isAdminDevice } from "./ui.js";
 import { feedbackUrl, hasFeedback, setupBeta, KIND } from "./feedback.js";
+import { attendButton, attendCount, assignKeys, sync as syncAttend, setupAttendClicks } from "./attended.js";
 import "./analytics.js";
 
 const $ = (s) => document.querySelector(s);
@@ -111,7 +113,7 @@ function showRow(l, open) {
     el("summary", {},
       el("time", { datetime: l.date, text: dateLabel(l) }),
       el("span", { class: "sl-show-venue", text: l.venue || "" }),
-      el("span", { class: "sl-show-meta" }, hasSongs(l) ? `${songsOf(l).length}曲` : "", badge(l.conf))),
+      el("span", { class: "sl-show-meta" }, hasSongs(l) ? `${songsOf(l).length}曲` : "", badge(l.conf), attendButton(l))),
     setlistBody(l));
 }
 
@@ -124,7 +126,8 @@ function tourCard(t, open) {
       el("h2", { class: "sl-live-name", text: t.name }),
       el("p", { class: "sl-live-venue" },
         one ? (one.venue || "") : `${n}公演`,
-        el("span", { class: "sl-count", text: one ? (hasSongs(one) ? `${songsOf(one).length}曲` : "セトリ未確認") : `セトリあり ${withSongs}／${n}` }))));
+        el("span", { class: "sl-count", text: one ? (hasSongs(one) ? `${songsOf(one).length}曲` : "セトリ未確認") : `セトリあり ${withSongs}／${n}` }),
+        one ? attendButton(one) : attendCount(t.lives))));
   if (one) { const b = setlistBody(one); b.id = liveId(one); card.append(b); }
   else card.append(el("div", { class: "sl-shows" }, ...t.lives.map((l) => showRow(l, false))));
   return card;
@@ -179,6 +182,7 @@ function catChips() {
 }
 
 function renderLives() {
+  queueMicrotask(() => syncAttend());
   const box = $("#lives");
   const list = cat ? tours.filter((t) => t.cat === cat) : tours;
   const n = list.reduce((s, t) => s + t.lives.length, 0);
@@ -243,6 +247,7 @@ function tourSongs(t) {
 }
 
 function renderTimeline() {
+  queueMicrotask(() => syncAttend());
   const box = $("#timeline");
   box.replaceChildren();
   const rec = song ? songs.get(song) : null;
@@ -256,7 +261,8 @@ function renderTimeline() {
       const item = el("li", { class: "hist-item cat-live" },
         el("p", { class: "hist-meta" }, el("time", { text: periodLabel(t) }), n === 1 ? badge(t.lives[0].conf) : null),
         el("p", { class: "hist-title" }, el("a", { href: `#${t.id}`, class: "sl-to-live", "data-tour": t.id, text: t.name })),
-        el("p", { class: "hist-sub", text: n === 1 ? [t.lives[0].venue, hasSongs(t.lives[0]) ? `${songsOf(t.lives[0]).length}曲` : "セトリ未確認"].filter(Boolean).join(" ／ ") : `${n}公演（セトリあり ${withSongs}）` }));
+        el("p", { class: "hist-sub" }, n === 1 ? [t.lives[0].venue, hasSongs(t.lives[0]) ? `${songsOf(t.lives[0]).length}曲` : "セトリ未確認"].filter(Boolean).join(" ／ ") : `${n}公演（セトリあり ${withSongs}）`,
+          n === 1 ? attendButton(t.lives[0]) : attendCount(t.lives)));
       if (rec) {
         // 選んだ曲を、このツアーのどの公演で演奏したか
         const plays = rec.plays.filter((p) => p.live.tour === t);
@@ -437,6 +443,8 @@ const toTop = $("#toTop");
 addEventListener("scroll", () => { toTop.hidden = scrollY < 900; }, { passive: true });
 toTop.addEventListener("click", () => scrollTo({ top: 0, behavior: "smooth" }));
 
+// 「行った」ボタン
+setupAttendClicks();
 // メニュー（ほかのページと同じ動き。ui.js）
 setupMenu();
 setupBeta($("#main").firstElementChild);
@@ -477,6 +485,7 @@ async function loadCatalog() {
     const { lives: list, errors } = parseSetlists(await res.text());
     if (errors.length) console.warn("セットリストのデータに、直すところがあります", errors);
     lives = list;
+    assignKeys(lives);
     groupTours();
     indexSongs();
     if (lives.length) $("#span").textContent = `${lives[0].y} — ${lives[lives.length - 1].y}`;
