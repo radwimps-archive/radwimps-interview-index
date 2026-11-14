@@ -6,7 +6,6 @@
 //   ライブ：ツアーごと。「区分」のメニューで「国内ツアー・海外ツアー・フェス・ボクンチ忘年会・番組出演・単発ライブ」に絞れる（CSV の「区分」）。ツアーを押すと全公演が並び、公演を押すとその日のセットリスト（曲順）が開く。新しいツアーが上
 //   年表　：年ごとに、ツアーと、そのツアーで演奏した曲を並べたもの。古いツアーが上。
 //           曲名を押すと、その曲を演奏したツアーと日付だけになる（?song=曲名 でも開けます）
-//           楽曲一覧（data/songs.csv）があれば、どの公演でも演奏していない曲（ライブで未演奏の曲）も出します
 //   ランキング：よく演奏された曲の順位（#ranking）。セトリから自動で数えるので、CSV に公演を足すと順位も変わります。
 //           楽曲一覧（data/songs.csv）にない曲（未発表の曲・カバー・映画の劇伴など）は入れない。区分（国内ツアーなど）と年代で絞れる。多い順・少ない順を切り替えられる（1回も演奏していない曲は入れない）。曲名を押すと、年表でその曲を演奏したライブだけになる
 //   ライブ未演奏：楽曲一覧にあって、どの公演のセトリにも出てこない曲（#unplayed。songs.csv がないときはタブごと出しません）
@@ -221,15 +220,9 @@ function unplayedYears(list) {
     el("ul", { class: "sl-unplayed-list" }, ...cs.map((c) => el("li", {}, c.title, c.work && c.work !== c.title ? el("small", { text: `（${c.work}）` }) : null)))));
 }
 function renderUnplayed() {
-  const box = $("#unplayed"), panel = $("#unplayedBody"), tab = $("#tabUnplayed");
-  if (!catalog.length) { box.hidden = true; tab.hidden = true; return; }
+  const panel = $("#unplayedBody"), tab = $("#tabUnplayed");
+  if (!catalog.length) { tab.hidden = true; return; }
   const list = unplayedList();
-  // 年表の中の、開いたり閉じたりする欄
-  box.replaceChildren(
-    el("summary", {}, el("b", { text: "ライブで未演奏の曲" }), el("small", { text: ` ${list.length} 曲（全 ${catalog.length} 曲のうち）` })),
-    el("p", { class: "sl-song-sub", text: UNPLAYED_NOTE }),
-    ...unplayedYears(list));
-  box.hidden = false;
   // 「ライブ未演奏」のタブ
   panel.replaceChildren(
     el("p", { class: "sl-unplayed-head" }, el("b", { text: `${list.length} 曲` }), `（全 ${catalog.length} 曲のうち）・発売の古い順`),
