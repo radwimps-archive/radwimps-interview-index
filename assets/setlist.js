@@ -11,7 +11,7 @@
 //   ライブ未演奏：楽曲一覧にあって、どの公演のセトリにも出てこない曲（#unplayed。songs.csv がないときはタブごと出しません）
 
 import { parseCSV, parseSetlists, songKey, SETLIST_CONFIDENCE, SETLIST_CATEGORIES } from "./data.js";
-import { h as el, setupMenu, isAdminDevice, watchScrollFade } from "./ui.js";
+import { h as el, setupMenu, isAdminDevice, watchScrollFade, watchStuck } from "./ui.js";
 import { feedbackUrl, hasFeedback, setupBeta, KIND } from "./feedback.js";
 import { looseMatch, looseMatchAll, fold } from "./search.js";
 import { attended, attendButton, attendCount, assignKeys, sync as syncAttend, setupAttendClicks } from "./attended.js";
@@ -504,6 +504,7 @@ setupAttendClicks();
 // メニュー（ほかのページと同じ動き。ui.js）
 setupMenu();
 watchScrollFade($("#tabs"));
+watchStuck($(".hist-tabs-bar")); // 上に貼りついたときだけ、帯に暗い地を敷く
 setupBeta($("#main").firstElementChild);
 if (hasFeedback) {
   $(".site-footer .footer-links").append(el("a", { href: feedbackUrl({ kind: KIND.error, title: "セットリストの誤りのお知らせ", page: "ライブのセトリ" }), target: "_blank", rel: "noopener noreferrer", text: "セトリの誤りを知らせる ↗" }));

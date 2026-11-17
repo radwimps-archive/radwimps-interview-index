@@ -99,6 +99,29 @@
         <button type="button" id="qgo" class="search-go">検索</button>
       </div>
 
+      <!-- 絞り込み：検索窓のすぐ下。押すと条件の欄が開きます（最初は閉じています） -->
+      <aside class="filters" aria-label="さらに絞り込む">
+        <details id="filterPanel">
+          <summary>さらに絞り込む <span id="filterNumber" class="filter-number"></span><span class="chevron" aria-hidden="true">⌄</span></summary>
+          <div class="filter-body">
+            <div class="filter-field"><label for="fCat">内容から選ぶ</label><select id="fCat"></select></div>
+            <div class="filter-field"><label for="fPerson">PERSON <span>人物</span></label><select id="fPerson"></select></div>
+            <div class="filter-field"><label for="fYear">YEAR <span>年代</span></label><select id="fYear"></select></div>
+            <div class="filter-field"><label for="fMedia">MEDIA <span>掲載メディア</span></label><select id="fMedia"></select></div>
+            <div class="filter-field"><label for="fLang">LANGUAGE <span>言語</span></label><select id="fLang"></select></div>
+            <div class="filter-field"><label for="fKind">TYPE <span>資料の種類</span></label><select id="fKind"></select></div>
+            <div class="filter-field"><label for="fStatus">READING <span>読書の状態</span></label><select id="fStatus"></select></div>
+            <button type="button" class="reset-button" data-act="reset">条件をクリア <span aria-hidden="true">↺</span></button>
+            <div class="sidebar-note">
+              <span class="small-symbol" aria-hidden="true">＊</span>
+              <p>気になる言葉を、少しずつ。</p>
+              <span>お気に入り・あとで読む・既読は、このブラウザに記録されます。</span>
+              <button type="button" data-act="backup">保存データの管理 →</button>
+            </div>
+          </div>
+        </details>
+      </aside>
+
       <div class="format-tabs" id="formatTabs" role="group" aria-label="記事の種類">
         <button type="button" data-format="text" aria-pressed="true">記事</button>
         <button type="button" data-format="video" aria-pressed="false">▶ 動画</button>
@@ -109,29 +132,6 @@
       </div>
 
       <div class="archive-layout">
-        <!-- さらに絞り込む（パソコンは左に、スマホは一覧の上に折りたたんで出ます） -->
-        <aside class="filters" aria-label="さらに絞り込む">
-          <details id="filterPanel">
-            <summary>さらに絞り込む <span id="filterNumber" class="filter-number"></span><span class="chevron" aria-hidden="true">⌄</span></summary>
-            <div class="filter-body">
-              <div class="filter-field"><label for="fCat">内容から選ぶ</label><select id="fCat"></select></div>
-              <div class="filter-field"><label for="fPerson">PERSON <span>人物</span></label><select id="fPerson"></select></div>
-              <div class="filter-field"><label for="fYear">YEAR <span>年代</span></label><select id="fYear"></select></div>
-              <div class="filter-field"><label for="fMedia">MEDIA <span>掲載メディア</span></label><select id="fMedia"></select></div>
-              <div class="filter-field"><label for="fLang">LANGUAGE <span>言語</span></label><select id="fLang"></select></div>
-              <div class="filter-field"><label for="fKind">TYPE <span>資料の種類</span></label><select id="fKind"></select></div>
-              <div class="filter-field"><label for="fStatus">READING <span>読書の状態</span></label><select id="fStatus"></select></div>
-              <button type="button" class="reset-button" data-act="reset">条件をクリア <span aria-hidden="true">↺</span></button>
-              <div class="sidebar-note">
-                <span class="small-symbol" aria-hidden="true">＊</span>
-                <p>気になる言葉を、少しずつ。</p>
-                <span>お気に入り・あとで読む・既読は、このブラウザに記録されます。</span>
-                <button type="button" data-act="backup">保存データの管理 →</button>
-              </div>
-            </div>
-          </details>
-        </aside>
-
         <div class="results">
           <div class="results-top">
             <p id="resultCount" class="result-count" role="status" aria-live="polite"></p>

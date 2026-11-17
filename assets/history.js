@@ -8,7 +8,7 @@
 import "./analytics.js";
 import { parseHistory, parseSetlists, HISTORY_CATEGORIES } from "./data.js";
 import { attendButton, attendCount, assignKeys, sync as syncAttend, setupAttendClicks } from "./attended.js";
-import { h as el, setupMenu, isAdminDevice, watchScrollFade } from "./ui.js";
+import { h as el, setupMenu, isAdminDevice, watchScrollFade, watchStuck } from "./ui.js";
 import config from "./config.js";
 import { feedbackUrl, hasFeedback, setupBeta, KIND } from "./feedback.js";
 
@@ -354,6 +354,7 @@ setupAttendClicks();
 // メニュー（記事一覧のページと同じ動き。ui.js）
 setupMenu();
 watchScrollFade($("#tabs"));
+watchStuck($(".hist-tabs-bar")); // 上に貼りついたときだけ、帯に暗い地を敷く
 setupBeta($("#main").firstElementChild);
 // フッターの「誤りを知らせる」（受付先は feedback.js で決まります）
 if (hasFeedback) {

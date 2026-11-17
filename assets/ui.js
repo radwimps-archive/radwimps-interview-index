@@ -68,6 +68,25 @@ export function watchScrollFade(el) {
   update();
 }
 
+/* ---------- 上に貼りつく帯：貼りついているあいだだけ、印（data-stuck）を付ける ---------- */
+
+// スクロールしても上に残る帯（position: sticky）に使います。帯がページの途中にあるあいだは背景を透明にして、まわりの背景に溶け込ませ、
+// 上に貼りついたら（下を記事が流れるので）CSS で暗い地を敷きます（theme-blue.css の [data-stuck]）
+export function watchStuck(el) {
+  if (!el) return;
+  let queued = false;
+  const update = () => {
+    queued = false;
+    const top = parseFloat(getComputedStyle(el).top) || 0;
+    const stuck = el.getBoundingClientRect().top <= top + 1 && scrollY > 0;
+    if (stuck) el.dataset.stuck = ""; else delete el.dataset.stuck;
+  };
+  const ask = () => { if (!queued) { queued = true; requestAnimationFrame(update); } };
+  addEventListener("scroll", ask, { passive: true });
+  addEventListener("resize", ask);
+  update();
+}
+
 /* ---------- ファイルの書き出し ---------- */
 
 // 文字をファイルにして、この端末に保存（ダウンロード）します：downloadFile("articles.csv", 中身, "text/csv")

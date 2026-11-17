@@ -558,22 +558,13 @@ dialog.modal::backdrop { background: rgba(23, 32, 24, .5); -webkit-backdrop-filt
   .format-tabs button { padding-inline: 14px; font-size: 14px; }
   .format-tabs button[aria-pressed="true"] { font-size: 15px; }
 
-  /* 左に絞り込み（176px）、右に一覧 */
-  .archive-layout { display: grid; grid-template-columns: 176px minmax(0, 1fr); gap: 26px; align-items: start; }
-  .filters { margin-bottom: 0; padding-right: 18px; border-right: 1px solid var(--rule); align-self: stretch; }
-  .filters details { position: sticky; top: calc(88px + env(safe-area-inset-top, 0px)); max-height: calc(100vh - 104px - env(safe-area-inset-top, 0px)); overflow-y: auto; padding-right: 14px; border: 0; background: none; scrollbar-width: thin; scrollbar-gutter: stable; scrollbar-color: var(--line-input) transparent; }
-  .filters summary { display: block; min-height: 0; margin-bottom: 12px; padding: 12px 0 0; pointer-events: none; }
-  .chevron { display: none; }
-  .filter-number:not(:empty) { margin-left: 6px; }
-  .filter-body { display: block; padding: 0; }
-  .filter-field { display: block; margin-bottom: 18px; }
-  .filter-field label { margin-bottom: 8px; }
-  .filter-field select { padding: 9px 8px; font-size: 12px; }
-  .reset-button { min-height: 0; margin-top: 18px; padding: 0 0 6px; font-size: 12px; }
-  .sidebar-note { display: block; margin-top: 24px; padding-top: 22px; border-top: 1px solid var(--rule); font-size: 12px; color: var(--muted); }
-  .sidebar-note .small-symbol { color: var(--accent); font-size: 14px; }
-  .sidebar-note p { margin: 13px 0 7px; font-size: 12px; letter-spacing: .03em; color: var(--ink); }
-  .sidebar-note button { display: inline-block; margin-top: 6px; padding: 7px 0 0; border: 0; background: none; color: var(--muted); font-size: 12px; }
+  /* 「さらに絞り込む」は検索窓の下で開け閉めする（スマホと同じ）。開くと、条件の欄が横に4つずつ並ぶ */
+  .filter-body { grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px 16px; padding: 6px 16px 16px; }
+  .filter-field select { padding: 9px 8px; font-size: 13px; }
+  .reset-button { grid-column: auto; align-self: end; min-height: 44px; margin-top: 0; }
+  .sidebar-note { grid-column: 1 / -1; display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 12px; padding-top: 12px; border-top: 1px solid var(--rule); font-size: 12px; color: var(--muted); }
+  .sidebar-note .small-symbol, .sidebar-note p { display: none; }
+  .sidebar-note button { min-height: 44px; padding: 0; border: 0; background: none; color: var(--muted); font-size: 12px; }
   .sidebar-note button:hover { color: var(--ink); }
   .results-top { min-height: 40px; margin-bottom: 14px; }
   .article-grid { gap: 12px; }

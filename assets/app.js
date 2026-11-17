@@ -14,7 +14,7 @@ import {
   parseArticles, parseReleases, KIND_ORDER, MEMBERS, MEMBER_ORDER, CATEGORIES, SUPPORT_MEMBERS, WORKS, QUICK_WORKS,
   VIDEO_KIND, RADIO_KIND, LIVE_KIND, INTERVIEW_KIND, OTHERS_KIND, LANG_BADGE, youtubeId, formatOf
 } from "./data.js";
-import { h, isAdminDevice, setAdminDevice, setupMenu, downloadFile, watchScrollFade } from "./ui.js";
+import { h, isAdminDevice, setAdminDevice, setupMenu, downloadFile, watchScrollFade, watchStuck } from "./ui.js";
 import { encodeMarks, decodeMarks, PREFIX as TRANSFER } from "./transfer.js";
 import { feedbackUrl, hasFeedback, usesForm, repoUrl, setupBeta, KIND } from "./feedback.js";
 
@@ -25,7 +25,6 @@ const PAGE_SIZE = 12;                                 // 一覧に一度に出�
 
 const $ = (s) => document.querySelector(s);
 const $$ = (s) => [...document.querySelectorAll(s)];
-const isWide = () => matchMedia("(min-width: 701px)").matches;
 const reduceMotion = () => matchMedia("(prefers-reduced-motion: reduce)").matches;
 
 // 画面の部品を作る h()、メニュー、管理者モード、ファイルの書き出しは、ほかのページと共通（assets/ui.js）
@@ -617,6 +616,7 @@ function renderMenu() {
 // 開け閉め・外を押したとき・Esc キーで閉じる動きは、ほかのページと共通（ui.js）
 const setMenuOpen = setupMenu();
 watchScrollFade($("#formatTabs"));
+watchStuck($("#formatTabs")); // 上に貼りついたときだけ、帯に暗い地を敷く
 $("#menuClip").addEventListener("click", (e) => {
   const go = e.target.closest("[data-go]");
   if (!go) return;
@@ -745,11 +745,7 @@ $("#loadMore").addEventListener("click", () => {
   $$("#grid .article-card")[before]?.querySelector("a")?.focus({ preventScroll: true });
 });
 
-// スマホでは「さらに絞り込む」をたたんでおく（パソコンでは、いつも開いたまま）
-const filterPanel = $("#filterPanel");
-function syncFilterPanel() { filterPanel.open = isWide(); }
-matchMedia("(min-width: 701px)").addEventListener("change", syncFilterPanel);
-filterPanel.querySelector("summary").addEventListener("click", (e) => { if (isWide()) e.preventDefault(); });
+// 「さらに絞り込む」は検索窓のすぐ下にあり、最初はたたんでおく（押すと開く。スマホでもパソコンでも同じ）
 
 /* ---------- お気に入り・あとで読む・既読 ---------- */
 
@@ -1133,6 +1129,5 @@ saveMarks(); // 以前の「お気に入り」を「あとで読む」にまと�
 const transferOpen = location.hash.startsWith(TRANSFER);
 readURL();
 S.lastEntry = entryOfState();
-syncFilterPanel();
 if (transferOpen) { render(); receiveTransfer(); } else onHash();
 loadData();
