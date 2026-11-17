@@ -137,6 +137,12 @@ body::before, .header { background: var(--black); }
   .hero .eyebrow { font-size: 13px; letter-spacing: .5em; text-indent: .5em; }
   .hero h1 span { display: block; margin-left: 0; }
 }
+/* 記事一覧（トップ）：サイト名を大見出しに、キャッチコピーを上の小さな文字に。
+   サイト名は上の帯のロゴと同じく字間を広く、1行目を太く・2行目を細く。字間のぶん右にずれないよう、左にも同じだけ空ける */
+.hero h1.site-title { letter-spacing: .16em; text-indent: .16em; }
+.hero h1.site-title span { font-size: .62em; letter-spacing: .42em; text-indent: .42em; }
+.hero .hero-catch { font-size: 13px; letter-spacing: .24em; text-indent: .24em; }
+@media (min-width: 701px) { .hero .hero-catch { font-size: 15px; letter-spacing: .3em; text-indent: .3em; } }
 /* 見出しの中の PR の案内と、年代へのリンク（歩みページ） */
 .hero .hist-pr-top { justify-content: center; margin-top: 18px; color: var(--on-blue-2); }
 .hero .pr { color: var(--on-blue); border-color: var(--on-blue-line); }
