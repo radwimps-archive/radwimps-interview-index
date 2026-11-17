@@ -529,6 +529,8 @@ export function parseSetlists(text) {
       return out;
     };
     const main = songs(get("main")), encore = songs(get("encore"));
+    // 「【アンコール2】ふたりごと」のように、見出しのすぐあとに「／」がないと、見出しごと曲名として数えてしまう
+    if (/【[^【】]+】[^／]/.test((get("main") + "／" + get("encore")).replace(/\s/g, ""))) warn(line, "【 】の見出しのすぐあとは「／」で区切ります（例：【アンコール2】／ふたりごと）");
     // 曲の区切りは全角の「／」だけ（半角の「/」は曲名の一部として読む）
     if (/\//.test(get("main") + get("encore"))) warn(line, "曲の区切りは全角の「／」です。半角の「/」は曲名の一部として読みます");
     const conf = SETLIST_CONFIDENCE.find((c) => c.name === nfkc(get("conf")));

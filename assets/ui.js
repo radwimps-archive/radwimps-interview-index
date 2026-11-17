@@ -63,7 +63,7 @@ export function watchScrollFade(el) {
     if (v) el.dataset.fade = v; else delete el.dataset.fade;
   };
   el.addEventListener("scroll", update, { passive: true });
-  window.addEventListener("resize", update);
+  if (typeof ResizeObserver === "function") new ResizeObserver(update).observe(el); // 画面の幅が変わったとき（要素ごと消えれば、一緒に片づく）
   new MutationObserver(update).observe(el, { childList: true, subtree: true, characterData: true, attributes: true, attributeFilter: ["hidden", "aria-pressed", "aria-selected"] });
   update();
 }

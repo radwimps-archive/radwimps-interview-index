@@ -163,6 +163,13 @@ test("parseSetlists：【 】の見出しは、そのあとの曲を歌った人
   assert.deepEqual(lives[0].main.map((s) => [s.title, s.part]), [["Aquarius Heaven", "kZm"], ["SHEETA", "野田洋次郎"], ["PIPE DREAM", "野田洋次郎"]]);
 });
 
+test("parseSetlists：【 】の見出しのすぐあとに「／」がないと知らせる", () => {
+  const bad = setlists("2006-04-09,A,会場,曲A,【アンコール1】／曲B／【アンコール2】曲C,,一部,出典,https://example.com/,");
+  assert.ok(bad.warnings.some((w) => /【 】の見出しのすぐあと/.test(w.msg)));
+  const ok = setlists("2006-04-09,A,会場,曲A,【アンコール1】／曲B／【アンコール2】／曲C,,一部,出典,https://example.com/,");
+  assert.ok(!ok.warnings.some((w) => /【 】の見出しのすぐあと/.test(w.msg)));
+});
+
 test("parseSetlists：書き間違いを知らせる", () => {
   const { lives, errors, warnings } = setlists(
     "2019-13-01,B,,DADA,,,確認済み,,https://example.com/,",
