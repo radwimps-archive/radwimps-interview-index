@@ -284,6 +284,84 @@ main > .hist-note { color: var(--on-blue-2); }
 .people-group h2 { border-bottom-color: var(--rule); color: var(--ink); letter-spacing: .12em; }
 .person-band { border-color: var(--line-card); background: var(--paper-2); }
 
+/* ==========================================================================
+   紙の面をやめて、ページ全体をメニューと同じ背景（--sky）にする
+   ・記事一覧・歩み・セトリ・メンバー紹介・運営管理の「紙」（.archive / .paper-sheet / .page）は、背景を透明にして、下の --sky を見せる。
+   ・紙の上に直接のっている文字と線は、青の上で読めるよう白に切り替える（色の名前をこの範囲の中だけ置き換える）。
+   ・記事カードなどの白い部品は、中の色の名前を元の紺に戻すので、今までと同じ見え方のまま。
+   ========================================================================== */
+.archive, .paper-sheet, .page {
+  background: transparent; box-shadow: none;
+  --ink: #FFFFFF;
+  --ink-2: rgba(255, 255, 255, .92);
+  --muted: rgba(255, 255, 255, .84);
+  --muted-2: rgba(255, 255, 255, .84);
+  --rule: rgba(255, 255, 255, .32);
+  --paper: transparent;
+  --paper-2: rgba(10, 11, 18, .32);   /* 紙の上の少し明るい面だったところ（絞り込み・選んでいないタブ）は、青を少し暗くした面に */
+  --sunk: rgba(10, 11, 18, .32);
+  --chip: rgba(10, 11, 18, .32);
+  --line-card: rgba(255, 255, 255, .4);
+  --line-entry: rgba(255, 255, 255, .4);
+  --line-input: rgba(255, 255, 255, .6);
+  --accent: #FFFFFF;      /* 群青の文字（リンク・動画のボタンなど）は、青の上では白に */
+  --live: #FFFFFF;
+  --accent-tint: rgba(255, 255, 255, .1);
+  --accent-soft: rgba(255, 255, 255, .45);
+  color: var(--ink);
+}
+/* 白い部品の中は、元の紺の色に戻す（style.css で白い面を持つ部品） */
+:is(.archive, .paper-sheet, .page) :is(.entry-tabs button, .entry-panel, .search-box, .article-card, .empty, .filter-field select, .panel-label input,
+  .person-chip, .chip, .secondary:not(.load-more-wrap .secondary), .btn, .counts li, .admstats li, .statcard, .stattip, .admconnect, .panel, .addform input, .addform textarea, .addform select, .admfield input,
+  .conf-part, .sl-live, .sl-clear, .sl-chip, .transfer-url, .person-card, .sns, .sl-drop-btn, .sl-drop-menu, .att-chip, .sl-search-box, .sl-sort, .sl-cats button, .sl-song-clear,
+  .hist-shop, .page-guide details, .search-go, select, textarea, input:not([type="checkbox"]):not([type="radio"])) {
+  --ink: #0B1230;
+  --ink-2: #22305C;
+  --muted: #3A4670;
+  --muted-2: #3A4670;
+  --rule: #AEBBD8;
+  --paper: #D3DCEE;
+  --paper-2: #E3E9F5;
+  --sunk: #E3E9F5;
+  --chip: #E3E9F5;
+  --line-card: #C3CDE3;
+  --line-entry: #B7C3DD;
+  --line-input: #8F9DC2;
+  --accent: var(--blue);
+  --live: var(--blue);
+  --accent-tint: #E6ECF8;
+  --accent-soft: #B9C7EA;
+}
+/* 白い部品の文字の色（部品ごとの色の指定があれば、そちらが優先される） */
+:where(.archive, .paper-sheet, .page) :where(.entry-tabs button, .entry-panel, .article-card, .empty, .sl-live, .person-card, .page-guide details, .counts li, .admstats li, .statcard, .admconnect, .panel) { color: var(--ink); }
+/* 入力欄・選択欄（白）の文字は紺のまま */
+:is(.archive, .paper-sheet, .page) :where(select, textarea, input:not([type="checkbox"]):not([type="radio"])) { color: var(--ink); }
+/* 並び順の欄は地が透明（青の上）なので白の文字。開いたときの選択肢は白地に紺 */
+.archive .sort-label select { color: #FFFFFF; background: transparent url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24'%3E%3Cpath d='M6 9l6 6 6-6' fill='none' stroke='%23FFFFFF' stroke-width='2.4' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E") right center / 12px no-repeat; }
+:is(.archive, .paper-sheet, .page) option { background: #FFFFFF; color: #0B1230; }
+/* 入口の4つのボタン（白）：文字は紺のまま（ボタンは親の文字の色を受け継ぐため、ここで指定する） */
+.archive .entry-tabs button { color: var(--ink); }
+/* 歩みのタブ：「すべて」を選んだときの地の色（群青）は元のまま */
+.hist-tabs-bar { --accent: var(--blue); }
+/* 動画のリンクの間の「·」 */
+.paper-sheet .hist-videos .sep { color: var(--muted); }
+/* 選んでいるセトリのタブ（群青の地に白） */
+.sl-tab[aria-selected="true"] { background: var(--blue); border-color: var(--blue); }
+/* スクロールしても上に残るタブの帯は、下を流れる文字と重ならないよう、上の帯と同じ黒に近い色 */
+.hist-tabs-bar, .format-tabs { background: rgba(10, 11, 18, .94); }
+.format-tabs { border-bottom-color: rgba(255, 255, 255, .55); }
+.format-tabs button[aria-pressed="true"] { background: #FFFFFF; border-color: #FFFFFF; color: var(--black); }
+/* 年表の線の点：中を背景の色に見せていたところ */
+.hist-year-head::before { box-shadow: none; }
+.hist-year-head span { color: #FFFFFF; }
+.hist-item::before { background: var(--black); }
+/* 「続きを表示」：青の上なので、白の細線 */
+.load-more-wrap .secondary { border-color: #FFFFFF; color: #FFFFFF; }
+.load-more-wrap .secondary:hover { background: #FFFFFF; color: var(--blue); }
+/* 青の上では、フォーカスの枠は白（白い部品の中は群青のまま） */
+.archive :focus-visible, .paper-sheet :focus-visible, .page :focus-visible { outline-color: #FFFFFF; }
+.archive .article-card :focus-visible, .archive .entry-tabs :focus-visible, .archive .search-box :focus-visible, .paper-sheet .sl-live :focus-visible, .paper-sheet .page-guide :focus-visible, .paper-sheet .person-card :focus-visible { outline-color: var(--blue); }
+
 /* 動きを控える設定の人には、ボタンの色の変化もすぐに切り替える */
 @media (prefers-reduced-motion: reduce) {
   .closing button span { transition: none; }
