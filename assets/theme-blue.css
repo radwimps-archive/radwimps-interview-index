@@ -357,7 +357,7 @@ main > .hist-note { color: var(--on-blue-2); }
 /* 動画のリンクの間の「·」 */
 .paper-sheet .hist-videos .sep { color: var(--muted); }
 /* 群青で塗った部品（「検索」・選んでいる札やタブ）は、まわりの青と区別できるよう白の細い縁 */
-.archive .search-go, .paper-sheet .sl-cats button[aria-pressed="true"], .page .chip[aria-pressed="true"],
+.archive .search-go, .paper-sheet .sl-cats button[aria-pressed="true"],
 .hist-tab[aria-selected="true"], .sl-tab[aria-selected="true"] { box-shadow: 0 0 0 1px rgba(255, 255, 255, .7); }
 /* 選んでいるセトリのタブ（群青の地に白） */
 .sl-tab[aria-selected="true"] { background: var(--blue); border-color: var(--blue); }
@@ -386,7 +386,7 @@ main > .hist-note { color: var(--on-blue-2); }
 /* 青の上では、フォーカスの枠は白（白い部品の中は群青のまま） */
 .archive :focus-visible, .paper-sheet :focus-visible, .page :focus-visible { outline-color: #FFFFFF; }
 /* 白い部品の内側に出る枠は群青に（入口の4つのボタンは、枠がボタンの外の青の上に出るので白のまま） */
-:is(.archive, .paper-sheet, .page) :is(.article-card, .entry-panel, .search-box, .sl-live, .page-guide, .person-card, .panel, .admconnect, .counts li, .statcard, .sl-drop-menu, .admbar) :focus-visible { outline-color: var(--blue); }
+:is(.archive, .paper-sheet, .page) :is(.article-card, .empty, .entry-panel, .search-box, .sl-live, .page-guide, .person-card, .panel, .admconnect, .counts li, .statcard, .sl-drop-menu, .admbar) :focus-visible { outline-color: var(--blue); }
 /* セトリの検索欄の枠は、欄の外側（青の上）に出るので白 */
 .paper-sheet .sl-search-box input:focus { outline-color: #FFFFFF; }
 
