@@ -84,11 +84,13 @@ function songLists(list, from = 0) {
   let ol = null, part = null, n = 0;
   list.forEach((s, i) => {
     if (!ol || (s.part || "") !== part) {
+      const firstGroup = !ol;
       part = s.part || "";
       if (part) out.push(el("h4", { class: "sl-part", text: part }));
       ol = el("ol", { class: "sl-songs" });
       out.push(ol);
-      n = part ? 0 : from;
+      // 【アンコール1】【アンコール2】は、番号を続けて数える（ほかの出演者の見出しの下は 1 から）
+      n = /^アンコール/.test(part) ? (firstGroup ? from : n) : part ? 0 : from;
     }
     ol.append(songItem(s, ++n));
   });
@@ -97,7 +99,7 @@ function songLists(list, from = 0) {
 
 function songItem(s, n) {
   return el("li", { value: String(n), class: song && songKey(s.title) === song ? "sl-song-hit" : null },
-    el("button", { type: "button", class: "sl-song", "data-song": songKey(s.title), title: `「${s.title}」を演奏したライブだけを見る` }, s.title),
+    el("button", { type: "button", class: "sl-song", "data-song": songKey(s.title), "aria-current": song && songKey(s.title) === song ? "true" : null, title: `「${s.title}」を演奏したライブだけを見る` }, s.title),
     s.memo ? el("small", { class: "sl-memo", text: s.memo }) : null);
 }
 
@@ -108,7 +110,8 @@ function setlistBody(l) {
   else {
     body.append(...songLists(l.main));
     if (l.encore.length) {
-      body.append(el("h4", { class: "sl-encore", text: "アンコール" }),
+      // 【アンコール1】などの見出しがあるときは、外側の「アンコール」の見出しは出さない（重なるので）
+      body.append(/^アンコール/.test(l.encore[0].part || "") ? "" : el("h4", { class: "sl-encore", text: "アンコール" }),
         ...songLists(l.encore, l.main.some((s) => s.part) ? 0 : l.main.length));
     }
   }
@@ -140,7 +143,7 @@ function tourCard(t, open, openIds, played) {
   const one = n === 1 ? ls[0] : null;
   const card = el("details", { class: "sl-live", id: t.id, open: open || null },
     el("summary", {},
-      el("p", { class: "hist-meta" }, el("time", { text: periodLabel(t) }), one ? badge(one.conf) : null, one ? attendButton(one) : null),
+      el("p", { class: "hist-meta" }, el("time", { text: one && t.lives.length > 1 ? dateLabel(one) : periodLabel(t) }), one ? badge(one.conf) : null, one ? attendButton(one) : null),
       el("h3", { class: "sl-live-name", text: t.name }),
       el("p", { class: "sl-live-venue" },
         one ? (one.venue || "") : `${n}公演`,
@@ -439,6 +442,7 @@ function setSong(key, { scroll = true, push = true } = {}) {
   song = key && songs.has(key) ? key : "";
   songMissing = "";
   renderLives();
+  renderMine(); // 参加公演のセトリの色も、いまの曲に合わせる
   if (view !== "live") setView("live", { push }); else saveUrl(push);
   // 作り直した画面でも、キーボードの位置が迷子にならないように、案内（なければ見出しの行）へ移す
   const f = $("#lives .sl-song-head") || $("#lives .sl-view");
@@ -453,7 +457,7 @@ $("#tabs").addEventListener("click", (e) => {
   const b = e.target.closest("[data-view]");
   if (b) setView(b.dataset.view, { scroll: true, push: true });
 });
-// 左右の矢印キーで切り替え
+// 左右の矢印キーで切り替え（何度も押すので、履歴には積まず、URL を書き換えるだけ）
 $("#tabs").addEventListener("keydown", (e) => {
   if (e.key !== "ArrowRight" && e.key !== "ArrowLeft") return;
   const vs = [...document.querySelectorAll(".sl-tab:not([hidden])")].map((b) => b.dataset.view);
@@ -533,12 +537,12 @@ async function loadCatalog() {
     groupTours();
     indexSongs();
     if (lives.length) $("#span").textContent = `${lives[0].y} — ${lives[lives.length - 1].y}`;
-    renderMine();
     renderRanking();
     const q = new URLSearchParams(location.search).get("song");
     song = q ? findSong(q) || "" : "";
     songMissing = q && !song ? q : "";
     renderLives();
+    renderMine();
     loadCatalog();
     setView(song && !location.hash ? "live" : location.hash.slice(1));
   } catch (e) {
@@ -546,12 +550,18 @@ async function loadCatalog() {
     $("#loading").textContent = "セットリストを読み込めませんでした。時間をおいて、もう一度開いてください。";
   }
 })();
-addEventListener("hashchange", () => { const h = VIEW_ALIAS[location.hash.slice(1)] || location.hash.slice(1); if (VIEWS.includes(h)) setView(h); });
 // ブラウザの「戻る」「進む」：URL の ?song= と #タブ から、絞り込みとタブを戻す
 addEventListener("popstate", () => {
   if (!lives.length) return;
   const q = new URLSearchParams(location.search).get("song");
   const k = q ? findSong(q) || "" : "";
-  if (k !== song) { song = k; songMissing = ""; renderLives(); }
-  setView(location.hash.slice(1) || "live");
+  if (k !== song) {
+    song = k; songMissing = q && !k ? q : "";
+    renderLives(); renderMine();
+    const f = $("#lives .sl-song-head") || $("#lives .sl-view");
+    if (f && view === "live") { f.tabIndex = -1; f.focus({ preventScroll: true }); }
+  }
+  // #ranking などのタブの印だけを見る（#lives のようなページ内リンクでは、タブを変えない）。ハッシュを手で書き換えたときも、ここに来る
+  const h = VIEW_ALIAS[location.hash.slice(1)] || location.hash.slice(1) || "live";
+  if (VIEWS.includes(h) && h !== view) setView(h);
 });
