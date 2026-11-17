@@ -139,8 +139,12 @@ body::before, .header { background: var(--black); }
 }
 /* 記事一覧（トップ）：サイト名を大見出しに、キャッチコピーを上の小さな文字に。
    サイト名は上の帯のロゴと同じく字間を広く、1行目を太く・2行目を細く。字間のぶん右にずれないよう、左にも同じだけ空ける */
-.hero h1.site-title { letter-spacing: .16em; text-indent: .16em; }
-.hero h1.site-title span { font-size: .62em; letter-spacing: .42em; text-indent: .42em; }
+/* サイト名は SVG の文字（2行とも textLength で幅 580 にそろう）。画面の幅に合わせて大きさが変わる */
+.hero h1.site-title { display: block; width: min(100%, 300px); margin: 0 auto 18px; line-height: 0; }
+@media (min-width: 701px) { .hero h1.site-title { width: 440px; } }
+.site-title-art { display: block; width: 100%; height: auto; overflow: visible; fill: currentColor; font-family: var(--f-body); }
+.site-title-main { font-size: 94px; font-weight: 800; }
+.site-title-sub { font-size: 72px; font-weight: 300; }
 .hero .hero-catch { font-size: 13px; letter-spacing: .24em; text-indent: .24em; }
 @media (min-width: 701px) { .hero .hero-catch { font-size: 15px; letter-spacing: .3em; text-indent: .3em; } }
 /* 見出しの中の PR の案内と、年代へのリンク（歩みページ） */
@@ -224,8 +228,8 @@ body::before, .header { background: var(--black); }
 .hist-note { color: var(--muted); }
 /* 紙の外（青の上）に置いた注意書き（メンバー紹介のページ）は、白の文字に */
 main > .hist-note { color: var(--on-blue-2); }
-/* 左端は、紙の中の文字・フッターの文字とそろえる */
-@media (min-width: 720px) { main > .hist-note.wrap { padding-inline: 32px; } }
+/* 左端は、紙の中の文字・フッターの文字とそろえる（余白はフッターと同じ式。下の「フッター」を参照） */
+@media (min-width: 720px) { main > .hist-note.wrap { max-width: none; } }
 
 /* ---------- 記事一覧の中の細かい面 ---------- */
 .card-thumbnail { background: #DCE3F3; }
@@ -264,11 +268,16 @@ main > .hist-note { color: var(--on-blue-2); }
 .closing button:hover span { background: var(--on-blue); color: var(--blue); }
 
 /* ---------- フッター：青みの黒に白 ---------- */
-/* フッターの文字の左端は、紙の面の中の文字の左端にそろえる（スマホ 16px、720px 以上は紙の内側の余白 32px、
-   紙の左右に青が残る幅（1232px 以上）では、紙の左端 ＋ 32px） */
+/* フッター（と、メンバー紹介の紙の外の注意書き）の文字の左端は、紙の面の中の文字の左端にそろえる。
+   スマホ 16px。720px 以上は紙の左端 ＋ 紙の内側の余白 32px（紙が最大幅 1200px で真ん中に寄る幅では、その左端から）。
+   1232px 以上は紙の左右に 32px 以上の青が残るので、少なくとも 64px */
 .site-footer { max-width: none; padding-inline: 16px; background: var(--black); color: var(--on-blue); }
-@media (min-width: 720px) { .site-footer { padding-inline: 32px; } }
-@media (min-width: 1232px) { .site-footer { padding-inline: max(64px, calc((100% - 1200px) / 2 + 32px)); } }
+@media (min-width: 720px) { .site-footer, main > .hist-note.wrap { padding-inline: max(32px, calc((100% - 1200px) / 2 + 32px)); } }
+@media (min-width: 1232px) { .site-footer, main > .hist-note.wrap { padding-inline: max(64px, calc((100% - 1200px) / 2 + 32px)); } }
+/* 701〜719px は、style.css の .wrap の余白（40px）が効く幅。紙はまだ画面いっぱいなので、紙の中の余白はスマホと同じ 16px にそろえる */
+@media (min-width: 701px) and (max-width: 719px) {
+  .paper-sheet > .wrap, .paper-sheet > .hist-tabs-bar > .wrap, main > .hist-note.wrap { padding-inline: 16px; }
+}
 .footer-brand { font-weight: 300; letter-spacing: .3em; }
 .site-footer p, .footer-links button, .footer-links a { color: rgba(255, 255, 255, .78); }
 .footer-links button:hover, .footer-links a:hover { color: #FFFFFF; }
