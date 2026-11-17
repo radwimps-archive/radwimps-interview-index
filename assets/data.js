@@ -34,6 +34,9 @@ const APP_OR_STORE_HOSTS = [
   "amazon.co.jp", "www.amazon.co.jp", "amazon.com", "www.amazon.com",
   "play.google.com", "line.me", "fujisan.co.jp", "www.fujisan.co.jp"
 ];
+// 上のサイトでも、ページの中でインタビューの本文が読めると確かめた記事（記事の id）。この記事には「注意」を出しません。
+//   tieup-natsunosei-apple：Apple Music の「夏のせい」の作品ページ。ページ上のインタビューノーツで本人の発言が読める
+const STORE_PAGE_READABLE_IDS = ["tieup-natsunosei-apple"];
 
 // 有料会員限定のコンテンツ（ファンクラブ「ボクンチ」など）は載せません。
 // 公開する記事にこれらの URL を書くと、チェックで「エラー」になり、サイトの更新が止まります。
@@ -328,7 +331,7 @@ export function parseArticles(text) {
     // 公開する記事だけ、リンク先の種類を確かめる
     if (state === "公開" && url) {
       if (PAID_MEMBERS_HOSTS.includes(hostOf(url))) err(line, "ファンクラブ（ボクンチ）など、有料会員限定のページは載せません。状態を「非表示」にするか、行を消してください");
-      if (APP_OR_STORE_HOSTS.includes(hostOf(url)) && kind !== RELEASE_KIND) warn(line, "この URL はアプリやストアのページで、押してもインタビューの中身が読めないことがあります。記事が読めるページがなければ、状態を「非表示」にしてください");
+      if (APP_OR_STORE_HOSTS.includes(hostOf(url)) && kind !== RELEASE_KIND && !STORE_PAGE_READABLE_IDS.includes(id)) warn(line, "この URL はアプリやストアのページで、押してもインタビューの中身が読めないことがあります。記事が読めるページがなければ、状態を「非表示」にしてください");
       if (youtubeId(url) && kind !== VIDEO_KIND && kind !== RADIO_KIND) warn(line, `YouTube の URL です。「動画インタビュー」のタブに出すには、種類を「${VIDEO_KIND}」にしてください（ラジオの放送回なら「${RADIO_KIND}」）`);
     }
 
