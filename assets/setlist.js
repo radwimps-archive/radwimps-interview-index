@@ -200,28 +200,26 @@ function songBanner(rec, cats) {
 }
 
 // ライブ：年ごとに見出しをつけて、ツアー・ライブを並べる（押すと、公演とセットリストが開く）
-// 区分（国内ツアー・海外ツアー・フェスなど）で絞り込む札。いくつでも選べる（選ばないと「すべて」）。「ライブ」と「ランキング」で、別々に覚える
+// 区分（国内ツアー・海外ツアー・フェスなど）で絞り込むメニュー。1つ選ぶ（「すべての区分」で解除）。「ライブ」と「ランキング」で、別々に覚える
 const catState = { live: new Set(), ranking: new Set() };
 function catBar(v, counts, rerender, unit) {
   const set = catState[v];
-  const bar = el("div", { class: "sl-cats", role: "group", "aria-label": "区分で絞り込む" },
-    el("button", { type: "button", "aria-pressed": String(!set.size), "data-cat": "" }, "すべて"),
-    ...SETLIST_CATEGORIES.filter((c) => counts[c] || set.has(c)).map((c) => el("button", { type: "button", "aria-pressed": String(set.has(c)), "data-cat": c }, c, el("small", { text: ` ${counts[c] || 0}${unit}` }))));
-  bar.addEventListener("click", (e) => {
-    const b = e.target.closest("[data-cat]");
-    if (!b) return;
-    const c = b.dataset.cat;
-    if (!c) set.clear(); else if (set.has(c)) set.delete(c); else set.add(c);
+  if (set.size > 1) { const [c] = set; set.clear(); set.add(c); } // 以前の URL などで複数選ばれていたら、最初の1つにする
+  const now = [...set][0] || "";
+  const total = Object.values(counts).reduce((s, n) => s + n, 0);
+  const sel = el("select", { class: "sl-cat-select", "aria-label": "区分で絞り込む" },
+    el("option", { value: "", text: `すべての区分（${total}${unit}）` }),
+    ...SETLIST_CATEGORIES.filter((c) => counts[c] || set.has(c)).map((c) => el("option", { value: c, text: `${c}（${counts[c] || 0}${unit}）` })));
+  sel.value = now;
+  sel.addEventListener("change", () => {
+    set.clear();
+    if (sel.value) set.add(sel.value);
     if (v === "ranking") rankAll = false;
-    const left = bar.scrollLeft;
     rerender();
-    // 作り直した札の帯も、横のスクロール位置と、押した札の位置をそのままにする
     if (v === "live") saveUrl(); // いまの区分を履歴にも覚えておく
-    const nb = $(`${VIEW_BOX[v]} .sl-cats`);
-    if (nb) { nb.scrollLeft = left; refocus(v, nb.querySelector(`[data-cat="${CSS.escape(c)}"]`) ? `.sl-cats [data-cat="${CSS.escape(c)}"]` : '.sl-cats [data-cat=""]'); } // 札が消えたときは「すべて」へ
+    refocus(v, ".sl-cat-select"); // 作り直したメニューに、フォーカスを戻す
   });
-  watchScrollFade(bar);
-  return bar;
+  return el("div", { class: "sl-cats" }, sel);
 }
 const countBy = (items) => { const m = {}; for (const x of items) if (x.cat) m[x.cat] = (m[x.cat] || 0) + 1; return m; };
 
@@ -243,14 +241,14 @@ function renderLives() {
   box.append(catBar("live", countBy(songTours), renderLives, "件")); // 曲で絞っているときは、その曲を演奏したライブの数
   if (rec) box.append(songBanner(rec, cats));
   else if (songMissing) box.append(el("p", { class: "sl-mine-empty", text: `「${songMissing}」を演奏したライブは、見つかりませんでした。すべてのライブを表示しています。` }));
-  if (!list.length) { box.append(q ? noHit(q) : el("p", { class: "hist-loading", text: cats.size ? "選んだ区分には、合うライブがありません。区分の札を「すべて」にすると、ほかの区分のライブが出ます。" : "その曲を演奏したライブは、まだ載っていません。" })); return; }
+  if (!list.length) { box.append(q ? noHit(q) : el("p", { class: "hist-loading", text: cats.size ? "選んだ区分には、合うライブがありません。区分を「すべての区分」にすると、ほかの区分のライブが出ます。" : "その曲を演奏したライブは、まだ載っていません。" })); return; }
   const years = new Map();
   for (const t of (isAsc("live") ? list : [...list].reverse())) (years.get(t.y) || years.set(t.y, []).get(t.y)).push(t);
   if (years.size > 1) {
     // 年が増えても使いやすいように、ボタンを並べず、メニューから選んで飛ぶ
     const sel = el("select", { id: "yearJump", "aria-label": "年へ移動" }, el("option", { value: "", text: "年を選ぶ" }), ...[...years.keys()].map((y) => el("option", { value: y, text: `${y}年` })));
     sel.addEventListener("change", () => { const sec = document.getElementById(`y${sel.value}`); sel.value = ""; if (sec) scrollToEl(sec); });
-    box.append(el("label", { class: "sl-yearjump" }, el("span", { text: "年へ移動" }), sel));
+    box.querySelector(".sl-cats").append(sel); // 区分のメニューの右に並べる（見た目は同じ丸い枠）
   }
   // 曲で絞り込んだばかりのときは、いちばん上のツアーと、その中の最初の公演を開いて、色をつけた曲がすぐ見えるようにする
   let opened = openIds;
@@ -405,7 +403,7 @@ function renderRanking() {
 function saveUrl(push = false) {
   const q = song && songs.has(song) ? `?song=${encodeURIComponent(songs.get(song).title)}` : "";
   const url = location.pathname + q + `#${view}`;
-  const state = { liveCats: [...catState.live] }; // 「戻る」で「ライブ」の区分の札も戻せるように
+  const state = { liveCats: [...catState.live] }; // 「戻る」で「ライブ」で選んだ区分も戻せるように
   if (push && url !== location.pathname + location.search + location.hash) history.pushState(state, "", url);
   else history.replaceState(state, "", url);
 }

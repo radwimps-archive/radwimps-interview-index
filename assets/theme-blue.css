@@ -148,15 +148,30 @@ body::before, .header { background: var(--black); }
 .hero .hist-pr-top { justify-content: center; margin-top: 18px; color: var(--on-blue-2); }
 .hero .pr { color: var(--on-blue); border-color: var(--on-blue-line); }
 .hero .era-links { justify-content: center; gap: 8px 10px; margin-top: 22px; }
-.hero .era-links a, .hero .era-links span { display: inline-flex; align-items: center; gap: 8px; min-height: 44px; padding: 0 16px; border: 1px solid var(--on-blue-line); border-radius: 22px; font-family: var(--f-body); font-size: 14px; font-weight: 300; letter-spacing: .12em; color: var(--on-blue); font-variant-numeric: tabular-nums; }
-@media (max-width: 700px) {
-  .hero { padding-block: 28px 26px; }
-  .hero .era-links { gap: 8px; margin-top: 16px; }
-  .hero .era-links a, .hero .era-links span { gap: 6px; padding: 0 10px; font-size: 13px; letter-spacing: 0; }
+@media (max-width: 700px) { .hero .era-links { gap: 8px; margin-top: 16px; } }
+
+/* ---------- 丸い枠のメニュー（青の上のプルダウンをすべてこの形にそろえる） ----------
+   歩みの年代・セトリの区分と年・記事一覧の並び順・「さらに絞り込む」の条件。細い白線の丸い枠に、細い白の文字と小さな「⌄」。
+   押すと、端末のふつうの選ぶ一覧が開く（一覧の中は白地に紺） */
+.era-select, .paper-sheet .sl-cat-select, #yearJump, .archive .sort-label select, .archive .filter-field select {
+  -webkit-appearance: none; appearance: none; min-height: 44px; padding: 0 38px 0 18px; border: 1px solid var(--on-blue-line); border-radius: 22px;
+  background: transparent url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6'%3E%3Cpath d='M1 1l4 4 4-4' fill='none' stroke='white' stroke-width='1.2'/%3E%3C/svg%3E") right 16px center / 10px 6px no-repeat;
+  color: #FFFFFF; font-family: var(--f-body); font-size: 14px; font-weight: 300; letter-spacing: .12em; font-variant-numeric: tabular-nums; cursor: pointer;
 }
-.hero .era-links a::after { content: ""; width: 6px; height: 6px; margin-top: -4px; border-right: 1px solid currentColor; border-bottom: 1px solid currentColor; transform: rotate(45deg); }
-.hero .era-links a:hover { background: rgba(255, 255, 255, .12); border-color: var(--on-blue); color: var(--on-blue); }
-.hero .era-links .off { opacity: .65; }
+:is(.era-select, .paper-sheet .sl-cat-select, #yearJump, .archive .sort-label select, .archive .filter-field select):hover { background-color: rgba(255, 255, 255, .12); border-color: #FFFFFF; }
+:is(.era-select, .paper-sheet .sl-cat-select, #yearJump, .archive .sort-label select, .archive .filter-field select):focus-visible { outline: 2px solid #FFFFFF; outline-offset: 2px; }
+.era-select.off { opacity: .65; cursor: default; }
+.era-select.off:hover { background-color: transparent; border-color: var(--on-blue-line); }
+:is(.era-select, .sl-cat-select, #yearJump, .sort-label select, .filter-field select) option { background: #FFFFFF; color: #0B1230; }
+@media (max-width: 700px) {
+  .era-select { padding: 0 26px 0 11px; background-position: right 10px center; font-size: 13px; letter-spacing: 0; }
+  .sl-cat-select, #yearJump { font-size: 13px; letter-spacing: .04em; }
+}
+/* 並び順は、文字の横に置く小さめの丸 */
+.archive .sort-label select { min-height: 40px; max-width: none; padding: 0 34px 0 14px; font-size: 13px; letter-spacing: .06em; }
+.archive .filter-field select { width: 100%; padding-left: 14px; font-size: 13px; letter-spacing: .04em; }
+/* スマホでは 16px（iPhone で、押したときに画面が拡大されないように） */
+@media (max-width: 700px) { .archive .filter-field select { font-size: 16px; letter-spacing: 0; } }
 
 /* 404 のページのボタン（青の上） */
 .nf-links { justify-content: center; }
@@ -327,7 +342,7 @@ main > .hist-note { color: var(--on-blue-2); }
 /* 白い部品の中は、元の紺の色に戻す（style.css で白い面を持つ部品） */
 :is(.archive, .paper-sheet, .page) :where(.entry-tabs button, .entry-panel, .search-box, .article-card, .empty, .filter-field select, .panel-label input,
   .person-chip, .chip, .secondary, .btn, .active-filters button, .admbar.on, .counts li, .admstats li, .statcard, .stattip, .admconnect, .panel, .addform input, .addform textarea, .addform select, .admfield input,
-  .conf-part, .sl-live, .sl-clear, .sl-chip, .transfer-url, .person-card, .sns, .sl-drop-btn, .sl-drop-menu, .att-chip, .sl-search-box, .sl-sort, .sl-cats button, .sl-song-clear,
+  .conf-part, .sl-live, .sl-clear, .sl-chip, .transfer-url, .person-card, .sns, .sl-drop-btn, .sl-drop-menu, .att-chip, .sl-search-box, .sl-sort, .sl-song-clear,
   .hist-shop, .page-guide details, .search-go, select, textarea, input:not([type="checkbox"]):not([type="radio"])) {
   --ink: #0B1230;
   --ink-2: #22305C;
@@ -356,7 +371,6 @@ main > .hist-note { color: var(--on-blue-2); }
 /* 入力欄・選択欄（白）の文字は紺のまま */
 :is(.archive, .paper-sheet, .page) :where(select, textarea, input:not([type="checkbox"]):not([type="radio"])) { color: var(--ink); }
 /* 並び順の欄は地が透明（青の上）なので白の文字。開いたときの選択肢は白地に紺 */
-.archive .sort-label select { color: #FFFFFF; background: transparent url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24'%3E%3Cpath d='M6 9l6 6 6-6' fill='none' stroke='%23FFFFFF' stroke-width='2.4' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E") right center / 12px no-repeat; }
 :is(.archive, .paper-sheet, .page) option { background: #FFFFFF; color: #0B1230; }
 /* 入口の4つのボタン（白）：文字は紺のまま（ボタンは親の文字の色を受け継ぐため、ここで指定する） */
 .archive .entry-tabs button { color: var(--ink); }
@@ -365,7 +379,7 @@ main > .hist-note { color: var(--on-blue-2); }
 /* 動画のリンクの間の「·」 */
 .paper-sheet .hist-videos .sep { color: var(--muted); }
 /* 群青で塗った部品（「検索」・選んでいる札やタブ）は、まわりの青と区別できるよう白の細い縁 */
-.archive .search-go, .paper-sheet .sl-cats button[aria-pressed="true"],
+.archive .search-go,
 .hist-tab[aria-selected="true"], .sl-tab[aria-selected="true"] { box-shadow: 0 0 0 1px rgba(255, 255, 255, .7); }
 /* 選んでいるセトリのタブ（群青の地に白） */
 .sl-tab[aria-selected="true"] { background: var(--blue); border-color: var(--blue); }

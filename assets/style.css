@@ -618,11 +618,11 @@ dialog.modal::backdrop { background: rgba(23, 32, 24, .5); -webkit-backdrop-filt
 }
 
 /* ---------- RADWIMPSの歩み（history.html：年表） ---------- */
-.era-links { display: flex; flex-wrap: wrap; gap: 4px 18px; margin-top: 16px; }
-.era-links a, .era-links span { font-family: var(--f-logo); font-size: 20px; line-height: 1.5; color: var(--muted); text-decoration: none; }
-.era-links a::after { content: " ↓"; font-family: var(--f-body); font-size: 12px; }
-.era-links a:hover { color: var(--accent); }
-.era-links .off { opacity: .4; }
+.era-links { display: flex; flex-wrap: wrap; gap: 8px 10px; margin-top: 16px; }
+/* 丸い枠のメニュー（歩みの年代・セトリの区分と年）：押すと選ぶ一覧が開く */
+.era-select, .sl-cat-select, #yearJump { -webkit-appearance: none; appearance: none; min-height: 44px; max-width: 100%; padding: 0 36px 0 16px; border: 1px solid var(--line-input); border-radius: 22px;
+  background: var(--card) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6'%3E%3Cpath d='M1 1l4 4 4-4' fill='none' stroke='%2322305C' stroke-width='1.4'/%3E%3C/svg%3E") right 15px center / 10px 6px no-repeat; color: var(--ink); font-size: 14px; font-variant-numeric: tabular-nums; cursor: pointer; }
+.era-select.off { opacity: .4; cursor: default; }
 /* カテゴリのタブ：上の帯のすぐ下に残る。すき間なく一続きに並べ、下に細い線。線の色は、選んでいるカテゴリの色。
    入りきらないときは左右にスクロールできる（選んでいるタブは紺ではなく、そのカテゴリの色） */
 .hist-tabs-bar { position: sticky; top: calc(60px + env(safe-area-inset-top, 0px)); z-index: 10; background: var(--paper); }
@@ -725,7 +725,6 @@ button.title-link { padding: 0; border: 0; background: none; font: inherit; text
   .hist-meta { grid-row: 1 / -1; flex-direction: column; align-items: flex-start; gap: 4px; margin: 2px 0 0; }
   .hist-title { font-size: 16px; }
   .hist-sub, .hist-videos, .hist-player { grid-column: 2; }
-  .era-links a, .era-links span { font-size: 24px; }
 }
 
 /* ---------- ベータ版の表示（config.js の beta が true のときだけ。feedback.js が作ります） ---------- */
@@ -1036,15 +1035,8 @@ small { font-size: max(12px, .83em); }
 
 
 /* ライブ・ランキング：区分で絞り込む札（横にスクロールできる）と、年へ飛ぶメニュー */
-.sl-cats { display: flex; gap: 6px; margin: 0 0 6px; padding: 6px 4px; overflow-x: auto; overscroll-behavior-x: contain; scrollbar-width: none; }
-.sl-cats::-webkit-scrollbar { display: none; }
-.sl-cats button { flex: none; min-height: 44px; padding: 0 14px; border: 1px solid var(--line-entry); border-radius: 22px; background: var(--card); color: var(--ink-2); font-size: 13px; white-space: nowrap; }
-.sl-cats button small { margin-left: 2px; font-size: 12px; font-variant-numeric: tabular-nums; color: var(--muted); }
-.sl-cats button:hover { background: var(--accent-tint); }
-.sl-cats button[aria-pressed="true"] { border-color: var(--accent); background: var(--accent); color: var(--white); font-weight: 600; }
-.sl-cats button[aria-pressed="true"] small { color: inherit; opacity: .85; }
-.sl-yearjump { display: flex; align-items: center; justify-content: flex-end; gap: 10px; margin: 0 0 6px; font-size: 12px; color: var(--muted); }
-.sl-yearjump select { min-height: 44px; padding: 0 30px 0 12px; border: 1px solid var(--line-input); border-radius: 22px; background-color: var(--card); color: var(--ink); font-size: 13px; }
+.sl-cats { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 10px; margin: 0 0 6px; padding: 6px 0; }
+.sl-cats #yearJump { margin-left: auto; }
 #lives, #ranking, #mine, #unplayedView { scroll-margin-top: calc(130px + env(safe-area-inset-top, 0px)); }
 .sl-year { margin: 0 0 8px; scroll-margin-top: calc(130px + env(safe-area-inset-top, 0px)); }
 .sl-year .hist-year-head { margin: 22px 0 10px; }

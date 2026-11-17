@@ -276,18 +276,19 @@ document.addEventListener("pointermove", (e) => {
   if (tap.touch && Math.hypot(e.clientX - tap.x, e.clientY - tap.y) > 10) tap.moved = true;
 }, { passive: true });
 
-// 年代へ移動するリンク（表示中の出来事がある年代だけ押せる）
+// 年代ごとの「年を選ぶ」メニュー（丸い枠の3つ）。押すとその年代の年が並び、選んだ年へ飛ぶ。表示中の出来事がない年代は選べない
 function renderEras(list) {
   const nav = $("#eras");
   nav.replaceChildren();
   const last = events.length ? events[events.length - 1].y : 2026;
   for (const [a, b] of ERAS) {
     const to = Math.min(b, last);
-    const first = list.find((e) => e.y >= a && e.y <= to);
     const label = `${a}–${to}`;
-    nav.append(first
-      ? el("a", { href: `#y${first.y}`, "data-year": String(first.y), text: label })
-      : el("span", { class: "off", text: label }));
+    const years = [...new Set(list.filter((e) => e.y >= a && e.y <= to).map((e) => e.y))];
+    const sel = el("select", { class: "era-select", "aria-label": `${label}年の中から、移動する年を選ぶ` },
+      el("option", { value: "", text: label }), ...years.map((y) => el("option", { value: String(y), text: `${y}年` })));
+    if (!years.length) { sel.disabled = true; sel.classList.add("off"); }
+    nav.append(sel);
   }
 }
 
@@ -335,13 +336,13 @@ $("#tabs").addEventListener("keydown", (e) => {
   setCat(next.dataset.cat);
   document.querySelector(`.hist-tab[data-cat="${next.dataset.cat}"]`).focus();
 });
-// 年代リンク：上の帯とタブに隠れない位置へ
-$("#eras").addEventListener("click", (e) => {
-  const a = e.target.closest("a[data-year]");
-  if (!a) return;
-  e.preventDefault();
-  const t = document.getElementById(`y${a.dataset.year}`);
-  scrollTo({ top: t.getBoundingClientRect().top + scrollY - headerH() - $(".hist-tabs-bar").offsetHeight - 8, behavior: "smooth" });
+// 年代のメニューで年を選んだら、その年へ（上の帯とタブに隠れない位置へ）。メニューの表示は年代の名前に戻す
+$("#eras").addEventListener("change", (e) => {
+  const sel = e.target.closest("select");
+  if (!sel || !sel.value) return;
+  const t = document.getElementById(`y${sel.value}`);
+  sel.value = "";
+  if (t) scrollTo({ top: t.getBoundingClientRect().top + scrollY - headerH() - $(".hist-tabs-bar").offsetHeight - 8, behavior: "smooth" });
 });
 
 // いちばん上へ戻るボタン
