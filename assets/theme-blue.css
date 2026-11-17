@@ -81,7 +81,14 @@
 html { background: var(--black); }
 body { position: relative; background: transparent; color: var(--ink); }
 /* 画面に固定した背景の層（スクロールしても動かない） */
-body::after { content: ""; position: fixed; inset: 0; z-index: -1; pointer-events: none; background: var(--sky); }
+/* 高さは、スマホのアドレスバーを隠したときの大きいほうの画面の高さ（100lvh）に固定する。
+   iPhone の Safari で、スクロールしてアドレスバーが縮むたびに、染めむらや陰影が伸び縮みして見えないように */
+body::after { content: ""; position: fixed; top: 0; right: 0; left: 0; height: 100vh; height: 100lvh; z-index: -1; pointer-events: none; background: var(--sky); }
+/* 中身の短いページ（404 など）でも、フッターが画面のいちばん下に来るようにする（フッターの下に青が見えないように）。
+   本文（main）が残りの高さを埋める。100svh はスマホのアドレスバーを出した状態の高さ（使えないブラウザは 100vh） */
+body { display: flex; flex-direction: column; min-height: 100vh; min-height: 100svh; }
+body > main { flex: 1 0 auto; }
+body > .site-footer { flex-shrink: 0; }
 :focus-visible { outline-color: var(--on-blue); }
 
 /* ---------- いちばん上の帯：青みの黒に、細く字間の広い白いロゴ ---------- */
@@ -211,6 +218,8 @@ body::before, .header { background: var(--black); }
 .hist-note { color: var(--muted); }
 /* 紙の外（青の上）に置いた注意書き（メンバー紹介のページ）は、白の文字に */
 main > .hist-note { color: var(--on-blue-2); }
+/* 左端は、紙の中の文字・フッターの文字とそろえる */
+@media (min-width: 720px) { main > .hist-note.wrap { padding-inline: 32px; } }
 
 /* ---------- 記事一覧の中の細かい面 ---------- */
 .card-thumbnail { background: #DCE3F3; }
@@ -249,7 +258,11 @@ main > .hist-note { color: var(--on-blue-2); }
 .closing button:hover span { background: var(--on-blue); color: var(--blue); }
 
 /* ---------- フッター：青みの黒に白 ---------- */
-.site-footer { max-width: none; padding-inline: max(16px, calc((100% - 1168px) / 2)); background: var(--black); color: var(--on-blue); }
+/* フッターの文字の左端は、紙の面の中の文字の左端にそろえる（スマホ 16px、720px 以上は紙の内側の余白 32px、
+   紙の左右に青が残る幅（1232px 以上）では、紙の左端 ＋ 32px） */
+.site-footer { max-width: none; padding-inline: 16px; background: var(--black); color: var(--on-blue); }
+@media (min-width: 720px) { .site-footer { padding-inline: 32px; } }
+@media (min-width: 1232px) { .site-footer { padding-inline: max(64px, calc((100% - 1200px) / 2 + 32px)); } }
 .footer-brand { font-weight: 300; letter-spacing: .3em; }
 .site-footer p, .footer-links button, .footer-links a { color: rgba(255, 255, 255, .78); }
 .footer-links button:hover, .footer-links a:hover { color: #FFFFFF; }
