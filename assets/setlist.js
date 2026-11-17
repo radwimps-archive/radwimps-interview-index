@@ -12,7 +12,7 @@
 //   ライブ未演奏：楽曲一覧にあって、どの公演のセトリにも出てこない曲（#unplayed。songs.csv がないときはタブごと出しません）
 
 import { parseCSV, parseSetlists, songKey, SETLIST_CONFIDENCE, SETLIST_CATEGORIES } from "./data.js?v=20261115a";
-import { h as el, setupMenu, isAdminDevice } from "./ui.js";
+import { h as el, setupMenu, isAdminDevice, watchScrollFade } from "./ui.js";
 import { feedbackUrl, hasFeedback, setupBeta, KIND } from "./feedback.js";
 import { looseMatch, looseMatchAll, fold } from "./search.js?v=20261115a";
 import { attended, attendButton, attendCount, assignKeys, sync as syncAttend, setupAttendClicks } from "./attended.js?v=20261115a";
@@ -229,6 +229,8 @@ function renderUnplayed() {
     el("p", { class: "sl-song-sub", text: UNPLAYED_NOTE }),
     ...unplayedYears(list));
   tab.hidden = false;
+  const d = $(".hero-description");
+  if (d && !d.dataset.unplayed) { d.dataset.unplayed = "1"; d.append("「ライブ未演奏」では、ライブでまだ演奏していない曲を見られます。"); }
 }
 
 // ツアーで演奏した曲（はじめて出てきた順）と、何公演で演奏したか
@@ -486,6 +488,7 @@ toTop.addEventListener("click", () => scrollTo({ top: 0, behavior: "smooth" }));
 setupAttendClicks();
 // メニュー（ほかのページと同じ動き。ui.js）
 setupMenu();
+watchScrollFade($("#tabs"));
 setupBeta($("#main").firstElementChild);
 if (hasFeedback) {
   $(".site-footer .footer-links").append(el("a", { href: feedbackUrl({ kind: KIND.error, title: "セットリストの誤りのお知らせ", page: "ライブのセトリ" }), target: "_blank", rel: "noopener noreferrer", text: "セトリの誤りを知らせる ↗" }));

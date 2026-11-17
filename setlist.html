@@ -39,11 +39,11 @@
   </div>
   <div class="menu-clip" id="menuClip" inert aria-hidden="true">
     <nav class="menu-panel" aria-label="メニュー">
-      <a class="nav-item" href="./">記事一覧 <span aria-hidden="true">↗</span></a>
-      <a class="nav-item" href="history.html">RADWIMPSの歩み <span aria-hidden="true">↗</span></a>
-      <a class="nav-item" href="setlist.html" aria-current="page">RAD LIVE SET LIST <span aria-hidden="true">↗</span></a>
-      <a class="nav-item" href="members.html">メンバー紹介 <span aria-hidden="true">↗</span></a>
-      <a class="nav-item" href="./#admin" id="adminLink" hidden>運営管理 <span aria-hidden="true">↗</span></a>
+      <a class="nav-item" href="./">記事一覧 <span aria-hidden="true">→</span></a>
+      <a class="nav-item" href="history.html">RADWIMPSの歩み <span aria-hidden="true">→</span></a>
+      <a class="nav-item" href="setlist.html" aria-current="page">RAD LIVE SET LIST <span aria-hidden="true">→</span></a>
+      <a class="nav-item" href="members.html">メンバー紹介 <span aria-hidden="true">→</span></a>
+      <a class="nav-item" href="./#admin" id="adminLink" hidden>運営管理 <span aria-hidden="true">→</span></a>
     </nav>
   </div>
 </header>
@@ -52,18 +52,18 @@
   <section class="hero wrap" aria-labelledby="setlistTitle">
     <p class="eyebrow">RADWIMPS SETLISTS <span id="span"></span></p>
     <h1 id="setlistTitle">RAD LIVE SET LIST</h1>
-    <p class="hero-description">RADWIMPS がライブで、いつ・どの曲を演奏したのかをまとめています。「ライブ」では公演ごとのセットリスト（曲順）を「国内ツアー・海外ツアー・フェス・ボクンチ忘年会・番組出演・単発ライブ」に分けて、「年表」では年ごとの流れを、「参加公演」では行ったライブ（公演の足あとのマークを押したもの）だけを、「ランキング」ではよく演奏された曲の順位を、「ライブ未演奏」ではライブでまだ演奏していない曲を見られます。年表で曲名を押すと、その曲を演奏したライブだけが並びます。</p>
-    <p class="sl-legend" id="legend"></p>
+    <p class="hero-description">RADWIMPS がライブで、いつ・どの曲を演奏したのかをまとめています。「ライブ」では公演ごとのセットリスト（曲順）を、「年表」では年ごとの流れを、「ランキング」ではよく演奏された曲の順位を、「参加公演」では行ったライブ（公演の足あとのマークを押したもの）だけを見られます。年表で曲名を押すと、その曲を演奏したライブだけが並びます。</p>
+    <details class="sl-legend-box"><summary>表示の見かた（札の意味）</summary><p class="sl-legend" id="legend"></p></details>
   </section>
 
   <!-- 表示の切り替え：フォルダの見出しのような「タブ」。スクロールしても上に残ります -->
   <div class="hist-tabs-bar">
     <div class="sl-tabs wrap" role="tablist" aria-label="表示の切り替え" id="tabs">
-      <button type="button" role="tab" class="sl-tab" id="tabMine" data-view="mine" aria-selected="false" aria-controls="mine">参加公演</button>
       <button type="button" role="tab" class="sl-tab" id="tabLive" data-view="live" aria-selected="true" aria-controls="lives">ライブ</button>
       <button type="button" role="tab" class="sl-tab" id="tabYear" data-view="nenpyo" aria-selected="false" aria-controls="nenpyo">年表</button>
       <button type="button" role="tab" class="sl-tab" id="tabRank" data-view="ranking" aria-selected="false" aria-controls="ranking">ランキング</button>
       <button type="button" role="tab" class="sl-tab" id="tabUnplayed" data-view="unplayed" aria-selected="false" aria-controls="unplayedView" hidden>ライブ未演奏</button>
+      <button type="button" role="tab" class="sl-tab" id="tabMine" data-view="mine" aria-selected="false" aria-controls="mine">参加公演</button>
     </div>
   </div>
 
@@ -106,7 +106,7 @@
 <footer class="site-footer wrap">
   <div class="footer-brand">RADWIMPS Archives</div>
   <p>UNOFFICIAL FAN ARCHIVE · 本人・所属事務所・各媒体とは関係ありません。</p>
-  <div class="footer-links"><a href="./">記事一覧へ ↗</a><a href="history.html">RADWIMPSの歩みへ ↗</a></div>
+  <div class="footer-links"><a href="./">記事一覧へ →</a><a href="history.html">RADWIMPSの歩みへ →</a></div>
 </footer>
 
 <button type="button" class="hist-top" id="toTop" aria-label="いちばん上へ" hidden>↑</button>
