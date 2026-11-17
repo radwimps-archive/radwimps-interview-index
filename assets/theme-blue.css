@@ -144,7 +144,7 @@ body::before, .header { background: var(--black); }
 @media (min-width: 701px) { .hero h1.site-title { width: 440px; } }
 .site-title-art { display: block; width: 100%; height: auto; overflow: visible; fill: currentColor; font-family: var(--f-body); }
 .site-title-main { font-size: 94px; font-weight: 800; }
-.site-title-sub { font-size: 72px; font-weight: 300; }
+.site-title-sub { font-size: 58px; font-weight: 300; }
 .hero .hero-catch { font-size: 13px; letter-spacing: .24em; text-indent: .24em; }
 @media (min-width: 701px) { .hero .hero-catch { font-size: 15px; letter-spacing: .3em; text-indent: .3em; } }
 /* 見出しの中の PR の案内と、年代へのリンク（歩みページ） */
