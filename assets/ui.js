@@ -51,6 +51,23 @@ export function setupMenu() {
   return setMenuOpen;
 }
 
+/* ---------- 横にスクロールできるタブ：続きがある側の端をぼかす ---------- */
+
+// 横にはみ出して、左右にスクロールできるタブの列に使います。続きがある側（左・右）の端を、CSS（data-fade）でぼかします
+export function watchScrollFade(el) {
+  if (!el) return;
+  const update = () => {
+    const max = el.scrollWidth - el.clientWidth;
+    const l = el.scrollLeft > 2, r = el.scrollLeft < max - 2;
+    const v = l && r ? "lr" : l ? "l" : r ? "r" : "";
+    if (v) el.dataset.fade = v; else delete el.dataset.fade;
+  };
+  el.addEventListener("scroll", update, { passive: true });
+  window.addEventListener("resize", update);
+  new MutationObserver(update).observe(el, { childList: true, subtree: true, characterData: true, attributes: true, attributeFilter: ["hidden", "aria-pressed", "aria-selected"] });
+  update();
+}
+
 /* ---------- ファイルの書き出し ---------- */
 
 // 文字をファイルにして、この端末に保存（ダウンロード）します：downloadFile("articles.csv", 中身, "text/csv")

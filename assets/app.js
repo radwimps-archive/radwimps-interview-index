@@ -14,7 +14,7 @@ import {
   parseArticles, parseReleases, KIND_ORDER, MEMBERS, MEMBER_ORDER, CATEGORIES, SUPPORT_MEMBERS, WORKS, QUICK_WORKS,
   VIDEO_KIND, RADIO_KIND, LIVE_KIND, INTERVIEW_KIND, OTHERS_KIND, LANG_BADGE, youtubeId, formatOf
 } from "./data.js";
-import { h, isAdminDevice, setAdminDevice, setupMenu, downloadFile } from "./ui.js";
+import { h, isAdminDevice, setAdminDevice, setupMenu, downloadFile, watchScrollFade } from "./ui.js";
 import { encodeMarks, decodeMarks, PREFIX as TRANSFER } from "./transfer.js";
 import { feedbackUrl, hasFeedback, usesForm, repoUrl, setupBeta, KIND } from "./feedback.js";
 
@@ -212,9 +212,12 @@ function buildChoices() {
   });
 }
 
+// options は [値, 表示] の並び。{ label, options: [[値, 表示]…] } を入れると、見出しつきのグループになる（選択肢が多いとき用）
 function fillSelect(sel, first, options, value) {
-  sel.replaceChildren(h("option", { value: "", text: first }), ...options.map(([v, label]) => h("option", { value: v, text: label })));
-  sel.value = options.some(([v]) => v === value) ? value : "";
+  const opt = ([v, label]) => h("option", { value: v, text: label });
+  const flat = options.flatMap((o) => (o.options ? o.options : [o]));
+  sel.replaceChildren(h("option", { value: "", text: first }), ...options.map((o) => (o.options ? h("optgroup", { label: o.label }, ...o.options.map(opt)) : opt(o))));
+  sel.value = flat.some(([v]) => v === value) ? value : "";
 }
 
 const LANG_LABEL = { ja: "日本語", en: "英語", es: "スペイン語", other: "その他の言語" };
@@ -223,15 +226,26 @@ function renderSelects() {
   const present = (fn) => [...new Set(S.items.map(fn).flat().filter(Boolean))];
   const cats = present((it) => it.categories);
   fillSelect($("#fCat"), "すべての記事", [...CATEGORIES.map((c) => c.name).filter((n) => cats.includes(n)), ...cats.filter((n) => !CATEGORIES.some((c) => c.name === n))].map((n) => [n, n]), F.cat);
-  const people = ["RADWIMPS", ...S.people.members, ...S.people.support, ...S.people.former, ...S.people.others];
-  fillSelect($("#fPerson"), "すべての人物", people.map((n) => [n, n]), F.person);
+  const pair = (n) => [n, n];
+  fillSelect($("#fPerson"), "すべての人物", [
+    { label: "メンバー", options: ["RADWIMPS", ...S.people.members].map(pair) },
+    ...(S.people.support.length ? [{ label: "サポートメンバー", options: S.people.support.map(pair) }] : []),
+    ...(S.people.former.length ? [{ label: "脱退したメンバー", options: S.people.former.map(pair) }] : []),
+    ...(S.people.others.length ? [{ label: "共演者・監督・音楽仲間など", options: S.people.others.map(pair) }] : [])
+  ], F.person);
   fillSelect($("#fYear"), "すべての年", present((it) => it._y).sort().reverse().map((y) => [y, y + "年"]), F.year);
-  fillSelect($("#fMedia"), "すべてのメディア", present((it) => it.media).sort(ja).map((m) => [m, m]), F.media);
+  // メディアは数が多いので、記事の多いものを「よく使うメディア」として上にまとめ、残りを「そのほか」に並べる
+  const mediaCount = new Map();
+  for (const it of S.items) if (it.media) mediaCount.set(it.media, (mediaCount.get(it.media) || 0) + 1);
+  const common = [...mediaCount].filter(([, n]) => n >= 5).sort((a, b) => b[1] - a[1] || ja(a[0], b[0])).map(([m]) => m);
+  const rest = [...mediaCount.keys()].filter((m) => !common.includes(m)).sort(ja);
+  fillSelect($("#fMedia"), "すべてのメディア", [...(common.length ? [{ label: "よく使うメディア", options: common.map(pair) }] : []), { label: "そのほか（五十音・ABC順）", options: rest.map(pair) }], F.media);
   const langs = present((it) => it.lang);
   fillSelect($("#fLang"), "すべての言語", ["ja", "en", "es", "other"].filter((l) => langs.includes(l)).map((l) => [l, LANG_LABEL[l]]), F.lang);
   const kinds = present((it) => it.kind);
   fillSelect($("#fKind"), "すべての種類", [...KIND_ORDER.filter((k) => kinds.includes(k)), ...kinds.filter((k) => !KIND_ORDER.includes(k))].map((k) => [k, k]), F.kind);
-  fillSelect($("#fStatus"), "すべて", Object.entries(STATUS_LABEL), F.status);
+  // 「お気に入り」「あとで読む」は上のタブで選ぶので、ここでは「未読」「既読」だけ
+  fillSelect($("#fStatus"), "すべて", Object.entries(STATUS_LABEL).filter(([k]) => k === "unread" || k === "read"), F.status);
   $("#sort").value = F.sort;
 }
 
@@ -392,16 +406,10 @@ function filterPeople(text) {
 const BOOKMARK = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6.5 3.8h11v16.4L12 16.1l-5.5 4.1z" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/></svg>';
 const HEART = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 20.2s-7.6-4.6-7.6-10.1A4.3 4.3 0 0 1 12 7.6a4.3 4.3 0 0 1 7.6 2.5c0 5.5-7.6 10.1-7.6 10.1z" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/></svg>';
 const WORK_NAMES = new Set(WORKS.map((w) => w.name));
-const GENERIC_TAGS = new Set(["MV出演者", "PR", "インタビュー", "対談", "映画", "タイアップ", "対バン", "ワールドツアー", "フェス・イベント", "劇伴", "ライブ", "ラジオ", "テレビ", "RADWIMPS", "ソロ", "ドラマ", "CM"]);
 
-// カードの左の四角に出す短い言葉（作品名・タグ・ライブ名・人の名前の順に、合うものを選ぶ）
+// カードの左の四角に出す短い言葉：曲名・作品名のタグがあればそれ、なければ資料の種類（インタビュー・対談・ライブレポートなど）
 function thumbLabel(it) {
-  const memberNames = new Set(Object.keys(MEMBER_NAME));
-  return it.tags.find((t) => WORK_NAMES.has(t))
-    || it.tags.find((t) => [...t].length <= 12 && !GENERIC_TAGS.has(t) && !/周年$/.test(t) && !memberNames.has(t))
-    || it.guests[0]
-    || (it.members[0] ? MEMBERS[it.members[0]].name : "")
-    || it.media;
+  return it.tags.find((t) => WORK_NAMES.has(t)) || it.kind || it.media;
 }
 function thumbnail(it) {
   const yt = youtubeId(it.url);
@@ -481,7 +489,7 @@ function headingText() {
   if (F.q) return `「${F.q}」の検索結果`;
   if (F.format === "video") return "動画インタビュー";
   if (F.format === "radio") return "ラジオ";
-  return "新しく掲載された記事";
+  return "記事を探す";
 }
 function viewNote() {
   if (F.status === "fav") return "何度でも読み返したい記事です。読んでも消えません。このブラウザに保存しています。";
@@ -608,6 +616,7 @@ function renderMenu() {
 }
 // 開け閉め・外を押したとき・Esc キーで閉じる動きは、年表のページと共通（ui.js）
 const setMenuOpen = setupMenu();
+watchScrollFade($("#formatTabs"));
 $("#menuClip").addEventListener("click", (e) => {
   const go = e.target.closest("[data-go]");
   if (!go) return;
