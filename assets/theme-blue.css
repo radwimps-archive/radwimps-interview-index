@@ -173,6 +173,12 @@ body::before, .header { background: var(--black); }
 /* スマホでは 16px（iPhone で、押したときに画面が拡大されないように） */
 @media (max-width: 700px) { .archive .filter-field select { font-size: 16px; letter-spacing: 0; } }
 
+/* セトリの「新しい順 ⇅」（押すたびに逆になるボタン）も、プルダウンと同じ細い白線の丸い枠に */
+.paper-sheet .sl-sort { min-height: 36px; padding: 0 16px; border-color: var(--on-blue-line); background: transparent; color: #FFFFFF; font-size: 13px; font-weight: 300; letter-spacing: .06em; }
+.paper-sheet .sl-sort::after { inset: -4px -2px; } /* 押せる範囲は 44px ほど */
+.paper-sheet .sl-sort:hover { background: rgba(255, 255, 255, .12); border-color: #FFFFFF; }
+.paper-sheet .sl-sort .sl-sort-arrow { color: #FFFFFF; font-size: 13px; }
+
 /* 404 のページのボタン（青の上） */
 .nf-links { justify-content: center; }
 .nf-links .btn { border-color: var(--on-blue); background: transparent; color: var(--on-blue); }
