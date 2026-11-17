@@ -294,8 +294,8 @@ main > .hist-note { color: var(--on-blue-2); }
   background: transparent; box-shadow: none;
   --ink: #FFFFFF;
   --ink-2: rgba(255, 255, 255, .92);
-  --muted: rgba(255, 255, 255, .84);
-  --muted-2: rgba(255, 255, 255, .84);
+  --muted: rgba(255, 255, 255, .88);
+  --muted-2: rgba(255, 255, 255, .88);
   --rule: rgba(255, 255, 255, .32);
   --paper: transparent;
   --paper-2: rgba(10, 11, 18, .32);   /* 紙の上の少し明るい面だったところ（絞り込み・選んでいないタブ）は、青を少し暗くした面に */
@@ -305,14 +305,20 @@ main > .hist-note { color: var(--on-blue-2); }
   --line-entry: rgba(255, 255, 255, .4);
   --line-input: rgba(255, 255, 255, .6);
   --accent: #FFFFFF;      /* 群青の文字（リンク・動画のボタンなど）は、青の上では白に */
+  --accent-deep: #FFFFFF;
   --live: #FFFFFF;
+  --done: #FFFFFF;
+  --line-card-hover: rgba(255, 255, 255, .75);
+  /* 次の2つは :root で別の色の名前から決まっているので、ここで書き直す */
+  --chip-on: rgba(255, 255, 255, .1);
+  --chip-on-line: rgba(255, 255, 255, .45);
   --accent-tint: rgba(255, 255, 255, .1);
   --accent-soft: rgba(255, 255, 255, .45);
   color: var(--ink);
 }
 /* 白い部品の中は、元の紺の色に戻す（style.css で白い面を持つ部品） */
-:is(.archive, .paper-sheet, .page) :is(.entry-tabs button, .entry-panel, .search-box, .article-card, .empty, .filter-field select, .panel-label input,
-  .person-chip, .chip, .secondary:not(.load-more-wrap .secondary), .btn, .counts li, .admstats li, .statcard, .stattip, .admconnect, .panel, .addform input, .addform textarea, .addform select, .admfield input,
+:is(.archive, .paper-sheet, .page) :where(.entry-tabs button, .entry-panel, .search-box, .article-card, .empty, .filter-field select, .panel-label input,
+  .person-chip, .chip, .secondary, .btn, .active-filters button, .admbar.on, .counts li, .admstats li, .statcard, .stattip, .admconnect, .panel, .addform input, .addform textarea, .addform select, .admfield input,
   .conf-part, .sl-live, .sl-clear, .sl-chip, .transfer-url, .person-card, .sns, .sl-drop-btn, .sl-drop-menu, .att-chip, .sl-search-box, .sl-sort, .sl-cats button, .sl-song-clear,
   .hist-shop, .page-guide details, .search-go, select, textarea, input:not([type="checkbox"]):not([type="radio"])) {
   --ink: #0B1230;
@@ -328,12 +334,17 @@ main > .hist-note { color: var(--on-blue-2); }
   --line-entry: #B7C3DD;
   --line-input: #8F9DC2;
   --accent: var(--blue);
+  --accent-deep: var(--blue-deep);
   --live: var(--blue);
+  --done: var(--blue);
+  --line-card-hover: #7D8DBA;
+  --chip-on: #E6ECF8;
+  --chip-on-line: #B9C7EA;
   --accent-tint: #E6ECF8;
   --accent-soft: #B9C7EA;
 }
 /* 白い部品の文字の色（部品ごとの色の指定があれば、そちらが優先される） */
-:where(.archive, .paper-sheet, .page) :where(.entry-tabs button, .entry-panel, .article-card, .empty, .sl-live, .person-card, .page-guide details, .counts li, .admstats li, .statcard, .admconnect, .panel) { color: var(--ink); }
+:where(.archive, .paper-sheet, .page) :where(.entry-tabs button, .entry-panel, .admbar.on, .article-card, .empty, .sl-live, .person-card, .page-guide details, .counts li, .admstats li, .statcard, .admconnect, .panel) { color: var(--ink); }
 /* 入力欄・選択欄（白）の文字は紺のまま */
 :is(.archive, .paper-sheet, .page) :where(select, textarea, input:not([type="checkbox"]):not([type="radio"])) { color: var(--ink); }
 /* 並び順の欄は地が透明（青の上）なので白の文字。開いたときの選択肢は白地に紺 */
@@ -345,22 +356,39 @@ main > .hist-note { color: var(--on-blue-2); }
 .hist-tabs-bar { --accent: var(--blue); }
 /* 動画のリンクの間の「·」 */
 .paper-sheet .hist-videos .sep { color: var(--muted); }
+/* 群青で塗った部品（「検索」・選んでいる札やタブ）は、まわりの青と区別できるよう白の細い縁 */
+.archive .search-go, .paper-sheet .sl-cats button[aria-pressed="true"], .page .chip[aria-pressed="true"],
+.hist-tab[aria-selected="true"], .sl-tab[aria-selected="true"] { box-shadow: 0 0 0 1px rgba(255, 255, 255, .7); }
 /* 選んでいるセトリのタブ（群青の地に白） */
 .sl-tab[aria-selected="true"] { background: var(--blue); border-color: var(--blue); }
 /* スクロールしても上に残るタブの帯は、下を流れる文字と重ならないよう、上の帯と同じ黒に近い色 */
-.hist-tabs-bar, .format-tabs { background: rgba(10, 11, 18, .94); }
+.hist-tabs-bar, .format-tabs { background: var(--black); }
+/* 記事の種類のタブは、帯そのものが横にスクロールする。端のぼかし（style.css の data-fade）は帯の地まで透かして下の記事が見えてしまうので、
+   ぼかしをやめ、帯の端に貼りついた黒のグラデーションを重ねる（position: sticky で、スクロールしても端に残る） */
+.format-tabs[data-fade] { -webkit-mask-image: none; mask-image: none; }
+.format-tabs[data-fade]::before, .format-tabs[data-fade]::after { content: ""; position: sticky; z-index: 1; flex: none; align-self: stretch; width: 40px; pointer-events: none; }
+.format-tabs[data-fade]::before { left: 0; margin-right: -40px; background: linear-gradient(to right, var(--black), transparent); }
+.format-tabs[data-fade]::after { right: 0; margin-left: -40px; background: linear-gradient(to left, var(--black), transparent); }
+.format-tabs[data-fade="r"]::before, .format-tabs[data-fade="l"]::after { display: none; }
 .format-tabs { border-bottom-color: rgba(255, 255, 255, .55); }
 .format-tabs button[aria-pressed="true"] { background: #FFFFFF; border-color: #FFFFFF; color: var(--black); }
 /* 年表の線の点：中を背景の色に見せていたところ */
 .hist-year-head::before { box-shadow: none; }
 .hist-year-head span { color: #FFFFFF; }
+.hist-year-head::before { background: #FFFFFF; }
+/* カテゴリの色の印は、青に溶けないよう白の細い縁をつける */
+.paper-sheet .hist-cat::before, .hist-tabs-bar .hist-tab::before { box-shadow: 0 0 0 1.5px rgba(255, 255, 255, .85); }
+.paper-sheet .hist-item::before { box-shadow: 0 0 0 1.5px rgba(255, 255, 255, .85); }
 .hist-item::before { background: var(--black); }
 /* 「続きを表示」：青の上なので、白の細線 */
 .load-more-wrap .secondary { border-color: #FFFFFF; color: #FFFFFF; }
 .load-more-wrap .secondary:hover { background: #FFFFFF; color: var(--blue); }
 /* 青の上では、フォーカスの枠は白（白い部品の中は群青のまま） */
 .archive :focus-visible, .paper-sheet :focus-visible, .page :focus-visible { outline-color: #FFFFFF; }
-.archive .article-card :focus-visible, .archive .entry-tabs :focus-visible, .archive .search-box :focus-visible, .paper-sheet .sl-live :focus-visible, .paper-sheet .page-guide :focus-visible, .paper-sheet .person-card :focus-visible { outline-color: var(--blue); }
+/* 白い部品の内側に出る枠は群青に（入口の4つのボタンは、枠がボタンの外の青の上に出るので白のまま） */
+:is(.archive, .paper-sheet, .page) :is(.article-card, .entry-panel, .search-box, .sl-live, .page-guide, .person-card, .panel, .admconnect, .counts li, .statcard, .sl-drop-menu, .admbar) :focus-visible { outline-color: var(--blue); }
+/* セトリの検索欄の枠は、欄の外側（青の上）に出るので白 */
+.paper-sheet .sl-search-box input:focus { outline-color: #FFFFFF; }
 
 /* 動きを控える設定の人には、ボタンの色の変化もすぐに切り替える */
 @media (prefers-reduced-motion: reduce) {
