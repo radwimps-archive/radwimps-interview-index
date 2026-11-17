@@ -39,3 +39,15 @@ test("skeleton：英語とひらがなを同じ子音の形にする", () => {
   assert.equal(skeleton("DAZE"), skeleton("でいず"));
   assert.equal(skeleton("FOREVER"), skeleton("ふぉーえばー"));
 });
+
+test("looseMatch：ひらがなの読みをローマ字の音で比べる（関係ないものには合わない）", () => {
+  assert.ok(looseMatch("FUJI ROCK FESTIVAL'21", "ふじろっく"));
+  assert.ok(looseMatch("ROCK IN JAPAN FESTIVAL 2023", "ろっきん"));
+  assert.ok(looseMatch("COUNTDOWN JAPAN 16/17", "かうんとだうん"));
+  assert.ok(looseMatch("SUMMER SONIC 2019", "さまそに"));
+  assert.ok(looseMatch("ROCKS TOKYO 2010", "ろっくす"));
+  assert.ok(!looseMatch("RADWIMPS GRAND PRIX 2014 実況生中継", "ふじろっく"));
+  assert.ok(!looseMatch("RADWIMPS レコ発企画", "ふじろっく"));
+  assert.ok(!looseMatch("WEATHER KING（宮崎）", "ろっきん"));
+  assert.ok(!looseMatch("ANTI ANTI GENERATION TOUR 2019", "かうんとだうん"));
+});
