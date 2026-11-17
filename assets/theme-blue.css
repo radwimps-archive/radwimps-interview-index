@@ -132,7 +132,7 @@ body::before, .header, .header-inner { background: var(--black); }
 }
 .hero .era-links a::after { content: ""; width: 6px; height: 6px; margin-top: -4px; border-right: 1px solid currentColor; border-bottom: 1px solid currentColor; transform: rotate(45deg); }
 .hero .era-links a:hover { background: rgba(255, 255, 255, .12); border-color: var(--on-blue); color: var(--on-blue); }
-.hero .era-links .off { opacity: .5; }
+.hero .era-links .off { opacity: .65; }
 
 /* 404 のページのボタン（青の上） */
 .nf-links { justify-content: center; }
