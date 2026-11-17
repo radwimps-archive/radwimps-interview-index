@@ -23,9 +23,10 @@
 <meta name="twitter:title" content="RADWIMPSの歩み｜RADWIMPS Archives">
 <meta name="twitter:description" content="2001年の結成から現在まで、RADWIMPS のリリース・ライブ・映画やタイアップ・バンドの出来事と、野田洋次郎のソロ（illion など）、山口智史の VXD の活動をたどる年表です。">
 <meta name="twitter:image" content="https://radwimps-archive.github.io/radwimps-interview-index/assets/ogp.png">
-<meta name="theme-color" content="#FFFFFF">
+<meta name="theme-color" content="#0A0B12">
 <link rel="icon" href="assets/icon.svg" type="image/svg+xml">
 <link rel="stylesheet" href="assets/style.css">
+<link rel="stylesheet" href="assets/theme-blue.css">
 <script type="module" src="assets/history.js"></script>
 </head>
 <body class="history-page">
@@ -53,20 +54,12 @@
     <p class="eyebrow">RADWIMPS HISTORY <span id="span">2001 —</span></p>
     <h1 id="historyTitle">RADWIMPSの歩み</h1>
     <p class="hero-description">2001年の結成から現在まで。リリース・ライブ・映画やタイアップ・バンドの出来事を、年ごとにたどります。</p>
-    <details class="hist-info">
-      <summary>表示の見かたと注意書き</summary>
-      <p class="hist-guide">野田洋次郎のソロ（illion など）や、山口智史の VXD（声でバスドラムを鳴らす技術）の活動も載せています。</p>
-    <ul class="hist-legend" aria-label="表示の見かた">
-      <li><span class="lg-dotted">作品名・ライブ名</span>購入ページ・公式ページを開く</li>
-      <li><span class="lg-play">▶ MV</span>その場で動画を見る</li>
-      <li><span class="att-btn att-legend" aria-hidden="true"></span>行ったライブの印（セトリと連動）</li>
-    </ul>
-      <p class="hist-yt-note">動画は YouTube API サービス（埋め込みプレーヤー）で再生します。再生には、<a href="https://www.youtube.com/t/terms" target="_blank" rel="noopener noreferrer">YouTube 利用規約</a>と<a href="https://policies.google.com/privacy" target="_blank" rel="noopener noreferrer">Google プライバシーポリシー</a>が適用されます。</p>
-    </details>
     <p class="hist-pr-top" id="prTop" hidden><span class="pr">PR</span>このページには、広告（アフィリエイト）を含むリンクがあります。</p>
     <nav class="era-links" aria-label="年代へ移動" id="eras"></nav>
   </section>
 
+  <!-- ここから下は、淡い青の「紙」の面（.paper-sheet）にのせます -->
+  <div class="paper-sheet">
   <!-- カテゴリのタブ（スクロールしても上に残ります） -->
   <div class="hist-tabs-bar">
     <div class="hist-tabs wrap" role="tablist" aria-label="カテゴリ" id="tabs"></div>
@@ -77,8 +70,23 @@
     <p class="hist-loading" id="loading">年表を読み込んでいます…</p>
   </section>
 
+  <!-- 表示の見かたと注意書き（凡例）：年表を読む邪魔にならないよう、いちばん下の注意書きの前に置きます。開くと読めます -->
+  <div class="page-guide wrap">
+    <details class="hist-info">
+      <summary>表示の見かたと注意書き</summary>
+      <p class="hist-guide">野田洋次郎のソロ（illion など）や、山口智史の VXD（声でバスドラムを鳴らす技術）の活動も載せています。</p>
+      <ul class="hist-legend" aria-label="表示の見かた">
+        <li><span class="lg-dotted">作品名・ライブ名</span>購入ページ・公式ページを開く</li>
+        <li><span class="lg-play">▶ MV</span>その場で動画を見る</li>
+        <li><span class="att-btn att-legend" aria-hidden="true"></span>行ったライブの印（セトリと連動）</li>
+      </ul>
+      <p class="hist-yt-note">動画は YouTube API サービス（埋め込みプレーヤー）で再生します。再生には、<a href="https://www.youtube.com/t/terms" target="_blank" rel="noopener noreferrer">YouTube 利用規約</a>と<a href="https://policies.google.com/privacy" target="_blank" rel="noopener noreferrer">Google プライバシーポリシー</a>が適用されます。</p>
+    </details>
+  </div>
+
   <p class="hist-note hist-pr wrap" id="prNote" hidden><span class="pr">PR</span>作品名を押すと開く「CD を探す」のうち、「PR」の印があるお店のリンクは、アフィリエイト（広告）リンクです。ここから購入されると、運営に紹介料が入ることがあります。価格や在庫は、各ストアのページで確かめてください。</p>
   <p class="hist-note wrap">公式サイト・Wikipedia・各媒体の発表をもとに、運営がまとめた非公式の年表です。日付が「月」までのものは、日にちを確認できなかった出来事です。誤りに気づいたら、お知らせください。</p>
+  </div>
 </main>
 
 <footer class="site-footer wrap">

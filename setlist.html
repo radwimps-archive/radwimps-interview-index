@@ -23,9 +23,10 @@
 <meta name="twitter:title" content="RAD LIVE SET LIST｜RADWIMPS Archives">
 <meta name="twitter:description" content="RADWIMPS がこれまでのライブで演奏した曲を、公演ごとのセットリストを、年ごとにたどれるページです。曲名から、その曲を演奏したライブも探せます。">
 <meta name="twitter:image" content="https://radwimps-archive.github.io/radwimps-interview-index/assets/ogp.png">
-<meta name="theme-color" content="#FFFFFF">
+<meta name="theme-color" content="#0A0B12">
 <link rel="icon" href="assets/icon.svg" type="image/svg+xml">
 <link rel="stylesheet" href="assets/style.css">
+<link rel="stylesheet" href="assets/theme-blue.css">
 <script type="module" src="assets/setlist.js"></script>
 </head>
 <body class="history-page setlist-page">
@@ -53,9 +54,10 @@
     <p class="eyebrow">RADWIMPS SETLISTS <span id="span"></span></p>
     <h1 id="setlistTitle">RAD LIVE SET LIST</h1>
     <p class="hero-description">RADWIMPS がライブで、いつ・どの曲を演奏したのかを、公演・年・曲ごとにたどれます。</p>
-    <details class="sl-legend-box"><summary>表示の見かた</summary><p class="sl-guide" id="slGuide">「ライブ」では年ごとに並んだツアー・公演のセットリスト（曲順）を、「ランキング」ではよく演奏された曲の順位を、「参加公演」では行ったライブ（公演の足あとのマークを押したもの）だけを見られます。セットリストの曲名やランキングの曲を押すと、その曲を演奏したライブだけが並びます。</p><p class="sl-legend" id="legend"></p></details>
   </section>
 
+  <!-- ここから下は、淡い青の「紙」の面（.paper-sheet）にのせます -->
+  <div class="paper-sheet">
   <!-- 表示の切り替え：フォルダの見出しのような「タブ」。スクロールしても上に残ります -->
   <div class="hist-tabs-bar">
     <div class="sl-tabs wrap" role="tablist" aria-label="表示の切り替え" id="tabs">
@@ -92,7 +94,13 @@
     <div id="unplayedBody"></div>
   </section>
 
+  <!-- 表示の見かた（凡例）：一覧を読む邪魔にならないよう、いちばん下の注意書きの前に置きます。開くと読めます -->
+  <div class="page-guide wrap">
+    <details class="sl-legend-box"><summary>表示の見かた</summary><p class="sl-guide" id="slGuide">「ライブ」では年ごとに並んだツアー・公演のセットリスト（曲順）を、「ランキング」ではよく演奏された曲の順位を、「参加公演」では行ったライブ（公演の足あとのマークを押したもの）だけを見られます。セットリストの曲名やランキングの曲を押すと、その曲を演奏したライブだけが並びます。</p><p class="sl-legend" id="legend"></p></details>
+  </div>
+
   <p class="hist-note wrap">報道のライブレポートと、ファンが投稿するサイト（LiveFans・setlist.fm）、ライブ映像の収録曲をもとに、運営がまとめた非公式の記録です。ツアーの全公演に加えて、フェス・テレビ番組・ファンクラブのイベントなども載せています。同じツアーでも、日によって曲が変わります。それぞれの公演の「出典」で、もとの情報を確かめられます。誤りに気づいたら、お知らせください。</p>
+  </div>
 </main>
 
 <footer class="site-footer wrap">
