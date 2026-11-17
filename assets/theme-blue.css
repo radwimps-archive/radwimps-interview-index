@@ -7,7 +7,7 @@
    ・サブ：青みの黒 #0A0B12 を、いちばん上の帯とフッターに。
    ・アクセント：白。青の上の文字・細い線・丸い矢印ボタン。
    ・長く読む部分（記事一覧・年表・セトリ・メンバー紹介）は、淡い青灰色の「紙」#D3DCEE の面にのせて、紺の文字で読みやすくする。
-   ・全体は静かで整った青と白。ページの大見出しだけ、わざと擦れた（荒れた）文字にして、RADWIMPS らしい「荒さ」を少しだけ入れる。
+   ・全体は静かで整った青と白。上の帯の黒から群青へ、ゆっくり移り変わる（メニューも全ページも同じ）。
    ・あとでキャラクター（小さな飾り）を置けるよう、見出しの左右と紙の面の右上は、ものを詰めずに空けておく。
 
    文字と地の色の差（コントラスト。4.5 以上あれば読みやすい）
@@ -57,14 +57,11 @@
   --backdrop: rgba(5, 10, 35, .6);
   --shadow: 0 8px 18px rgba(5, 12, 45, .22);
 
-  /* 擦れた文字の質感（ページの大見出しだけに使う）。細かいノイズで、ところどころ文字が欠ける */
   /* 染めむらの質感（大きくゆっくりした濃淡）。明るいむらと暗いむらを重ねて、単調な青にしない */
   --mottle-light: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='900' height='900'%3E%3Cfilter id='m'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.004' numOctaves='3' seed='4' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 .38 0 0 0 -.16'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23m)'/%3E%3C/svg%3E");
   --mottle-dark: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='700' height='700'%3E%3Cfilter id='d'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.006' numOctaves='3' seed='11' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 .02 0 0 0 0 .04 0 0 0 0 .16 .55 0 0 0 -.24'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23d)'/%3E%3C/svg%3E");
   /* 細かい織り目のノイズ */
   --grain: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='220' height='220'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 .13 0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
-
-  --grit: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='260' height='260'%3E%3Cfilter id='g'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.42' numOctaves='4' seed='7'/%3E%3CfeColorMatrix values='0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 0 0 0 -13 9.4'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23g)'/%3E%3C/svg%3E");
 }
 
 /* ---------- ページの地：群青に、布のような質感と、周りが少し暗くなる陰影 ---------- */
@@ -72,6 +69,8 @@
 html {
   background-color: var(--blue);
   background-image:
+    /* 上の帯の黒から、ゆっくり群青へ（メニューと同じ移り変わり。全ページ共通） */
+    linear-gradient(180deg, var(--black) 0, var(--black) calc(60px + env(safe-area-inset-top, 0px)), rgba(10, 11, 18, .75) calc(140px + env(safe-area-inset-top, 0px)), rgba(10, 11, 18, 0) 620px),
     var(--grain),
     repeating-linear-gradient(0deg, rgba(255, 255, 255, .018) 0 1px, transparent 1px 4px),
     repeating-linear-gradient(90deg, rgba(0, 0, 0, .022) 0 1px, transparent 1px 4px),
@@ -91,7 +90,8 @@ body::after { content: ""; position: fixed; inset: 0; z-index: -1; pointer-event
 body::before, .header { background: var(--black); }
 /* 帯の中身は透明にして、帯の色（黒）を画面の端から端までつなげる */
 .header-inner { background: transparent; }
-.header { border-bottom: 1px solid rgba(255, 255, 255, .14); }
+/* 帯の下の線はなくして、下の黒から群青へのグラデーションと切れ目なくつなげる */
+.header { border-bottom-color: transparent; }
 .hamburger, .hamburger[aria-expanded="true"] { color: var(--on-blue); }
 .brand { color: var(--on-blue); }
 .brand-text { font-size: 15px; font-weight: 300; letter-spacing: .42em; line-height: 1.35; margin-right: -.42em; }
@@ -133,9 +133,8 @@ body::before, .header { background: var(--black); }
 /* 上の小さな英字：ロゴのように細く、字間を広く。スマホでは字間を詰めて 1 行に収める */
 .hero { color: var(--on-blue); text-align: center; padding-block: 40px 36px; }
 .hero .eyebrow { margin-bottom: 14px; font-family: var(--f-body); font-size: 12px; font-weight: 300; letter-spacing: .3em; text-indent: .3em; color: var(--on-blue-2); text-wrap: balance; }
-/* 大見出し：ここだけ太く、擦れた文字にする（静かな面の中の、ひとつだけの荒さ） */
-.hero h1 { margin-bottom: 10px; font-size: clamp(28px, 7.4vw, 52px); font-weight: 800; line-height: 1.3; letter-spacing: .06em; color: var(--on-blue); text-wrap: balance;
-  -webkit-mask-image: var(--grit); mask-image: var(--grit); -webkit-mask-size: 260px; mask-size: 260px; }
+/* 大見出し：1行目を太く、2行目を細く。質感は付けず、太さの対比だけで見せる */
+.hero h1 { margin-bottom: 10px; font-size: clamp(28px, 7.4vw, 52px); font-weight: 800; line-height: 1.3; letter-spacing: .06em; color: var(--on-blue); text-wrap: balance; }
 .hero h1 span { display: block; margin: 0; color: var(--on-blue); font-weight: 300; letter-spacing: .12em; }
 .hero-description { max-width: 46em; margin-inline: auto; color: var(--on-blue-2); font-size: 13px; letter-spacing: .06em; text-wrap: pretty; }
 @media (min-width: 701px) {
