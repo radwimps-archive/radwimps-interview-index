@@ -140,22 +140,23 @@ body::before, .header, .header-inner { background: var(--black); }
 .nf-links .btn.primary { background: var(--on-blue); color: var(--blue); }
 
 /* ---------- 長く読む部分：淡い青灰色の「紙」の面 ----------
-   記事一覧（.archive）、歩み・セトリ（.paper-sheet でひとまとめ）、メンバー紹介（.people）を、同じ 1 枚の紙にのせる。
+   記事一覧（.archive）、歩み・セトリ（.paper-sheet でひとまとめ）、メンバー紹介（.people）、運営管理の画面（.page）を、同じ 1 枚の紙にのせる。
    紙は 1 枚の箱なので、中の部品が増えても面が途切れない。スマホでは画面の幅いっぱい、パソコンでは左右に青を残す */
-.archive, .paper-sheet { position: relative; max-width: 1200px; margin: 0 auto 56px; background: var(--paper); color: var(--ink); box-shadow: 0 24px 60px rgba(4, 10, 40, .35); }
+.archive, .paper-sheet, .page { position: relative; max-width: 1200px; margin: 0 auto 56px; background: var(--paper); color: var(--ink); box-shadow: 0 24px 60px rgba(4, 10, 40, .35); }
 .archive { padding: 28px 16px 35px; }
+.page { margin-top: 20px; padding: 28px 16px 40px; }
 .people.paper-sheet { padding: 8px 16px 36px; }
 .paper-sheet { padding-bottom: 28px; }
 .paper-sheet > .wrap { max-width: none; }
 @media (min-width: 720px) {
-  .archive, .paper-sheet { border-radius: 3px; }
-  .archive { padding-inline: 32px; }
+  .archive, .paper-sheet, .page { border-radius: 3px; }
+  .archive, .page { padding-inline: 32px; }
   .people.paper-sheet { padding-inline: 32px; }
   .paper-sheet > .wrap, .paper-sheet > .hist-tabs-bar > .wrap { padding-inline: 32px; }
 }
-@media (min-width: 1232px) { .archive, .paper-sheet { width: calc(100% - 64px); } }
+@media (min-width: 1232px) { .archive, .paper-sheet, .page { width: calc(100% - 64px); } }
 /* 紙の上では、フォーカスの枠は群青に（白だと見えないため） */
-.archive :focus-visible, .paper-sheet :focus-visible, dialog :focus-visible { outline-color: var(--blue); }
+.archive :focus-visible, .paper-sheet :focus-visible, .page :focus-visible, dialog :focus-visible { outline-color: var(--blue); }
 
 /* タブの帯（スクロールしても上に残る）は紙の色。紙の上端に合わせて少し余白 */
 .hist-tabs-bar { background: var(--paper); }
@@ -198,6 +199,8 @@ body::before, .header, .header-inner { background: var(--black); }
 
 /* 最後の注意書き */
 .hist-note { color: var(--muted); }
+/* 紙の外（青の上）に置いた注意書き（メンバー紹介のページ）は、白の文字に */
+main > .hist-note { color: var(--on-blue-2); }
 
 /* ---------- 記事一覧の中の細かい面 ---------- */
 .card-thumbnail { background: #DCE3F3; }
@@ -213,7 +216,11 @@ body::before, .header, .header-inner { background: var(--black); }
 .live-event-heading p, .live-controls p { color: var(--muted); }
 .live-controls { border-color: var(--line-card); background: var(--paper-2); }
 .collection-note .i { border-color: var(--line-input); }
-.addform select { border-color: var(--line-input); }
+.addform select, .addform input, .addform textarea, .filter-field select, .transfer-url { border-color: var(--line-input); }
+/* 入力欄の中の薄い例の文字（「曲名・人名・言葉で探す」など）は、白い欄の上でも読める濃さに */
+.search-box input::placeholder, .search-box kbd, .panel-label input::placeholder { color: #5A6688; }
+/* 「名前を探す」の欄は、ほかの入力欄と同じ白い面と線に（紙の色のままだと、欄の形が見えにくいため） */
+.panel-label input { border-color: var(--line-input); background: var(--field); }
 
 /* ---------- 丸い細線の矢印ボタン（公式サイトのボタンの形） ---------- */
 /* 「続きを表示」：紙の上なので、群青の細線の角丸に */
