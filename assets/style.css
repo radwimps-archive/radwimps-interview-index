@@ -992,7 +992,9 @@ button.title-link { padding: 0; border: 0; background: none; font: inherit; text
 .sl-sort, .beta-bar a { position: relative; }
 .sl-sort::after { content: ""; position: absolute; inset: -10px -4px; }
 .beta-bar a::after { content: ""; position: absolute; inset: -14px -4px; }
+.sl-songs .sl-song { min-width: 24px; }
 .sl-songs .sl-song::after { content: ""; position: absolute; inset: -3px -6px; }
+.sl-rank-main .sl-song::after { content: ""; position: absolute; inset: -10px -6px -20px; }
 
 /* 小さい文字も 12px 未満にしない */
 small { font-size: max(12px, .83em); }
@@ -1048,6 +1050,7 @@ small { font-size: max(12px, .83em); }
 .sl-cats button[aria-pressed="true"] small { color: inherit; opacity: .85; }
 .sl-yearjump { display: flex; align-items: center; justify-content: flex-end; gap: 10px; margin: 0 0 6px; font-size: 12px; color: var(--muted); }
 .sl-yearjump select { min-height: 44px; padding: 0 30px 0 12px; border: 1px solid var(--line-input); border-radius: 22px; background-color: var(--card); color: var(--ink); font-size: 13px; }
+#lives, #ranking, #mine, #unplayedView { scroll-margin-top: calc(130px + env(safe-area-inset-top, 0px)); }
 .sl-year { margin: 0 0 8px; scroll-margin-top: calc(130px + env(safe-area-inset-top, 0px)); }
 .sl-year .hist-year-head { margin: 22px 0 10px; }
 .sl-song-info { margin: 0 0 14px; padding: 12px 14px; border: 1px solid var(--accent-soft); border-radius: 10px; background: var(--accent-tint); }
@@ -1057,7 +1060,7 @@ small { font-size: max(12px, .83em); }
 /* 「表示の見かた」：開け閉めできると分かるように、＋／－の印と下線をつける */
 .sl-legend-box > summary, .hist-info > summary { gap: 6px; color: var(--ink-2); text-decoration: underline dotted var(--line-input); text-underline-offset: 4px; list-style: none; }
 .sl-legend-box > summary::-webkit-details-marker, .hist-info > summary::-webkit-details-marker { display: none; }
-.sl-legend-box > summary::before, .hist-info > summary::before { content: "＋"; display: inline-grid; place-items: center; width: 18px; height: 18px; border: 1px solid var(--line-input); border-radius: 50%; font-size: 11px; line-height: 1; color: var(--muted); text-decoration: none; }
+.sl-legend-box > summary::before, .hist-info > summary::before { content: "＋"; display: inline-grid; place-items: center; width: 18px; height: 18px; border: 1px solid var(--muted); border-radius: 50%; font-size: 11px; line-height: 1; color: var(--muted); text-decoration: none; }
 .sl-legend-box[open] > summary::before, .hist-info[open] > summary::before { content: "－"; }
 
 /* 曲で絞り込んでいるとき、セトリの中のその曲に色をつける */
