@@ -144,14 +144,14 @@ body::before, .header { background: var(--black); }
 .hero h1.site-title span { display: inline; margin-left: .2em; font-weight: 300; letter-spacing: .08em; }
 .hero .hero-catch { font-size: 13px; letter-spacing: .24em; text-indent: .24em; }
 @media (min-width: 701px) { .hero .hero-catch { font-size: 15px; letter-spacing: .3em; text-indent: .3em; } }
-/* 見出しの中の PR の案内と、年代へのリンク（歩みページ） */
+/* 見出しの中の PR の案内と、「年を選ぶ」メニュー（歩みページ） */
 .hero .hist-pr-top { justify-content: center; margin-top: 18px; color: var(--on-blue-2); }
 .hero .pr { color: var(--on-blue); border-color: var(--on-blue-line); }
-.hero .era-links { justify-content: center; gap: 8px 10px; margin-top: 22px; }
-@media (max-width: 700px) { .hero .era-links { gap: 8px; margin-top: 16px; } }
+.hero .era-links { justify-content: center; margin-top: 22px; }
+@media (max-width: 700px) { .hero .era-links { margin-top: 16px; } }
 
 /* ---------- 丸い枠のメニュー（青の上のプルダウンをすべてこの形にそろえる） ----------
-   歩みの年代・セトリの区分と年・記事一覧の並び順・「さらに絞り込む」の条件。細い白線の丸い枠に、細い白の文字と小さな「⌄」。
+   歩みとセトリの「年を選ぶ」・セトリの区分・記事一覧の並び順・「さらに絞り込む」の条件。細い白線の丸い枠に、細い白の文字と小さな「⌄」。
    押すと、端末のふつうの選ぶ一覧が開く（一覧の中は白地に紺） */
 .era-select, .paper-sheet .sl-cat-select, #yearJump, .archive .sort-label select, .archive .filter-field select {
   -webkit-appearance: none; appearance: none; min-height: 44px; padding: 0 38px 0 18px; border: 1px solid var(--on-blue-line); border-radius: 22px;
@@ -165,8 +165,7 @@ body::before, .header { background: var(--black); }
 :is(.era-select, .sl-cat-select, #yearJump, .sort-label select, .filter-field select) option { background: #FFFFFF; color: #0B1230; }
 /* スマホでは、どのメニューも 16px（iPhone で、押したときに画面が拡大されないように） */
 @media (max-width: 700px) {
-  .era-select { padding: 0 26px 0 11px; background-position: right 10px center; font-size: 16px; letter-spacing: 0; }
-  .paper-sheet .sl-cat-select, #yearJump, .archive .sort-label select { font-size: 16px; letter-spacing: .04em; }
+  .era-select, .paper-sheet .sl-cat-select, #yearJump, .archive .sort-label select { font-size: 16px; letter-spacing: .04em; }
 }
 /* 並び順は、文字の横に置く小さめの丸 */
 .archive .sort-label select { min-height: 44px; max-width: none; padding: 0 34px 0 14px; font-size: 13px; letter-spacing: .06em; }

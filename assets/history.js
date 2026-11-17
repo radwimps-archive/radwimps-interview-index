@@ -278,7 +278,7 @@ document.addEventListener("pointermove", (e) => {
 function renderEras(list) {
   const nav = $("#eras");
   const years = [...new Set(list.map((e) => e.y))];
-  const sel = el("select", { class: "era-select", "aria-label": "年を選んで移動" },
+  const sel = el("select", { class: "era-select", "aria-label": "年を選ぶ（選んだ年へ移動）" },
     el("option", { value: "", text: "年を選ぶ" }), ...years.map((y) => el("option", { value: String(y), text: `${y}年` })));
   if (!years.length) { sel.disabled = true; sel.classList.add("off"); }
   nav.replaceChildren(sel);
@@ -337,6 +337,8 @@ $("#eras").addEventListener("change", (e) => {
   if (t) scrollTo({ top: t.getBoundingClientRect().top + scrollY - headerH() - $(".hist-tabs-bar").offsetHeight - 8, behavior: "smooth" });
 });
 $("#eras").addEventListener("focusout", (e) => { if (e.target.matches("select")) e.target.value = ""; });
+// マウスやタップで開くときも「年を選ぶ」に戻す（同じ年をもう一度選んでも、その年へ飛べるように）
+$("#eras").addEventListener("pointerdown", (e) => { if (e.target.matches("select")) e.target.value = ""; });
 
 // いちばん上へ戻るボタン
 const toTop = $("#toTop");
