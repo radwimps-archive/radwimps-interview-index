@@ -178,6 +178,7 @@ body::before, .header { background: var(--black); }
 .paper-sheet .sl-sort::after { inset: -4px -2px; } /* 押せる範囲は 44px ほど */
 .paper-sheet .sl-sort:hover { background: rgba(255, 255, 255, .12); border-color: #FFFFFF; }
 .paper-sheet .sl-sort .sl-sort-arrow { color: #FFFFFF; font-size: 13px; }
+.paper-sheet .sl-sort:focus-visible { outline-offset: 2px; }
 
 /* 404 のページのボタン（青の上） */
 .nf-links { justify-content: center; }
@@ -348,7 +349,7 @@ main > .hist-note { color: var(--on-blue-2); }
 /* 白い部品の中は、元の紺の色に戻す（style.css で白い面を持つ部品） */
 :is(.archive, .paper-sheet, .page) :where(.entry-tabs button, .entry-panel, .search-box, .article-card, .empty, .filter-field select, .panel-label input,
   .person-chip, .chip, .secondary, .btn, .active-filters button, .admbar.on, .counts li, .admstats li, .statcard, .stattip, .admconnect, .panel, .addform input, .addform textarea, .addform select, .admfield input,
-  .conf-part, .sl-live, .sl-clear, .sl-chip, .transfer-url, .person-card, .sns, .sl-drop-btn, .sl-drop-menu, .att-chip, .sl-search-box, .sl-sort, .sl-song-clear,
+  .conf-part, .sl-live, .sl-clear, .sl-chip, .transfer-url, .person-card, .sns, .sl-drop-btn, .sl-drop-menu, .att-chip, .sl-search-box, .sl-song-clear,
   .hist-shop, .page-guide details, .search-go, select, textarea, input:not([type="checkbox"]):not([type="radio"])) {
   --ink: #0B1230;
   --ink-2: #22305C;
@@ -402,7 +403,7 @@ main > .hist-note { color: var(--on-blue-2); }
 .format-tabs[data-stuck][data-fade]::before { left: 0; margin-right: -40px; background: linear-gradient(to right, #0C1020, transparent); }
 .format-tabs[data-stuck][data-fade]::after { right: 0; margin-left: -40px; background: linear-gradient(to left, #0C1020, transparent); }
 .format-tabs[data-stuck][data-fade="r"]::before, .format-tabs[data-stuck][data-fade="l"]::after { display: none; }
-.format-tabs { border-bottom-color: rgba(255, 255, 255, .55); }
+.format-tabs, .hist-tabs-bar .hist-tabs { border-bottom-color: rgba(255, 255, 255, .55); } /* タブの下の線は、カテゴリの色だと群青に溶けるので白の細線に */
 .format-tabs button[aria-pressed="true"] { background: #FFFFFF; border-color: #FFFFFF; color: var(--black); }
 /* 年表の線の点：中を背景の色に見せていたところ */
 .hist-year-head::before { box-shadow: none; }

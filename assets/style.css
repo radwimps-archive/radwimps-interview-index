@@ -635,7 +635,7 @@ dialog.modal::backdrop { background: rgba(23, 32, 24, .5); -webkit-backdrop-filt
 .hist-tab small { display: none; font-size: 12px; font-variant-numeric: tabular-nums; }
 .hist-tab:hover { color: var(--ink); background: var(--accent-tint); }
 .hist-tab[aria-selected="true"] { min-height: 46px; padding: 12px 18px 8px; border-color: var(--cat); background: var(--cat); color: var(--white); font-weight: 700; }
-.hist-tab[aria-selected="true"] small { color: inherit; opacity: .85; }
+.hist-tab[aria-selected="true"] small { color: inherit; } /* 薄くすると、色の明るいカテゴリで白との差が 4.5 を切る */
 /* 今見ているカテゴリの名前と件数（スマホだけ。パソコンではタブに件数が出るので、読み上げ用に隠して残す） */
 .hist-view { display: flex; align-items: baseline; gap: 8px; margin-block: 0; padding-block: 14px 0; font-size: 12px; color: var(--muted); }
 .hist-view b { font-weight: 700; color: var(--ink); }
