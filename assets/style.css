@@ -1053,3 +1053,13 @@ small { font-size: max(12px, .83em); }
 .sl-song-info { margin: 0 0 14px; padding: 12px 14px; border: 1px solid var(--accent-soft); border-radius: 10px; background: var(--accent-tint); }
 .sl-song-info p { margin: 0 0 6px; }
 .sl-song-clear { min-height: 44px; margin-top: 2px; padding: 0 14px; border: 1px solid var(--accent); border-radius: 22px; background: var(--card); color: var(--accent); font-size: 13px; font-weight: 600; }
+
+/* 「表示の見かた」：開け閉めできると分かるように、＋／－の印と下線をつける */
+.sl-legend-box > summary, .hist-info > summary { gap: 6px; color: var(--ink-2); text-decoration: underline dotted var(--line-input); text-underline-offset: 4px; list-style: none; }
+.sl-legend-box > summary::-webkit-details-marker, .hist-info > summary::-webkit-details-marker { display: none; }
+.sl-legend-box > summary::before, .hist-info > summary::before { content: "＋"; display: inline-grid; place-items: center; width: 18px; height: 18px; border: 1px solid var(--line-input); border-radius: 50%; font-size: 11px; line-height: 1; color: var(--muted); text-decoration: none; }
+.sl-legend-box[open] > summary::before, .hist-info[open] > summary::before { content: "－"; }
+
+/* 曲で絞り込んでいるとき、セトリの中のその曲に色をつける */
+.sl-songs li.sl-song-hit { margin: 0 -6px; padding-inline: 6px; border-radius: 4px; background: var(--accent-tint); }
+.sl-songs li.sl-song-hit .sl-song { color: var(--accent); font-weight: 700; }
