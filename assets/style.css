@@ -4,7 +4,7 @@
    全体のイメージ：紙に近い生成りの背景に、落ち着いた文字色。アーティスト写真より「言葉」を主役にします。
    メインカラー（--accent・--green：紺 #113584）はロゴ・強調・選んでいる印に、アクセントカラー（--accent-soft：#CFD4E6）は選んでいる面や淡い強調に使います。
    既読（--read-…）も紺系です。保存した印は塗りつぶした紺、既読は淡い紺の面と左の線で見分けます。
-   画面の幅の切り替わり：700px 以下はスマホ（1列）、701px 以上は左に絞り込み、1050px 以上はカードが2列。 */
+   画面の幅の切り替わり：700px 以下はスマホ（1列）、701px 以上は「さらに絞り込む」の条件の欄が横に並び（1000px 以上は4つずつ）、880px 以上はカードが2列。 */
 
 /* ---------- 色と書体 ---------- */
 :root {
@@ -197,12 +197,13 @@ body::before { content: ""; position: fixed; inset: 0 0 auto; height: env(safe-a
 .format-tabs button:hover { color: var(--ink); background: var(--accent-tint); }
 .format-tabs button[aria-pressed="true"] { flex-grow: 1.2; min-height: 50px; padding-block: 14px 9px; border-color: var(--accent); background: var(--accent); color: var(--white); font-size: 15px; font-weight: 700; }
 
-/* ---------- 一覧の左（パソコン）／上（スマホ）の「さらに絞り込む」 ---------- */
+/* ---------- 検索窓のすぐ下の「さらに絞り込む」（押すと開く。スマホでもパソコンでも同じ） ---------- */
 .archive-layout { display: flex; flex-direction: column; gap: 10px; }
 .filters { margin-bottom: 20px; }
 .filters details { border: 1px solid #D5D9CC; border-radius: 5px; background: #F1F2E9; }
 .filters summary { display: flex; align-items: center; justify-content: space-between; gap: 8px; min-height: 44px; padding: 12px 14px; font-size: 12px; font-weight: 600; list-style: none; cursor: pointer; }
 .filters summary::-webkit-details-marker { display: none; }
+.filter-number:empty + .sr { display: none; } /* 条件を選んでいないときは、読み上げの説明も出さない */
 .filter-number:not(:empty) { margin-right: auto; padding: 0 7px; border-radius: 10px; background: var(--green); color: var(--green-ink); font-size: 12px; line-height: 18px; }
 .chevron { margin-left: auto; font-size: 17px; line-height: 1; color: var(--muted); transition: transform .2s; }
 .filters details[open] .chevron { transform: rotate(180deg); }
@@ -558,8 +559,8 @@ dialog.modal::backdrop { background: rgba(23, 32, 24, .5); -webkit-backdrop-filt
   .format-tabs button { padding-inline: 14px; font-size: 14px; }
   .format-tabs button[aria-pressed="true"] { font-size: 15px; }
 
-  /* 「さらに絞り込む」は検索窓の下で開け閉めする（スマホと同じ）。開くと、条件の欄が横に4つずつ並ぶ */
-  .filter-body { grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px 16px; padding: 6px 16px 16px; }
+  /* 「さらに絞り込む」は検索窓の下で開け閉めする（スマホと同じ）。開くと、条件の欄が横に並ぶ（1000px 以上は4つずつ。下の @media） */
+  .filter-body { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px 16px; padding: 6px 16px 16px; }
   .filter-field select { padding: 9px 8px; font-size: 13px; }
   .reset-button { grid-column: auto; align-self: end; min-height: 44px; margin-top: 0; }
   .sidebar-note { grid-column: 1 / -1; display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 12px; padding-top: 12px; border-top: 1px solid var(--rule); font-size: 12px; color: var(--muted); }
@@ -602,7 +603,10 @@ dialog.modal::backdrop { background: rgba(23, 32, 24, .5); -webkit-backdrop-filt
   .page-head h1 { font-size: 26px; }
   .sheet-in { left: 50%; right: auto; top: 50%; bottom: auto; width: min(640px, calc(100vw - 48px)); max-height: min(82vh, 760px); border-radius: 8px; transform: translate(-50%, -50%); animation: none; }
 }
-@media (min-width: 1050px) {
+@media (min-width: 1000px) {
+  .filter-body { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+}
+@media (min-width: 880px) {
   .article-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .live-event .article-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 }

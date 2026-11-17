@@ -236,10 +236,10 @@ main > .hist-note { color: var(--on-blue-2); }
 .is-video .thumbnail-fallback { background: linear-gradient(120deg, #CBD6F0, #E6ECF8); }
 /* 「さらに絞り込む」（検索窓のすぐ下で開け閉めする）：面の色はつけず、白の細い線の枠だけ。背景のグラデーションに溶け込ませる */
 .archive .filters { margin: 12px 0 16px; }
-.archive .filters details { border: 1px solid rgba(255, 255, 255, .35); border-radius: 6px; background: transparent; }
+.archive .filters details { border: 1px solid rgba(255, 255, 255, .55); border-radius: 6px; background: transparent; }
 .archive .filters summary { min-height: 48px; padding: 0 16px; color: #FFFFFF; font-size: 13px; letter-spacing: .06em; }
 .archive .filters summary:hover { background: rgba(255, 255, 255, .06); }
-.archive .filters details[open] summary { border-bottom: 1px solid rgba(255, 255, 255, .2); }
+.archive .filters details[open] summary { border-bottom: 1px solid rgba(255, 255, 255, .45); }
 .archive .filters .chevron { color: #FFFFFF; }
 .archive .filter-number:not(:empty) { margin-left: 8px; background: #FFFFFF; color: var(--black); }
 .archive .filter-body { padding-top: 14px; }
@@ -373,7 +373,7 @@ main > .hist-note { color: var(--on-blue-2); }
    ・ページの途中にあるあいだは、地を透明にして、まわりの背景（黒から群青へのグラデーション）にそのまま溶け込ませる
    ・上に貼りついたら（ui.js の watchStuck が [data-stuck] を付ける）、下を流れる記事と重ならないよう、上の帯から続く暗い地を敷く
      （画面のその高さの背景とほぼ同じ色なので、境目は目立たない） */
-.hist-tabs-bar, .format-tabs { background: transparent; transition: background-color .2s; }
+.hist-tabs-bar, .format-tabs { background: transparent; } /* 地は一瞬で切り替わる（その高さの背景はほぼ黒なので、目立たない） */
 .hist-tabs-bar[data-stuck], .format-tabs[data-stuck] { background: linear-gradient(180deg, var(--black), #0E1430); }
 /* 記事の種類のタブは、帯そのものが横にスクロールする。貼りついているあいだは、端のぼかし（style.css の data-fade）が帯の地まで透かして
    下の記事が見えてしまうので、ぼかしをやめ、帯の端に貼りついた暗いグラデーションを重ねる（position: sticky で、スクロールしても端に残る） */
@@ -382,7 +382,6 @@ main > .hist-note { color: var(--on-blue-2); }
 .format-tabs[data-stuck][data-fade]::before { left: 0; margin-right: -40px; background: linear-gradient(to right, #0C1020, transparent); }
 .format-tabs[data-stuck][data-fade]::after { right: 0; margin-left: -40px; background: linear-gradient(to left, #0C1020, transparent); }
 .format-tabs[data-stuck][data-fade="r"]::before, .format-tabs[data-stuck][data-fade="l"]::after { display: none; }
-@media (prefers-reduced-motion: reduce) { .hist-tabs-bar, .format-tabs { transition: none; } }
 .format-tabs { border-bottom-color: rgba(255, 255, 255, .55); }
 .format-tabs button[aria-pressed="true"] { background: #FFFFFF; border-color: #FFFFFF; color: var(--black); }
 /* 年表の線の点：中を背景の色に見せていたところ */
