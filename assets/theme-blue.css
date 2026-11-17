@@ -58,6 +58,12 @@
   --shadow: 0 8px 18px rgba(5, 12, 45, .22);
 
   /* 擦れた文字の質感（ページの大見出しだけに使う）。細かいノイズで、ところどころ文字が欠ける */
+  /* 染めむらの質感（大きくゆっくりした濃淡）。明るいむらと暗いむらを重ねて、単調な青にしない */
+  --mottle-light: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='900' height='900'%3E%3Cfilter id='m'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.004' numOctaves='3' seed='4' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 .38 0 0 0 -.16'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23m)'/%3E%3C/svg%3E");
+  --mottle-dark: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='700' height='700'%3E%3Cfilter id='d'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.006' numOctaves='3' seed='11' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 .02 0 0 0 0 .04 0 0 0 0 .16 .55 0 0 0 -.24'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23d)'/%3E%3C/svg%3E");
+  /* 細かい織り目のノイズ */
+  --grain: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='220' height='220'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 .13 0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+
   --grit: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='260' height='260'%3E%3Cfilter id='g'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.42' numOctaves='4' seed='7'/%3E%3CfeColorMatrix values='0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 0 0 0 -13 9.4'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23g)'/%3E%3C/svg%3E");
 }
 
@@ -66,19 +72,25 @@
 html {
   background-color: var(--blue);
   background-image:
-    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='220' height='220'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 .13 0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E"),
+    var(--grain),
     repeating-linear-gradient(0deg, rgba(255, 255, 255, .018) 0 1px, transparent 1px 4px),
-    repeating-linear-gradient(90deg, rgba(0, 0, 0, .022) 0 1px, transparent 1px 4px);
+    repeating-linear-gradient(90deg, rgba(0, 0, 0, .022) 0 1px, transparent 1px 4px),
+    linear-gradient(180deg, #2349B8 0, var(--blue) 40%, #15338F 100%);
 }
 body { position: relative; background: transparent; color: var(--ink); }
+/* 画面に固定して重ねる層：光と陰影、染めむら（画面いっぱいに1枚で敷くので、継ぎ目が出ない） */
 body::after { content: ""; position: fixed; inset: 0; z-index: -1; pointer-events: none;
   background:
     radial-gradient(ellipse 70% 50% at 50% 20%, rgba(255, 255, 255, .07), transparent 70%),
-    radial-gradient(ellipse 85% 85% at 50% 45%, transparent 55%, rgba(4, 10, 40, .5) 100%); }
+    radial-gradient(ellipse 85% 85% at 50% 45%, transparent 55%, rgba(4, 10, 40, .5) 100%),
+    var(--mottle-light) center / cover no-repeat,
+    var(--mottle-dark) center / cover no-repeat; }
 :focus-visible { outline-color: var(--on-blue); }
 
 /* ---------- いちばん上の帯：青みの黒に、細く字間の広い白いロゴ ---------- */
-body::before, .header, .header-inner { background: var(--black); }
+body::before, .header { background: var(--black); }
+/* 帯の中身は透明にして、帯の色（黒）を画面の端から端までつなげる */
+.header-inner { background: transparent; }
 .header { border-bottom: 1px solid rgba(255, 255, 255, .14); }
 .hamburger, .hamburger[aria-expanded="true"] { color: var(--on-blue); }
 .brand { color: var(--on-blue); }
@@ -88,7 +100,18 @@ body::before, .header, .header-inner { background: var(--black); }
 @media (min-width: 701px) { .brand-text { font-size: 17px; } }
 
 /* メニュー：開くと、画面いっぱいの群青。項目は細い白の文字に、白い細線と小さな「›」 */
-.menu-clip { background: var(--blue); }
+.menu-clip {
+  background:
+    /* 上の帯の黒から、ゆっくり群青へ */
+    linear-gradient(180deg, var(--black) 0, var(--black) calc(60px + env(safe-area-inset-top, 0px)), rgba(10, 11, 18, .75) calc(140px + env(safe-area-inset-top, 0px)), rgba(10, 11, 18, 0) 70%),
+    /* 周りを少し暗く、真ん中をわずかに明るく */
+    radial-gradient(ellipse 80% 70% at 40% 55%, rgba(255, 255, 255, .06), transparent 70%),
+    radial-gradient(ellipse 100% 90% at 50% 60%, transparent 55%, rgba(4, 10, 40, .55) 100%),
+    var(--grain),
+    var(--mottle-light) center / cover no-repeat,
+    var(--mottle-dark) center / cover no-repeat,
+    var(--blue);
+}
 .menu-panel { max-width: 560px; padding-top: 18px; }
 .menu-clip .nav-item { min-height: 64px; border-bottom: 1px solid var(--on-blue-line); color: var(--on-blue); font-size: 16px; font-weight: 300; letter-spacing: .14em; }
 .menu-clip .nav-item:last-child { border-bottom: 1px solid var(--on-blue-line); }
