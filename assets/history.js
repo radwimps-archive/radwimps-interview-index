@@ -336,14 +336,15 @@ $("#tabs").addEventListener("keydown", (e) => {
   setCat(next.dataset.cat);
   document.querySelector(`.hist-tab[data-cat="${next.dataset.cat}"]`).focus();
 });
-// 年代のメニューで年を選んだら、その年へ（上の帯とタブに隠れない位置へ）。メニューの表示は年代の名前に戻す
+// 年代のメニューで年を選んだら、その年へ（上の帯とタブに隠れない位置へ）。
+// メニューの表示を年代の名前に戻すのは、メニューから離れたとき（矢印キーで1年ずつ進めても、順に飛べるように）
 $("#eras").addEventListener("change", (e) => {
   const sel = e.target.closest("select");
   if (!sel || !sel.value) return;
   const t = document.getElementById(`y${sel.value}`);
-  sel.value = "";
   if (t) scrollTo({ top: t.getBoundingClientRect().top + scrollY - headerH() - $(".hist-tabs-bar").offsetHeight - 8, behavior: "smooth" });
 });
+$("#eras").addEventListener("focusout", (e) => { if (e.target.matches("select")) e.target.value = ""; });
 
 // いちばん上へ戻るボタン
 const toTop = $("#toTop");

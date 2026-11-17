@@ -163,12 +163,13 @@ body::before, .header { background: var(--black); }
 .era-select.off { opacity: .65; cursor: default; }
 .era-select.off:hover { background-color: transparent; border-color: var(--on-blue-line); }
 :is(.era-select, .sl-cat-select, #yearJump, .sort-label select, .filter-field select) option { background: #FFFFFF; color: #0B1230; }
+/* スマホでは、どのメニューも 16px（iPhone で、押したときに画面が拡大されないように） */
 @media (max-width: 700px) {
-  .era-select { padding: 0 26px 0 11px; background-position: right 10px center; font-size: 13px; letter-spacing: 0; }
-  .sl-cat-select, #yearJump { font-size: 13px; letter-spacing: .04em; }
+  .era-select { padding: 0 26px 0 11px; background-position: right 10px center; font-size: 16px; letter-spacing: 0; }
+  .paper-sheet .sl-cat-select, #yearJump, .archive .sort-label select { font-size: 16px; letter-spacing: .04em; }
 }
 /* 並び順は、文字の横に置く小さめの丸 */
-.archive .sort-label select { min-height: 40px; max-width: none; padding: 0 34px 0 14px; font-size: 13px; letter-spacing: .06em; }
+.archive .sort-label select { min-height: 44px; max-width: none; padding: 0 34px 0 14px; font-size: 13px; letter-spacing: .06em; }
 .archive .filter-field select { width: 100%; padding-left: 14px; font-size: 13px; letter-spacing: .04em; }
 /* スマホでは 16px（iPhone で、押したときに画面が拡大されないように） */
 @media (max-width: 700px) { .archive .filter-field select { font-size: 16px; letter-spacing: 0; } }

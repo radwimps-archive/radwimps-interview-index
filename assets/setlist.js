@@ -246,8 +246,10 @@ function renderLives() {
   for (const t of (isAsc("live") ? list : [...list].reverse())) (years.get(t.y) || years.set(t.y, []).get(t.y)).push(t);
   if (years.size > 1) {
     // 年が増えても使いやすいように、ボタンを並べず、メニューから選んで飛ぶ
-    const sel = el("select", { id: "yearJump", "aria-label": "年へ移動" }, el("option", { value: "", text: "年を選ぶ" }), ...[...years.keys()].map((y) => el("option", { value: y, text: `${y}年` })));
-    sel.addEventListener("change", () => { const sec = document.getElementById(`y${sel.value}`); sel.value = ""; if (sec) scrollToEl(sec); });
+    const sel = el("select", { id: "yearJump", "aria-label": "年を選んで移動" }, el("option", { value: "", text: "年を選ぶ" }), ...[...years.keys()].map((y) => el("option", { value: y, text: `${y}年` })));
+    // 選んだ年へ飛ぶ。表示を「年を選ぶ」に戻すのは、メニューから離れたとき（矢印キーで1年ずつ進めても、順に飛べるように）
+    sel.addEventListener("change", () => { const sec = document.getElementById(`y${sel.value}`); if (sec) scrollToEl(sec); });
+    sel.addEventListener("blur", () => { sel.value = ""; });
     box.querySelector(".sl-cats").append(sel); // 区分のメニューの右に並べる（見た目は同じ丸い枠）
   }
   // 曲で絞り込んだばかりのときは、いちばん上のツアーと、その中の最初の公演を開いて、色をつけた曲がすぐ見えるようにする
@@ -565,7 +567,7 @@ addEventListener("popstate", (e) => {
   const k = q ? findSong(q) || "" : "";
   const cats = e.state?.liveCats;
   const catsChanged = Array.isArray(cats) && (cats.length !== catState.live.size || cats.some((c) => !catState.live.has(c)));
-  if (catsChanged) catState.live = new Set(cats);
+  if (catsChanged) catState.live = new Set(cats.slice(0, 1)); // 区分は1つだけ選ぶ（以前の履歴に複数あっても、最初の1つ）
   if (k !== song || catsChanged) {
     song = k; songMissing = q && !k ? q : "";
     renderLives(); renderMine();
