@@ -16,7 +16,8 @@
    ・紺の黒 #0B1230 ／ 紙 #D3DCEE …… 13.3
    ・補足の文字 #3A4670 ／ 紙 #D3DCEE …… 6.7（白いカードの上では 9.2）
    ・群青の文字 #1A3FA8 ／ 紙 #D3DCEE …… 6.6（白いカードの上では 9.0）
-   ・白 ／ 青みの黒 #0A0B12 …… 19.6 */
+   ・白 ／ 青みの黒 #0A0B12 …… 19.6
+   ・染めむらのいちばん明るい所（#3353AD ほど）でも、白 …… 7.0、少し薄い白 …… 5.3。上の黒に近い所では、もっと読みやすい */
 
 :root {
   --blue: #1A3FA8;         /* メイン：群青（ページの地） */
@@ -96,7 +97,7 @@ body::before, .header { background: var(--black); }
 .beta-badge { border-color: var(--on-blue-line); background: transparent; color: var(--on-blue); font-weight: 400; }
 @media (min-width: 701px) { .brand-text { font-size: 17px; } }
 
-/* メニュー：開くと、画面いっぱいの群青。項目は細い白の文字に、白い細線と小さな「›」 */
+/* メニュー：開くと、画面いっぱいに、ページと同じ黒から群青への背景。項目は細い白の文字に、白い細線と小さな「›」 */
 /* メニューの背景は、ページの背景（--sky）とまったく同じ */
 .menu-clip { background: var(--sky); }
 .menu-panel { max-width: 560px; padding-top: 18px; }
