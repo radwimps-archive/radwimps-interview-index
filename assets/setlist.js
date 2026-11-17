@@ -133,7 +133,7 @@ function showRow(l, open) {
     setlistBody(l));
 }
 
-function tourCard(t, open) {
+function tourCard(t, open, openIds) {
   const n = t.lives.length, withSongs = t.lives.filter(hasSongs).length;
   const one = n === 1 ? t.lives[0] : null;
   const card = el("details", { class: "sl-live", id: t.id, open: open || null },
@@ -145,7 +145,7 @@ function tourCard(t, open) {
         el("span", { class: "sl-count", text: one ? (hasSongs(one) ? `${songsOf(one).length}曲` : "セトリ未確認") : `セトリあり ${withSongs}／${n}` }),
         one ? null : attendCount(t.lives))));
   if (one) { const b = setlistBody(one); b.id = liveId(one); card.append(b); }
-  else card.append(el("div", { class: "sl-shows" }, ...t.lives.map((l) => showRow(l, false))));
+  else card.append(el("div", { class: "sl-shows" }, ...t.lives.map((l) => showRow(l, !!openIds?.has(liveId(l))))));
   return card;
 }
 
@@ -170,10 +170,16 @@ function hitTour(t, query) {
 const sortState = { mine: "desc", live: "desc", ranking: "desc" };
 const SORT_LABELS = { mine: ["新しい順", "古い順"], live: ["新しい順", "古い順"], ranking: ["多い順", "少ない順"] };
 const isAsc = (v) => sortState[v] === "asc";
+const VIEW_BOX = { mine: "#mine", live: "#lives", ranking: "#ranking" };
+// 作り直したあと、前に押していたボタン（同じ selector のもの）へ、キーボードの位置を戻す
+function refocus(v, selector) {
+  const b = $(`${VIEW_BOX[v]} ${selector}`);
+  if (b) b.focus({ preventScroll: true });
+}
 function sortButton(v, rerender) {
   const label = SORT_LABELS[v][isAsc(v) ? 1 : 0];
   const b = el("button", { type: "button", class: "sl-sort", "aria-label": `並び順を切り替える（いまは${label}）` }, label, el("span", { class: "sl-sort-arrow", "aria-hidden": "true", text: "⇅" }));
-  b.addEventListener("click", () => { sortState[v] = isAsc(v) ? "desc" : "asc"; if (v === "ranking") rankAll = false; rerender(); });
+  b.addEventListener("click", () => { sortState[v] = isAsc(v) ? "desc" : "asc"; if (v === "ranking") rankAll = false; rerender(); refocus(v, ".sl-sort"); });
   return b;
 }
 const noHit = (q) => el("p", { class: "sl-mine-empty", text: `「${q}」に合うものは、見つかりませんでした。ひらがなや英語、ライブ名の一部でも探せます。` });
@@ -195,14 +201,18 @@ function catBar(v, counts, rerender) {
   const set = catState[v];
   const bar = el("div", { class: "sl-cats", role: "group", "aria-label": "区分で絞り込む" },
     el("button", { type: "button", "aria-pressed": String(!set.size), "data-cat": "" }, "すべて"),
-    ...SETLIST_CATEGORIES.filter((c) => counts[c]).map((c) => el("button", { type: "button", "aria-pressed": String(set.has(c)), "data-cat": c }, c, el("small", { text: ` ${counts[c]}` }))));
+    ...SETLIST_CATEGORIES.filter((c) => counts[c] || set.has(c)).map((c) => el("button", { type: "button", "aria-pressed": String(set.has(c)), "data-cat": c }, c, el("small", { text: ` ${counts[c] || 0}` }))));
   bar.addEventListener("click", (e) => {
     const b = e.target.closest("[data-cat]");
     if (!b) return;
     const c = b.dataset.cat;
     if (!c) set.clear(); else if (set.has(c)) set.delete(c); else set.add(c);
     if (v === "ranking") rankAll = false;
+    const left = bar.scrollLeft;
     rerender();
+    // 作り直した札の帯も、横のスクロール位置と、押した札の位置をそのままにする
+    const nb = $(`${VIEW_BOX[v]} .sl-cats`);
+    if (nb) { nb.scrollLeft = left; refocus(v, `.sl-cats [data-cat="${CSS.escape(c)}"]`); }
   });
   watchScrollFade(bar);
   return bar;
@@ -215,12 +225,16 @@ function renderLives() {
   const q = queries.live;
   const rec = song ? songs.get(song) : null;
   const cats = catState.live;
-  const base = (rec ? tours.filter((t) => rec.plays.some((p) => p.live.tour === t)) : tours).filter((t) => !cats.size || cats.has(t.cat));
+  const songTours = rec ? tours.filter((t) => rec.plays.some((p) => p.live.tour === t)) : tours;
+  const base = songTours.filter((t) => !cats.size || cats.has(t.cat));
   const list = base.filter((t) => hitTour(t, q));
-  const n = list.reduce((s, t) => s + t.lives.length, 0);
-  box.replaceChildren(el("p", { class: "hist-view sl-view" }, el("b", { text: "ツアー・ライブごと" }),
+  const played = rec ? new Set(rec.plays.map((p) => p.live)) : null;
+  const n = list.reduce((s, t) => s + (played ? t.lives.filter((l) => played.has(l)).length : t.lives.length), 0);
+  // 作り直す前に開いていたツアー・公演（はじめて描くときは、いちばん上だけ開く）
+  const openIds = box.childElementCount ? new Set([...box.querySelectorAll("details[open][id]")].map((d) => d.id)) : null;
+  box.replaceChildren(el("p", { class: "hist-view sl-view" }, el("b", { text: rec ? "その曲を演奏したライブ" : "ツアー・ライブごと" }),
     el("span", { text: `${list.length} 件・${n} 公演` }), sortButton("live", renderLives)));
-  box.append(catBar("live", countBy(tours), renderLives));
+  box.append(catBar("live", countBy(songTours), renderLives)); // 曲で絞っているときは、その曲を演奏したライブの数
   if (rec) box.append(songBanner(rec));
   else if (songMissing) box.append(el("p", { class: "sl-mine-empty", text: `「${songMissing}」を演奏したライブは、見つかりませんでした。すべてのライブを表示しています。` }));
   if (!list.length) { box.append(q ? noHit(q) : el("p", { class: "hist-loading", text: "その曲を演奏したライブは、まだ載っていません。" })); return; }
@@ -236,7 +250,7 @@ function renderLives() {
   for (const [y, items] of years) {
     box.append(el("section", { class: "sl-year", id: `y${y}`, "aria-labelledby": `yh${y}` },
       el("h2", { id: `yh${y}`, class: "hist-year-head" }, el("span", { text: String(y) }), " ", el("small", { text: `${items.length} 件` })),
-      ...items.map((t) => { const c = tourCard(t, first && !q && !rec); first = false; return c; })));
+      ...items.map((t) => { const c = tourCard(t, openIds ? openIds.has(t.id) : first && !q && !rec, openIds); first = false; return c; })));
   }
 }
 
@@ -353,10 +367,10 @@ function renderRanking() {
   const asc = isAsc("ranking");
   const ordered = asc ? [...rows].sort((a, b) => a.n - b.n || a.title.localeCompare(b.title, "ja")) : rows;
   const cut = ordered[Math.min(RANK_TOP, ordered.length) - 1];
-  // はじめは30曲まで（30曲目と同じ回数の曲は、あわせて出します）
+  // はじめは30曲まで（多い順は、30曲目と同じ回数の曲もあわせて出す。少ない順は、1回の曲がとても多いので、ちょうど30曲で区切る）
   const q = queries.ranking;
   // 検索の言葉があるときは、30曲の区切りをやめて、合う曲をすべて出す
-  const shown = q ? ordered.filter((r) => looseMatchAll(r.title, q)) : rankAll || !cut ? ordered : ordered.filter((r) => (asc ? r.n <= cut.n : r.n >= cut.n));
+  const shown = q ? ordered.filter((r) => looseMatchAll(r.title, q)) : rankAll || !cut ? ordered : asc ? ordered.slice(0, RANK_TOP) : ordered.filter((r) => r.n >= cut.n);
   const ol = el("ol", { class: "sl-rank" });
   for (const r of shown) {
     const bar = el("span", { class: "sl-rank-bar", "aria-hidden": "true" }, el("span", {}));
@@ -377,7 +391,7 @@ function renderRanking() {
     ol);
   if (!q && shown.length < rows.length) {
     const more = el("button", { type: "button", class: "sl-clear sl-rank-more", text: `すべて見る（${rows.length} 曲）` });
-    more.addEventListener("click", () => { rankAll = true; renderRanking(); });
+    more.addEventListener("click", () => { const k = shown.length; rankAll = true; renderRanking(); $(`#ranking .sl-rank-row:nth-child(${k + 1}) .sl-song`)?.focus(); });
     box.append(more);
   }
 }
