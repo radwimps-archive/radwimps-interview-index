@@ -19,8 +19,6 @@ const CATS = HISTORY_CATEGORIES;
 // 「MV」のタブ：「動画」の列で「MV」から始まるラベルの動画を、1曲ずつの行にして並べる（CSV に書く必要はありません）
 const MV_TAB = { name: "MV", slug: "mv", short: "MV" };
 const VIEWS = ["all", ...CATS.map((c) => c.slug), MV_TAB.slug];
-// 年代へ移動するリンク（参考：年代ごとの区切り）
-const ERAS = [[2001, 2008], [2009, 2016], [2017, 9999]];
 
 let events = [];
 let lives = [];   // セトリのデータ（data/setlists.csv）の公演。読めないときは空（印は出ません）
@@ -276,20 +274,14 @@ document.addEventListener("pointermove", (e) => {
   if (tap.touch && Math.hypot(e.clientX - tap.x, e.clientY - tap.y) > 10) tap.moved = true;
 }, { passive: true });
 
-// 年代ごとの「年を選ぶ」メニュー（丸い枠の3つ）。押すとその年代の年が並び、選んだ年へ飛ぶ。表示中の出来事がない年代は選べない
+// 「年を選ぶ」メニュー（丸い枠の1つ）。2001年から今まで、表示中の出来事がある年が並び、選んだ年へ飛ぶ
 function renderEras(list) {
   const nav = $("#eras");
-  nav.replaceChildren();
-  const last = events.length ? events[events.length - 1].y : 2026;
-  for (const [a, b] of ERAS) {
-    const to = Math.min(b, last);
-    const label = `${a}–${to}`;
-    const years = [...new Set(list.filter((e) => e.y >= a && e.y <= to).map((e) => e.y))];
-    const sel = el("select", { class: "era-select", "aria-label": `${label}年の中から、移動する年を選ぶ` },
-      el("option", { value: "", text: label }), ...years.map((y) => el("option", { value: String(y), text: `${y}年` })));
-    if (!years.length) { sel.disabled = true; sel.classList.add("off"); }
-    nav.append(sel);
-  }
+  const years = [...new Set(list.map((e) => e.y))];
+  const sel = el("select", { class: "era-select", "aria-label": "年を選んで移動" },
+    el("option", { value: "", text: "年を選ぶ" }), ...years.map((y) => el("option", { value: String(y), text: `${y}年` })));
+  if (!years.length) { sel.disabled = true; sel.classList.add("off"); }
+  nav.replaceChildren(sel);
 }
 
 function setCat(slug, { scroll = false } = {}) {
@@ -336,8 +328,8 @@ $("#tabs").addEventListener("keydown", (e) => {
   setCat(next.dataset.cat);
   document.querySelector(`.hist-tab[data-cat="${next.dataset.cat}"]`).focus();
 });
-// 年代のメニューで年を選んだら、その年へ（上の帯とタブに隠れない位置へ）。
-// メニューの表示を年代の名前に戻すのは、メニューから離れたとき（矢印キーで1年ずつ進めても、順に飛べるように）
+// 「年を選ぶ」で年を選んだら、その年へ（上の帯とタブに隠れない位置へ）。
+// メニューの表示を「年を選ぶ」に戻すのは、メニューから離れたとき（矢印キーで1年ずつ進めても、順に飛べるように）
 $("#eras").addEventListener("change", (e) => {
   const sel = e.target.closest("select");
   if (!sel || !sel.value) return;
