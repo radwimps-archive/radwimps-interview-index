@@ -292,7 +292,7 @@ body::before { content: ""; position: fixed; inset: 0 0 auto; height: env(safe-a
 .read-button { display: flex; align-items: center; gap: 4px; min-height: 44px; padding: 4px 0; border: 0; background: none; color: #5A6078; font-size: 12px; white-space: nowrap; }
 .read-button[aria-pressed="true"] { color: var(--accent); font-weight: 700; }
 .source-link { display: flex; align-items: center; justify-content: flex-end; gap: 7px; min-width: 0; min-height: 44px; padding: 7px 0; color: var(--ink); font-size: 12px; font-weight: 500; line-height: 1.4; text-decoration: none; }
-.source-name { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 16px; font-weight: 500; }
+.source-name { min-width: 0; display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; overflow: hidden; text-align: right; overflow-wrap: anywhere; font-size: 16px; font-weight: 500; line-height: 1.4; }
 .source-link:hover .source-name { text-decoration: underline; text-underline-offset: 4px; text-decoration-thickness: 1px; }
 .source-link .arrow { flex: none; font-size: 15px; }
 .lang-tag { flex: none; padding: 0 5px; border: 1px solid var(--rule); border-radius: 3px; font-size: 12px; line-height: 16px; color: var(--muted); }
@@ -561,7 +561,7 @@ dialog.modal::backdrop { background: rgba(23, 32, 24, .5); -webkit-backdrop-filt
   /* 左に絞り込み（176px）、右に一覧 */
   .archive-layout { display: grid; grid-template-columns: 176px minmax(0, 1fr); gap: 26px; align-items: start; }
   .filters { margin-bottom: 0; padding-right: 18px; border-right: 1px solid var(--rule); align-self: stretch; }
-  .filters details { position: sticky; top: calc(88px + env(safe-area-inset-top, 0px)); max-height: calc(100vh - 104px - env(safe-area-inset-top, 0px)); overflow-y: auto; border: 0; background: none; scrollbar-width: thin; }
+  .filters details { position: sticky; top: calc(88px + env(safe-area-inset-top, 0px)); max-height: calc(100vh - 104px - env(safe-area-inset-top, 0px)); overflow-y: auto; padding-right: 14px; border: 0; background: none; scrollbar-width: thin; scrollbar-gutter: stable; scrollbar-color: var(--line-input) transparent; }
   .filters summary { display: block; min-height: 0; margin-bottom: 12px; padding: 12px 0 0; pointer-events: none; }
   .chevron { display: none; }
   .filter-number:not(:empty) { margin-left: 6px; }
@@ -736,7 +736,7 @@ button.title-link { padding: 0; border: 0; background: none; font: inherit; text
 /* ---------- ベータ版の表示（config.js の beta が true のときだけ。feedback.js が作ります） ---------- */
 .beta-badge { align-self: center; padding: 2px 6px; border: 1px solid var(--accent-soft); border-radius: 999px; background: var(--accent-tint); color: var(--accent); font-size: 12px; font-weight: 700; line-height: 1.3; letter-spacing: .5px; white-space: nowrap; }
 .beta-wrap { margin-top: 14px; }
-.beta-bar { display: flex; align-items: flex-start; gap: 10px; padding: 10px 12px 10px 14px; border: 1px solid var(--accent-soft); border-radius: 10px; background: var(--accent-tint); color: var(--ink); font-size: 12px; line-height: 1.7; }
+.beta-bar { display: flex; align-items: center; gap: 10px; padding: 6px 12px 6px 14px; border: 1px solid var(--accent-soft); border-radius: 10px; background: var(--accent-tint); color: var(--ink); font-size: 12px; line-height: 1.7; }
 .beta-bar p { flex: 1; margin: 0; }
 .beta-bar strong { color: var(--accent); }
 .beta-bar a { color: var(--accent); }
@@ -789,7 +789,6 @@ button.title-link { padding: 0; border: 0; background: none; font: inherit; text
 .sl-info dd { margin: 0; color: var(--ink-2); overflow-wrap: anywhere; }
 .sl-info a { color: var(--accent); }
 /* 年表：曲名で探す欄と、曲名の札 */
-.sl-nenpyo { padding-block: 14px 24px; }
 .sl-clear { flex: none; padding: 0 16px; border: 1px solid var(--line-input); border-radius: 8px; background: var(--white); color: var(--ink); font-size: 13px; }
 .sl-song-info { margin-top: 10px; }
 .sl-song-head { margin: 0; font-size: 14px; line-height: 1.7; }
@@ -1012,3 +1011,36 @@ small { font-size: max(12px, .83em); }
 .sl-legend-box .sl-legend { margin-top: 0; }
 .person-wide { grid-column: 1 / -1; }
 .person-wide .person-body { max-width: 62em; }
+
+/* スマホ：入口カードは見出しだけにして、記事一覧がすぐ見えるようにする（説明文は読み上げ用に残す） */
+@media (max-width: 700px) {
+  .entry-tabs button { min-height: 56px; padding-block: 10px; }
+  .entry-tabs small { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+  .entry-tabs strong { grid-row: 1 / span 2; align-self: center; }
+  .hero { padding-block: 14px 12px; }
+}
+
+/* 歩み・セトリの「表示の見かた」：長い説明は閉じておく */
+.hist-info { margin: 10px 0 0; }
+.hist-info > summary { display: inline-flex; align-items: center; min-height: 44px; font-size: 12px; color: var(--muted); cursor: pointer; }
+.hist-guide, .sl-guide { margin: 0 0 6px; font-size: 12px; line-height: 1.8; color: var(--muted); }
+.hist-info .hist-yt-note { margin-top: 10px; }
+
+/* 足あと（行ったライブの印）は、どの一覧でも 1 行目の右はしに固定する（会場名の長さで動かない） */
+.hist-meta .att-btn { position: absolute; top: 6px; right: 0; margin: 0; }
+.sl-live > summary .att-btn { right: 10px; top: 6px; }
+.setlist-page .hist-item .hist-title { padding-right: 48px; }
+.sl-show summary { padding-right: 88px; }
+.sl-show summary .att-btn { position: absolute; right: 40px; top: 50%; margin: 0; transform: translateY(-50%); }
+
+
+/* ライブ：年ごとの見出しと、年へ飛ぶボタン */
+.sl-years { display: flex; gap: 6px; margin: 4px 0 12px; padding: 2px 0; overflow-x: auto; overscroll-behavior-x: contain; scrollbar-width: none; }
+.sl-years::-webkit-scrollbar { display: none; }
+.sl-years button { flex: none; min-width: 56px; min-height: 44px; padding: 0 12px; border: 1px solid var(--line-entry); border-radius: 22px; background: var(--card); color: var(--ink-2); font-family: var(--f-mono); font-size: 13px; font-variant-numeric: tabular-nums; }
+.sl-years button:hover { background: var(--accent-tint); color: var(--accent); }
+.sl-year { margin: 0 0 8px; scroll-margin-top: calc(130px + env(safe-area-inset-top, 0px)); }
+.sl-year .hist-year-head { margin: 22px 0 10px; }
+.sl-song-info { margin: 0 0 14px; padding: 12px 14px; border: 1px solid var(--accent-soft); border-radius: 10px; background: var(--accent-tint); }
+.sl-song-info p { margin: 0 0 6px; }
+.sl-song-clear { min-height: 44px; margin-top: 2px; padding: 0 14px; border: 1px solid var(--accent); border-radius: 22px; background: var(--card); color: var(--accent); font-size: 13px; font-weight: 600; }

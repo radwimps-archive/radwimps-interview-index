@@ -91,8 +91,8 @@ export function setupBeta(before) {
   const url = feedbackUrl({ kind: KIND.bug, title: "ベータ版の感想・不具合", page: location.href });
   const close = h("button", { type: "button", class: "beta-close", "aria-label": "この案内を閉じる", text: "✕" });
   const bar = h("aside", { class: "beta-bar", "aria-label": "ベータ版のお知らせ" },
-    h("p", null, h("strong", { text: "ベータ版で公開中です。" }), "表示のおかしなところや使いにくいところがあれば、",
-      url ? h("a", { href: url, target: "_blank", rel: "noopener noreferrer", text: usesForm ? "フォームから教えてください" : "教えてください" }) : "お知らせください",
+    h("p", null, h("strong", { text: "ベータ版です。" }), "不具合・ご意見は",
+      url ? h("a", { href: url, target: "_blank", rel: "noopener noreferrer", text: usesForm ? "こちらから" : "こちら" }) : "お知らせください",
       "。"),
     close);
   const wrap = h("div", { class: "wrap beta-wrap" }, bar);

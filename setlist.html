@@ -8,9 +8,9 @@
 <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' https://static.cloudflareinsights.com; style-src 'self'; img-src 'self' data: https://i.ytimg.com; font-src 'self'; connect-src 'self' https://api.github.com https://api.web3forms.com https://cloudflareinsights.com; frame-src https://www.youtube-nocookie.com https://www.youtube.com; object-src 'none'; base-uri 'self'; form-action 'self'; upgrade-insecure-requests">
 <meta name="referrer" content="strict-origin-when-cross-origin">
 <title>RAD LIVE SET LIST｜RADWIMPS Archives</title>
-<meta name="description" content="RADWIMPS がこれまでのライブで演奏した曲を、公演ごとのセットリストと、年ごとの年表でたどれるページです。曲名から、その曲を演奏したライブも探せます。">
+<meta name="description" content="RADWIMPS がこれまでのライブで演奏した曲を、公演ごとのセットリストを、年ごとにたどれるページです。曲名から、その曲を演奏したライブも探せます。">
 <meta property="og:title" content="RAD LIVE SET LIST｜RADWIMPS Archives">
-<meta property="og:description" content="RADWIMPS がこれまでのライブで演奏した曲を、公演ごとのセットリストと、年ごとの年表でたどれるページです。曲名から、その曲を演奏したライブも探せます。">
+<meta property="og:description" content="RADWIMPS がこれまでのライブで演奏した曲を、公演ごとのセットリストを、年ごとにたどれるページです。曲名から、その曲を演奏したライブも探せます。">
 <meta property="og:type" content="website">
 <meta property="og:url" content="https://radwimps-archive.github.io/radwimps-interview-index/setlist.html">
 <meta property="og:site_name" content="RADWIMPS Archives">
@@ -21,12 +21,12 @@
 <meta property="og:image:alt" content="RADWIMPS Archives：好きな曲から、気になる人から。インタビュー・対談・ライブレポートの非公式索引">
 <meta name="twitter:card" content="summary_large_image">
 <meta name="twitter:title" content="RAD LIVE SET LIST｜RADWIMPS Archives">
-<meta name="twitter:description" content="RADWIMPS がこれまでのライブで演奏した曲を、公演ごとのセットリストと、年ごとの年表でたどれるページです。曲名から、その曲を演奏したライブも探せます。">
+<meta name="twitter:description" content="RADWIMPS がこれまでのライブで演奏した曲を、公演ごとのセットリストを、年ごとにたどれるページです。曲名から、その曲を演奏したライブも探せます。">
 <meta name="twitter:image" content="https://radwimps-archive.github.io/radwimps-interview-index/assets/ogp.png">
 <meta name="theme-color" content="#FFFFFF">
 <link rel="icon" href="assets/icon.svg" type="image/svg+xml">
-<link rel="stylesheet" href="assets/style.css?v=20261115a">
-<script type="module" src="assets/setlist.js?v=20261115a"></script>
+<link rel="stylesheet" href="assets/style.css">
+<script type="module" src="assets/setlist.js"></script>
 </head>
 <body class="history-page setlist-page">
 <a href="#lives" class="skip">セットリストへ移動</a>
@@ -52,15 +52,14 @@
   <section class="hero wrap" aria-labelledby="setlistTitle">
     <p class="eyebrow">RADWIMPS SETLISTS <span id="span"></span></p>
     <h1 id="setlistTitle">RAD LIVE SET LIST</h1>
-    <p class="hero-description">RADWIMPS がライブで、いつ・どの曲を演奏したのかをまとめています。「ライブ」では公演ごとのセットリスト（曲順）を、「年表」では年ごとの流れを、「ランキング」ではよく演奏された曲の順位を、「参加公演」では行ったライブ（公演の足あとのマークを押したもの）だけを見られます。年表で曲名を押すと、その曲を演奏したライブだけが並びます。</p>
-    <details class="sl-legend-box"><summary>表示の見かた（札の意味）</summary><p class="sl-legend" id="legend"></p></details>
+    <p class="hero-description">RADWIMPS がライブで、いつ・どの曲を演奏したのかを、公演・年・曲ごとにたどれます。</p>
+    <details class="sl-legend-box"><summary>表示の見かた</summary><p class="sl-guide" id="slGuide">「ライブ」では年ごとに並んだツアー・公演のセットリスト（曲順）を、「ランキング」ではよく演奏された曲の順位を、「参加公演」では行ったライブ（公演の足あとのマークを押したもの）だけを見られます。セットリストの曲名やランキングの曲を押すと、その曲を演奏したライブだけが並びます。</p><p class="sl-legend" id="legend"></p></details>
   </section>
 
   <!-- 表示の切り替え：フォルダの見出しのような「タブ」。スクロールしても上に残ります -->
   <div class="hist-tabs-bar">
     <div class="sl-tabs wrap" role="tablist" aria-label="表示の切り替え" id="tabs">
       <button type="button" role="tab" class="sl-tab" id="tabLive" data-view="live" aria-selected="true" aria-controls="lives">ライブ</button>
-      <button type="button" role="tab" class="sl-tab" id="tabYear" data-view="nenpyo" aria-selected="false" aria-controls="nenpyo">年表</button>
       <button type="button" role="tab" class="sl-tab" id="tabRank" data-view="ranking" aria-selected="false" aria-controls="ranking">ランキング</button>
       <button type="button" role="tab" class="sl-tab" id="tabUnplayed" data-view="unplayed" aria-selected="false" aria-controls="unplayedView" hidden>ライブ未演奏</button>
       <button type="button" role="tab" class="sl-tab" id="tabMine" data-view="mine" aria-selected="false" aria-controls="mine">参加公演</button>
@@ -84,13 +83,6 @@
     <p class="hist-loading" id="loading">セットリストを読み込んでいます…</p>
   </section>
 
-  <!-- 年表：年ごとに、公演と演奏した曲（古い順） -->
-  <section class="sl-nenpyo wrap" id="nenpyo" role="tabpanel" aria-labelledby="tabYear" hidden>
-    <div>
-      <div class="sl-song-info" id="songInfo" aria-live="polite"></div>
-    </div>
-    <div class="timeline" id="timeline"></div>
-  </section>
 
   <!-- ライブ未演奏：楽曲一覧（data/songs.csv）にあって、どの公演のセトリにも出てこない曲 -->
   <!-- ランキング：よく演奏された曲の順位（セトリから自動で数えます） -->
