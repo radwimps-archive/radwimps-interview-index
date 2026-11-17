@@ -139,12 +139,9 @@ body::before, .header { background: var(--black); }
 }
 /* 記事一覧（トップ）：サイト名を大見出しに、キャッチコピーを上の小さな文字に。
    サイト名は上の帯のロゴと同じく字間を広く、1行目を太く・2行目を細く。字間のぶん右にずれないよう、左にも同じだけ空ける */
-/* サイト名は SVG の文字（2行とも textLength で幅 580 にそろう）。画面の幅に合わせて大きさが変わる */
-.hero h1.site-title { display: block; width: min(100%, 300px); margin: 0 auto 18px; line-height: 0; }
-@media (min-width: 701px) { .hero h1.site-title { width: 440px; } }
-.site-title-art { display: block; width: 100%; height: auto; overflow: visible; fill: currentColor; font-family: var(--f-body); }
-.site-title-main { font-size: 94px; font-weight: 800; }
-.site-title-sub { font-size: 58px; font-weight: 300; }
+/* サイト名は1行に横並び：「RADWIMPS」を太く、「ARCHIVES」を細く。画面の幅に合わせて大きさが変わり、折り返さない */
+.hero h1.site-title { font-size: clamp(20px, 6.4vw, 56px); line-height: 1.2; letter-spacing: .08em; text-indent: .08em; white-space: nowrap; }
+.hero h1.site-title span { display: inline; margin-left: .2em; font-weight: 300; letter-spacing: .08em; }
 .hero .hero-catch { font-size: 13px; letter-spacing: .24em; text-indent: .24em; }
 @media (min-width: 701px) { .hero .hero-catch { font-size: 15px; letter-spacing: .3em; text-indent: .3em; } }
 /* 見出しの中の PR の案内と、年代へのリンク（歩みページ） */
