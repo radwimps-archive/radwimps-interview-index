@@ -1034,11 +1034,16 @@ small { font-size: max(12px, .83em); }
 .sl-show summary .att-btn { position: absolute; right: 40px; top: 50%; margin: 0; transform: translateY(-50%); }
 
 
-/* ライブ：年ごとの見出しと、年へ飛ぶボタン */
-.sl-years { display: flex; gap: 6px; margin: 4px 0 12px; padding: 2px 0; overflow-x: auto; overscroll-behavior-x: contain; scrollbar-width: none; }
-.sl-years::-webkit-scrollbar { display: none; }
-.sl-years button { flex: none; min-width: 56px; min-height: 44px; padding: 0 12px; border: 1px solid var(--line-entry); border-radius: 22px; background: var(--card); color: var(--ink-2); font-family: var(--f-mono); font-size: 13px; font-variant-numeric: tabular-nums; }
-.sl-years button:hover { background: var(--accent-tint); color: var(--accent); }
+/* ライブ・ランキング：区分で絞り込む札（横にスクロールできる）と、年へ飛ぶメニュー */
+.sl-cats { display: flex; gap: 6px; margin: 4px 0 10px; padding: 2px 0; overflow-x: auto; overscroll-behavior-x: contain; scrollbar-width: none; }
+.sl-cats::-webkit-scrollbar { display: none; }
+.sl-cats button { flex: none; min-height: 44px; padding: 0 14px; border: 1px solid var(--line-entry); border-radius: 22px; background: var(--card); color: var(--ink-2); font-size: 13px; white-space: nowrap; }
+.sl-cats button small { margin-left: 2px; font-size: 12px; font-variant-numeric: tabular-nums; color: var(--muted); }
+.sl-cats button:hover { background: var(--accent-tint); }
+.sl-cats button[aria-pressed="true"] { border-color: var(--accent); background: var(--accent); color: var(--white); font-weight: 600; }
+.sl-cats button[aria-pressed="true"] small { color: inherit; opacity: .85; }
+.sl-yearjump { display: flex; align-items: center; justify-content: flex-end; gap: 10px; margin: 0 0 6px; font-size: 12px; color: var(--muted); }
+.sl-yearjump select { min-height: 44px; padding: 0 30px 0 12px; border: 1px solid var(--line-input); border-radius: 22px; background-color: var(--card); color: var(--ink); font-size: 13px; }
 .sl-year { margin: 0 0 8px; scroll-margin-top: calc(130px + env(safe-area-inset-top, 0px)); }
 .sl-year .hist-year-head { margin: 22px 0 10px; }
 .sl-song-info { margin: 0 0 14px; padding: 12px 14px; border: 1px solid var(--accent-soft); border-radius: 10px; background: var(--accent-tint); }
