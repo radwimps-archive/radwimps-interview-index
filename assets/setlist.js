@@ -185,12 +185,12 @@ function sortButton(v, rerender) {
 const noHit = (q) => el("p", { class: "sl-mine-empty", text: `「${q}」に合うものは、見つかりませんでした。ひらがなや英語、ライブ名の一部でも探せます。` });
 
 // 曲で絞り込んでいるときの、上の案内（「絞り込みを解除」で戻る）
-function songBanner(rec) {
+function songBanner(rec, cats) {
   const first = rec.plays[0].live, last = rec.plays[rec.plays.length - 1].live;
   const nTours = new Set(rec.plays.map((p) => p.live.tour)).size;
   return el("div", { class: "sl-song-info", "aria-live": "polite" },
     el("p", { class: "sl-song-head" }, el("b", { text: `「${rec.title}」` }), `を演奏したライブ：${rec.plays.length} 公演（${nTours} ツアー・ライブ）`),
-    el("p", { class: "sl-song-sub", text: `ここに載っている中で、いちばん早いのは ${dateLabel(first)}「${first.name}」` + (last !== first ? `、いちばん新しいのは ${dateLabel(last)}「${last.name}」` : "") + "。セトリを確かめられた公演だけを数えています。" }),
+    el("p", { class: "sl-song-sub", text: `ここに載っている中で、いちばん早いのは ${dateLabel(first)}「${first.name}」` + (last !== first ? `、いちばん新しいのは ${dateLabel(last)}「${last.name}」` : "") + "。セトリを確かめられた公演だけを数えています。" + (cats.size ? `いまは区分（${[...cats].join("・")}）で絞っているので、下の一覧と見出しの行の数は、その区分のライブだけです。` : "") }),
     el("button", { type: "button", class: "sl-song-clear", "data-song": song, text: "絞り込みを解除" }));
 }
 
@@ -212,7 +212,7 @@ function catBar(v, counts, rerender) {
     rerender();
     // 作り直した札の帯も、横のスクロール位置と、押した札の位置をそのままにする
     const nb = $(`${VIEW_BOX[v]} .sl-cats`);
-    if (nb) { nb.scrollLeft = left; refocus(v, `.sl-cats [data-cat="${CSS.escape(c)}"]`); }
+    if (nb) { nb.scrollLeft = left; refocus(v, nb.querySelector(`[data-cat="${CSS.escape(c)}"]`) ? `.sl-cats [data-cat="${CSS.escape(c)}"]` : '.sl-cats [data-cat=""]'); } // 札が消えたときは「すべて」へ
   });
   watchScrollFade(bar);
   return bar;
@@ -231,13 +231,13 @@ function renderLives() {
   const played = rec ? new Set(rec.plays.map((p) => p.live)) : null;
   const n = list.reduce((s, t) => s + (played ? t.lives.filter((l) => played.has(l)).length : t.lives.length), 0);
   // 作り直す前に開いていたツアー・公演（はじめて描くときは、いちばん上だけ開く）
-  const openIds = box.childElementCount ? new Set([...box.querySelectorAll("details[open][id]")].map((d) => d.id)) : null;
+  const openIds = box.querySelector(".sl-live") ? new Set([...box.querySelectorAll("details[open][id]")].map((d) => d.id)) : null;
   box.replaceChildren(el("p", { class: "hist-view sl-view" }, el("b", { text: rec ? "その曲を演奏したライブ" : "ツアー・ライブごと" }),
     el("span", { text: `${list.length} 件・${n} 公演` }), sortButton("live", renderLives)));
   box.append(catBar("live", countBy(songTours), renderLives)); // 曲で絞っているときは、その曲を演奏したライブの数
-  if (rec) box.append(songBanner(rec));
+  if (rec) box.append(songBanner(rec, cats));
   else if (songMissing) box.append(el("p", { class: "sl-mine-empty", text: `「${songMissing}」を演奏したライブは、見つかりませんでした。すべてのライブを表示しています。` }));
-  if (!list.length) { box.append(q ? noHit(q) : el("p", { class: "hist-loading", text: "その曲を演奏したライブは、まだ載っていません。" })); return; }
+  if (!list.length) { box.append(q ? noHit(q) : el("p", { class: "hist-loading", text: cats.size ? "選んだ区分には、合うライブがありません。区分の札を「すべて」にすると、ほかの区分のライブが出ます。" : "その曲を演奏したライブは、まだ載っていません。" })); return; }
   const years = new Map();
   for (const t of (isAsc("live") ? list : [...list].reverse())) (years.get(t.y) || years.set(t.y, []).get(t.y)).push(t);
   if (years.size > 1) {

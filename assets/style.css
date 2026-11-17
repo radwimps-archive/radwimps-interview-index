@@ -1039,7 +1039,7 @@ small { font-size: max(12px, .83em); }
 
 
 /* ライブ・ランキング：区分で絞り込む札（横にスクロールできる）と、年へ飛ぶメニュー */
-.sl-cats { display: flex; gap: 6px; margin: 4px 0 10px; padding: 2px 0; overflow-x: auto; overscroll-behavior-x: contain; scrollbar-width: none; }
+.sl-cats { display: flex; gap: 6px; margin: 0 0 6px; padding: 6px 4px; overflow-x: auto; overscroll-behavior-x: contain; scrollbar-width: none; }
 .sl-cats::-webkit-scrollbar { display: none; }
 .sl-cats button { flex: none; min-height: 44px; padding: 0 14px; border: 1px solid var(--line-entry); border-radius: 22px; background: var(--card); color: var(--ink-2); font-size: 13px; white-space: nowrap; }
 .sl-cats button small { margin-left: 2px; font-size: 12px; font-variant-numeric: tabular-nums; color: var(--muted); }
