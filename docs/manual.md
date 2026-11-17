@@ -229,6 +229,7 @@ data/articles.csv を書き換えて保存
 - Apple Music・Spotify・Amazon・Fujisan などの URL を「公開」の記事に書くと、書式チェックで「△ 注意」が出ます。
 - YouTube の URL で、種類が「動画」か「ラジオ」になっていないときも「△ 注意」が出ます。
 - 種類が `リリース情報` の行は、Amazon・Fujisan などの URL でも注意は出ません（本文が読めない資料として、「すべて」のタブにだけ出すため）。
+- ページの中でインタビューの本文が読めると確かめた記事は、`assets/data.js` の `STORE_PAGE_READABLE_IDS` に記事の id を書くと、注意が出なくなります（例：Apple Music の「夏のせい」の作品ページ `tieup-natsunosei-apple`）。
 - 載せないと決めた記事は、行を消すかわりに状態を `非表示` にし、メモ列に理由を書いておくと、同じ記事をうっかり追加し直すのを防げます。
   - 例：`非表示の理由：Apple Music のアプリが開き、記事が読めないため`
 
