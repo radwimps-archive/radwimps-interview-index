@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 // tools/validate.mjs
-// 記事データ（data/articles.csv）・年ごとのリリース（data/releases.csv）・年表（data/history.csv）・楽曲一覧（data/songs.csv）の書式をチェックします。
+// 記事データ（data/articles.csv）・年ごとのリリース（data/releases.csv）・年表（data/history.csv）・楽曲一覧（data/songs.csv）・ライブのセトリ（data/setlists.csv）の書式をチェックします。
 //
 // ・GitHub に変更を保存（コミット）すると、自動で実行されます。
 //   エラーがあるとサイトの更新を止めるので、書き間違いがそのまま公開されることはありません。
@@ -9,7 +9,7 @@
 //     node tools/validate.mjs
 
 import { readFile } from "node:fs/promises";
-import { parseArticles, parseReleases, parseHistory, parseSongs } from "../assets/data.js";
+import { parseArticles, parseReleases, parseHistory, parseSongs, parseSetlists } from "../assets/data.js";
 
 const inActions = process.env.GITHUB_ACTIONS === "true";
 let errorCount = 0, warnCount = 0;
@@ -52,6 +52,7 @@ const articles = await check("data/articles.csv", parseArticles, { required: tru
 await check("data/releases.csv", parseReleases, { required: false });
 const history = await check("data/history.csv", parseHistory, { required: false });
 const songs = await check("data/songs.csv", parseSongs, { required: false });
+const setlists = await check("data/setlists.csv", parseSetlists, { required: false });
 
 if (articles) {
   const count = { "公開": 0, "非表示": 0, "リンク切れ": 0 };
@@ -69,6 +70,10 @@ if (history) {
   console.log(`年表：${history.events.length} 件の出来事を読み込みました（動画 ${videos} 本）`);
 }
 if (songs) console.log(`楽曲：${songs.songs.length} 曲を読み込みました（歌詞URL あり ${songs.songs.filter((x) => x.lyrics).length} 曲）`);
+if (setlists) {
+  const n = setlists.lives.reduce((s, l) => s + l.main.length + l.encore.length, 0);
+  console.log(`セットリスト：${setlists.lives.length} 公演・${n} 曲を読み込みました`);
+}
 console.log(errorCount
   ? `\n✗ エラーが ${errorCount} 件あります。上の行番号の行を直してから、もう一度保存してください。`
   : `\n✓ 書式の問題はありません${warnCount ? `（注意 ${warnCount} 件）` : ""}。`);

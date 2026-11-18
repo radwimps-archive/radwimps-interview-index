@@ -14,7 +14,7 @@ import {
   parseArticles, parseReleases, KIND_ORDER, MEMBERS, MEMBER_ORDER, CATEGORIES, SUPPORT_MEMBERS, WORKS, QUICK_WORKS,
   VIDEO_KIND, RADIO_KIND, LIVE_KIND, INTERVIEW_KIND, OTHERS_KIND, LANG_BADGE, youtubeId, formatOf
 } from "./data.js";
-import { h, isAdminDevice, setAdminDevice, setupMenu, downloadFile } from "./ui.js";
+import { h, isAdminDevice, setAdminDevice, setupMenu, downloadFile, watchScrollFade } from "./ui.js";
 import { encodeMarks, decodeMarks, PREFIX as TRANSFER } from "./transfer.js";
 import { feedbackUrl, hasFeedback, usesForm, repoUrl, setupBeta, KIND } from "./feedback.js";
 
@@ -165,7 +165,7 @@ function ingest(text) {
   S.parsed = parsed;
   S.items = parsed.items.filter((it) => it.state === "公開").map(prep);
   buildChoices();
-  // 人物紹介などから ?person=… で開いたとき（タブの指定がなければ）、記事のあるタブに合わせる
+  // メンバー紹介などから ?person=… で開いたとき（タブの指定がなければ）、記事のあるタブに合わせる
   if (!new URLSearchParams(location.search).has("format") && (F.person || F.work || F.year)) fitFormat();
 }
 
@@ -212,9 +212,12 @@ function buildChoices() {
   });
 }
 
+// options は [値, 表示] の並び。{ label, options: [[値, 表示]…] } を入れると、見出しつきのグループになる（選択肢が多いとき用）
 function fillSelect(sel, first, options, value) {
-  sel.replaceChildren(h("option", { value: "", text: first }), ...options.map(([v, label]) => h("option", { value: v, text: label })));
-  sel.value = options.some(([v]) => v === value) ? value : "";
+  const opt = ([v, label]) => h("option", { value: v, text: label });
+  const flat = options.flatMap((o) => (o.options ? o.options : [o]));
+  sel.replaceChildren(h("option", { value: "", text: first }), ...options.map((o) => (o.options ? h("optgroup", { label: o.label }, ...o.options.map(opt)) : opt(o))));
+  sel.value = flat.some(([v]) => v === value) ? value : "";
 }
 
 const LANG_LABEL = { ja: "日本語", en: "英語", es: "スペイン語", other: "その他の言語" };
@@ -223,15 +226,26 @@ function renderSelects() {
   const present = (fn) => [...new Set(S.items.map(fn).flat().filter(Boolean))];
   const cats = present((it) => it.categories);
   fillSelect($("#fCat"), "すべての記事", [...CATEGORIES.map((c) => c.name).filter((n) => cats.includes(n)), ...cats.filter((n) => !CATEGORIES.some((c) => c.name === n))].map((n) => [n, n]), F.cat);
-  const people = ["RADWIMPS", ...S.people.members, ...S.people.support, ...S.people.former, ...S.people.others];
-  fillSelect($("#fPerson"), "すべての人物", people.map((n) => [n, n]), F.person);
+  const pair = (n) => [n, n];
+  fillSelect($("#fPerson"), "すべての人物", [
+    { label: "メンバー", options: ["RADWIMPS", ...S.people.members].map(pair) },
+    ...(S.people.support.length ? [{ label: "サポートメンバー", options: S.people.support.map(pair) }] : []),
+    ...(S.people.former.length ? [{ label: "脱退したメンバー", options: S.people.former.map(pair) }] : []),
+    ...(S.people.others.length ? [{ label: "共演者・監督・音楽仲間など", options: S.people.others.map(pair) }] : [])
+  ], F.person);
   fillSelect($("#fYear"), "すべての年", present((it) => it._y).sort().reverse().map((y) => [y, y + "年"]), F.year);
-  fillSelect($("#fMedia"), "すべてのメディア", present((it) => it.media).sort(ja).map((m) => [m, m]), F.media);
+  // メディアは数が多いので、記事の多いものを「よく使うメディア」として上にまとめ、残りを「そのほか」に並べる
+  const mediaCount = new Map();
+  for (const it of S.items) if (it.media) mediaCount.set(it.media, (mediaCount.get(it.media) || 0) + 1);
+  const common = [...mediaCount].filter(([, n]) => n >= 5).sort((a, b) => b[1] - a[1] || ja(a[0], b[0])).map(([m]) => m);
+  const rest = [...mediaCount.keys()].filter((m) => !common.includes(m)).sort(ja);
+  fillSelect($("#fMedia"), "すべてのメディア", [...(common.length ? [{ label: "よく使うメディア", options: common.map(pair) }] : []), { label: "そのほか（五十音・ABC順）", options: rest.map(pair) }], F.media);
   const langs = present((it) => it.lang);
   fillSelect($("#fLang"), "すべての言語", ["ja", "en", "es", "other"].filter((l) => langs.includes(l)).map((l) => [l, LANG_LABEL[l]]), F.lang);
   const kinds = present((it) => it.kind);
   fillSelect($("#fKind"), "すべての種類", [...KIND_ORDER.filter((k) => kinds.includes(k)), ...kinds.filter((k) => !KIND_ORDER.includes(k))].map((k) => [k, k]), F.kind);
-  fillSelect($("#fStatus"), "すべて", Object.entries(STATUS_LABEL), F.status);
+  // 「お気に入り」「あとで読む」は上のタブで選ぶので、ここでは「未読」「既読」だけ
+  fillSelect($("#fStatus"), "すべて", Object.entries(STATUS_LABEL).filter(([k]) => k === "unread" || k === "read"), F.status);
   $("#sort").value = F.sort;
 }
 
@@ -367,7 +381,8 @@ function renderEntry() {
     }
     const list = [...tours.entries()].sort((a, b) => (a[1] < b[1] ? 1 : a[1] > b[1] ? -1 : ja(a[0], b[0])));
     html = `<label class="panel-label">ツアー・イベントを選ぶ<select id="tourChoice"><option value="">すべてのツアー・イベント</option>${list.map(([n]) => `<option${F.tour === n ? " selected" : ""}>${esc(n)}</option>`).join("")}</select></label>`
-      + `<p class="browse-note">${ENTRY_NOTES.live}</p>`;
+      + `<p class="browse-note">${ENTRY_NOTES.live}</p>`
+      + `<p class="browse-note"><a href="setlist.html">ライブで演奏した曲（セットリスト）を見る →</a></p>`;
   }
   panel.innerHTML = html;
   if (keepSearch) filterPeople(keepSearch);
@@ -391,16 +406,10 @@ function filterPeople(text) {
 const BOOKMARK = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6.5 3.8h11v16.4L12 16.1l-5.5 4.1z" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/></svg>';
 const HEART = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 20.2s-7.6-4.6-7.6-10.1A4.3 4.3 0 0 1 12 7.6a4.3 4.3 0 0 1 7.6 2.5c0 5.5-7.6 10.1-7.6 10.1z" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/></svg>';
 const WORK_NAMES = new Set(WORKS.map((w) => w.name));
-const GENERIC_TAGS = new Set(["MV出演者", "PR", "インタビュー", "対談", "映画", "タイアップ", "対バン", "ワールドツアー", "フェス・イベント", "劇伴", "ライブ", "ラジオ", "テレビ", "RADWIMPS", "ソロ", "ドラマ", "CM"]);
 
-// カードの左の四角に出す短い言葉（作品名・タグ・ライブ名・人の名前の順に、合うものを選ぶ）
+// カードの左の四角に出す短い言葉：曲名・作品名のタグがあればそれ、なければ資料の種類（インタビュー・対談・ライブレポートなど）
 function thumbLabel(it) {
-  const memberNames = new Set(Object.keys(MEMBER_NAME));
-  return it.tags.find((t) => WORK_NAMES.has(t))
-    || it.tags.find((t) => [...t].length <= 12 && !GENERIC_TAGS.has(t) && !/周年$/.test(t) && !memberNames.has(t))
-    || it.guests[0]
-    || (it.members[0] ? MEMBERS[it.members[0]].name : "")
-    || it.media;
+  return it.tags.find((t) => WORK_NAMES.has(t)) || it.kind || it.media;
 }
 function thumbnail(it) {
   const yt = youtubeId(it.url);
@@ -480,7 +489,7 @@ function headingText() {
   if (F.q) return `「${F.q}」の検索結果`;
   if (F.format === "video") return "動画インタビュー";
   if (F.format === "radio") return "ラジオ";
-  return "新しく掲載された記事";
+  return "記事を探す";
 }
 function viewNote() {
   if (F.status === "fav") return "何度でも読み返したい記事です。読んでも消えません。このブラウザに保存しています。";
@@ -515,7 +524,16 @@ function render() {
   if (!listMode) { renderAdmin(); writeURL(); return; }
 
   // 上の部品の状態を、条件に合わせる
-  for (const b of $$("#formatTabs [data-format]")) b.setAttribute("aria-pressed", String(!isLiveView() && F.format === b.dataset.format));
+  // 「お気に入り」「あとで読む」のタブは、読書の状態（F.status）で選ばれる。それ以外のタブは、状態が「お気に入り」「あとで読む」でないときに選ばれる
+  const marked = F.status === "fav" || F.status === "later";
+  for (const b of $$("#formatTabs [data-format]")) {
+    const f = b.dataset.format;
+    const on = isLiveView() ? false : f === "fav" || f === "later" ? F.status === f : !marked && F.format === f;
+    b.setAttribute("aria-pressed", String(on));
+  }
+  // 入りきらないときは左右にスクロールできる。選んでいるタブが見える位置まで動かす
+  const tabs = $("#formatTabs"), cur = tabs.querySelector('[aria-pressed="true"]');
+  if (cur && tabs.scrollWidth > tabs.clientWidth) tabs.scrollTo({ left: cur.offsetLeft - (tabs.clientWidth - cur.offsetWidth) / 2, behavior: "auto" });
   if ($("#q").value !== F.q) $("#q").value = F.q;
   $("#qclear").hidden = !F.q;
   if (!S.loaded) return;
@@ -583,8 +601,12 @@ function scrollToList() {
 
 function renderMenu() {
   const shownCount = (k) => String(Object.keys(S.marks[k]).filter((id) => S.items.some((it) => it.id === id)).length || Object.keys(S.marks[k]).length);
-  $("#laterCount").textContent = shownCount("lt");
-  $("#favCount").textContent = shownCount("fv");
+  // 数は、「お気に入り」「あとで読む」のタブに小さく出す（0 のときは出さない）
+  for (const [id, k] of [["laterCount", "lt"], ["favCount", "fv"]]) {
+    const n = shownCount(k);
+    $("#" + id).textContent = n;
+    $("#" + id).hidden = n === "0";
+  }
   $("#adminLink").hidden = !S.admin;
   const cur = S.page === "admin" ? "admin" : F.status === "later" ? "later" : F.status === "fav" ? "fav" : "list";
   for (const a of $$("#menuClip [data-go]")) {
@@ -592,14 +614,15 @@ function renderMenu() {
   }
   if (cur === "admin") $("#adminLink").setAttribute("aria-current", "page"); else $("#adminLink").removeAttribute("aria-current");
 }
-// 開け閉め・外を押したとき・Esc キーで閉じる動きは、年表のページと共通（ui.js）
+// 開け閉め・外を押したとき・Esc キーで閉じる動きは、ほかのページと共通（ui.js）
 const setMenuOpen = setupMenu();
+watchScrollFade($("#formatTabs"));
 $("#menuClip").addEventListener("click", (e) => {
   const go = e.target.closest("[data-go]");
   if (!go) return;
   e.preventDefault();
   setMenuOpen(false, { focusBack: false });
-  goList(() => { if (go.dataset.go === "later" || go.dataset.go === "fav") { F.status = go.dataset.go; F.format = "all"; } });
+  goList();
 });
 $("#adminLink").addEventListener("click", () => setMenuOpen(false, { focusBack: false }));
 
@@ -690,7 +713,9 @@ $("#emptyAlt").addEventListener("click", (e) => {
 $("#formatTabs").addEventListener("click", (e) => {
   const b = e.target.closest("[data-format]");
   if (!b) return;
-  F.format = b.dataset.format;
+  const f = b.dataset.format;
+  if (f === "fav" || f === "later") { F.status = f; F.format = "all"; } // 種類は問わず、印をつけた記事だけを出す
+  else { if (F.status === "fav" || F.status === "later") F.status = ""; F.format = f; }
   if (isLiveView()) { F.entry = F.entry === "live" ? "" : F.entry; F.tour = ""; if (F.kind === LIVE_KIND) F.kind = ""; }
   apply();
 });

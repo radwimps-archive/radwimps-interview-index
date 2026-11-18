@@ -35,18 +35,17 @@
 <header class="header" id="header">
   <div class="header-inner">
     <button id="menuBtn" class="hamburger" type="button" aria-expanded="false" aria-controls="menuClip" aria-label="メニューを開く"><span></span><span></span><span></span></button>
-    <a href="./" class="brand" id="brand" aria-label="RADWIMPS Archives トップへ"><span class="brand-symbol" aria-hidden="true">r<span>．</span></span><span class="brand-text">RADWIMPS<span>INTERVIEW ARCHIVES</span></span></a>
+    <a href="./" class="brand" id="brand" aria-label="RADWIMPS Archives トップへ"><span class="brand-text">RADWIMPS<span>Archives</span></span></a>
   </div>
   <div class="menu-clip" id="menuClip" inert aria-hidden="true">
     <nav class="menu-panel" aria-label="メニュー">
-      <a class="nav-item" href="./" data-go="list">記事一覧 <span aria-hidden="true">↗</span></a>
-      <a class="nav-item" href="./?status=fav" data-go="fav">お気に入り <span id="favCount">0</span></a>
-      <a class="nav-item" href="./?status=later" data-go="later">あとで読む <span id="laterCount">0</span></a>
-      <a class="nav-item" href="history.html">RADWIMPSの歩み <span aria-hidden="true">↗</span></a>
-      <a class="nav-item" href="songs.html">楽曲一覧 <span aria-hidden="true">↗</span></a>
-      <a class="nav-item" href="members.html">メンバー・人物紹介 <span aria-hidden="true">↗</span></a>
+      <a class="nav-item" href="./" data-go="list">記事一覧 <span aria-hidden="true">→</span></a>
+      <a class="nav-item" href="history.html">RADWIMPSの歩み <span aria-hidden="true">→</span></a>
+      <a class="nav-item" href="songs.html">楽曲一覧 <span aria-hidden="true">→</span></a>
+      <a class="nav-item" href="setlist.html">RAD LIVE SET LIST <span aria-hidden="true">→</span></a>
+      <a class="nav-item" href="members.html">メンバー紹介 <span aria-hidden="true">→</span></a>
       <button class="nav-item" type="button" data-act="add">記事を追加 <span aria-hidden="true">＋</span></button>
-      <a class="nav-item" href="#admin" id="adminLink" hidden>運営管理 <span aria-hidden="true">↗</span></a>
+      <a class="nav-item" href="#admin" id="adminLink" hidden>運営管理 <span aria-hidden="true">→</span></a>
     </nav>
   </div>
 </header>
@@ -55,7 +54,7 @@
   <!-- 記事一覧（いつもの画面） -->
   <div id="listView">
     <section class="hero wrap" aria-labelledby="heroTitle">
-      <p class="eyebrow">RADWIMPS INTERVIEW ARCHIVES</p>
+      <p class="eyebrow">RADWIMPS Archives</p>
       <h1 id="heroTitle">好きな曲から、<span>気になる人から。</span></h1>
       <p class="hero-description">RADWIMPSの音楽と歩みを、語られた言葉からたどる。</p>
     </section>
@@ -85,8 +84,7 @@
       </div>
 
       <div class="archive-heading">
-        <h2 id="archiveTitle" tabindex="-1">新しく掲載された記事</h2>
-        <button type="button" class="clear-link" data-act="reset">すべての記事へ <span aria-hidden="true">↗</span></button>
+        <h2 id="archiveTitle" tabindex="-1">記事を探す</h2>
       </div>
       <p id="viewNote" class="view-note" hidden></p>
 
@@ -94,7 +92,7 @@
         <div class="search-box">
           <svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden="true"><circle cx="10.5" cy="10.5" r="6.5" stroke="currentColor" stroke-width="1.5"/><path d="m16 16 5 5" stroke="currentColor" stroke-width="1.5"/></svg>
           <label class="sr" for="q">キーワードで検索</label>
-          <input id="q" type="search" enterkeyhint="search" autocomplete="off" placeholder="曲名・人名・記事の言葉で検索">
+          <input id="q" type="search" enterkeyhint="search" autocomplete="off" placeholder="曲名・人名・言葉で探す">
           <button type="button" id="qclear" class="qclear" aria-label="検索語を消す" hidden>×</button>
           <kbd aria-hidden="true">/</kbd>
         </div>
@@ -106,6 +104,8 @@
         <button type="button" data-format="video" aria-pressed="false">▶ 動画</button>
         <button type="button" data-format="radio" aria-pressed="false">ラジオ</button>
         <button type="button" data-format="all" aria-pressed="false">すべて</button>
+        <button type="button" data-format="fav" aria-pressed="false">お気に入り<small id="favCount" hidden>0</small></button>
+        <button type="button" data-format="later" aria-pressed="false">あとで読む<small id="laterCount" hidden>0</small></button>
       </div>
 
       <div class="archive-layout">
@@ -126,7 +126,7 @@
                 <span class="small-symbol" aria-hidden="true">＊</span>
                 <p>気になる言葉を、少しずつ。</p>
                 <span>お気に入り・あとで読む・既読は、このブラウザに記録されます。</span>
-                <button type="button" data-act="backup">保存データの管理 ↗</button>
+                <button type="button" data-act="backup">保存データの管理 →</button>
               </div>
             </div>
           </details>
@@ -168,7 +168,7 @@
         <p>まだ知らない言葉が、きっとある。</p>
         <small>見つけたインタビューを教えてください。確かめてから追加します。</small>
       </div>
-      <button type="button" data-act="add">記事を追加する <span aria-hidden="true">↗</span></button>
+      <button type="button" data-act="add">記事を追加する <span aria-hidden="true">→</span></button>
     </section>
   </div>
 
@@ -201,11 +201,11 @@
 
 <!-- フッター -->
 <footer class="site-footer wrap">
-  <div class="footer-brand">RADWIMPS <span>INTERVIEW ARCHIVES</span></div>
+  <div class="footer-brand">RADWIMPS Archives</div>
   <p>UNOFFICIAL FAN ARCHIVE · 本人・所属事務所・各媒体とは関係ありません。</p>
   <div class="footer-links">
-    <button type="button" data-act="backup">保存データの管理 ↗</button>
-    <button type="button" data-act="about">収録方針と出典について ↗</button>
+    <button type="button" data-act="backup">保存データの管理 →</button>
+    <button type="button" data-act="about">収録方針と出典について →</button>
     <a id="report" href="#" target="_blank" rel="noopener noreferrer" hidden>誤りやリンク切れを知らせる ↗</a>
   </div>
   <p class="research-date" id="updated"></p>

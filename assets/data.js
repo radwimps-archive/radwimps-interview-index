@@ -34,6 +34,9 @@ const APP_OR_STORE_HOSTS = [
   "amazon.co.jp", "www.amazon.co.jp", "amazon.com", "www.amazon.com",
   "play.google.com", "line.me", "fujisan.co.jp", "www.fujisan.co.jp"
 ];
+// 上のサイトでも、ページの中でインタビューの本文が読めると確かめた記事（記事の id）。この記事には「注意」を出しません。
+//   tieup-natsunosei-apple：Apple Music の「夏のせい」の作品ページ。ページ上のインタビューノーツで本人の発言が読める
+const STORE_PAGE_READABLE_IDS = ["tieup-natsunosei-apple"];
 
 // 有料会員限定のコンテンツ（ファンクラブ「ボクンチ」など）は載せません。
 // 公開する記事にこれらの URL を書くと、チェックで「エラー」になり、サイトの更新が止まります。
@@ -69,14 +72,14 @@ export const SUPPORT_MEMBERS = ["森瑞希", "エノマサフミ", "白川詢"];
 // 記事が1つもない作品は、自動で表示しません。新しい作品は、この一覧に足してください。
 export const WORKS = [
   ...["君の名は。", "天気の子", "すずめの戸締まり", "余命10年", "汝、星のごとく", "パレード", "キネマの神様", "わたくしどもは。", "トイレのピエタ"].map((name) => ({ group: "映画", name })),
-  ...["あんぱん", "フランケンシュタインの恋", "100万円の女たち", "人間ごっこ", "猫じゃらし"].map((name) => ({ group: "ドラマ・CM", name })),
+  ...["あんぱん", "フランケンシュタインの恋", "100万円の女たち", "人間ごっこ", "猫じゃらし", "ポリティカルパン"].map((name) => ({ group: "ドラマ・CM", name })),
   ...["RADWIMPS 2", "RADWIMPS 3", "RADWIMPS 4", "アルトコロニーの定理", "絶体絶命", "×と○と罪と", "人間開花", "ANTI ANTI GENERATION",
     "FOREVER DAZE", "あにゅー", "WONDER BOY’S AKUMU CLUB", "UBU", "P.Y.L", "ME SO SHE LOOSE", "僕だけの愛", "1R＋1"].map((name) => ({ group: "アルバム・EP", name })),
   ...["携帯電話", "有心論", "君と羊と青", "そっけない", "夏のせい", "うるうびと", "筆舌", "夕星", "すずめ", "カナタハルカ", "前前前世", "スパークル",
     "なんでもないや", "夢灯籠", "愛にできることはまだあるかい", "グランドエスケープ", "大丈夫", "祝祭", "正解", "賜物", "命題", "ピアフ", "記号として",
     "ふたりごと", "オーダーメイド", "おしゃかしゃま", "DADA", "狭心症", "五月の蝿", "ラストバージン", "会心の一撃", "実況中継", "なんちって", "遠恋", "光",
     "棒人間", "サイハテアイニ", "洗脳", "Mountain Top", "カタルシスト", "PAPARAZZI", "泣き出しそうだよ", "鋼の羽根", "うたかた歌", "大団円",
-    "KANASHIBARI", "Light The Light", "ココロノナカ", "新世界", "ラリルレ論", "フラレガイガール"].map((name) => ({ group: "曲", name }))
+    "KANASHIBARI", "Light The Light", "ココロノナカ", "新世界", "ラリルレ論", "フラレガイガール", "娑婆堕罵"].map((name) => ({ group: "曲", name }))
 ];
 // 「曲・作品から探す」を開いたときに、すぐ押せるように出しておく作品
 export const QUICK_WORKS = ["すずめの戸締まり", "携帯電話", "そっけない", "あにゅー"];
@@ -328,7 +331,7 @@ export function parseArticles(text) {
     // 公開する記事だけ、リンク先の種類を確かめる
     if (state === "公開" && url) {
       if (PAID_MEMBERS_HOSTS.includes(hostOf(url))) err(line, "ファンクラブ（ボクンチ）など、有料会員限定のページは載せません。状態を「非表示」にするか、行を消してください");
-      if (APP_OR_STORE_HOSTS.includes(hostOf(url)) && kind !== RELEASE_KIND) warn(line, "この URL はアプリやストアのページで、押してもインタビューの中身が読めないことがあります。記事が読めるページがなければ、状態を「非表示」にしてください");
+      if (APP_OR_STORE_HOSTS.includes(hostOf(url)) && kind !== RELEASE_KIND && !STORE_PAGE_READABLE_IDS.includes(id)) warn(line, "この URL はアプリやストアのページで、押してもインタビューの中身が読めないことがあります。記事が読めるページがなければ、状態を「非表示」にしてください");
       if (youtubeId(url) && kind !== VIDEO_KIND && kind !== RADIO_KIND) warn(line, `YouTube の URL です。「動画インタビュー」のタブに出すには、種類を「${VIDEO_KIND}」にしてください（ラジオの放送回なら「${RADIO_KIND}」）`);
     }
 
@@ -526,6 +529,92 @@ export function parseSongs(text) {
   }
   songs.sort((a, b) => a.y - b.y || a.m - b.m || a.d - b.d || a.i - b.i);
   return { songs, errors, warnings };
+}
+
+/* ---------- ライブのセトリ（setlists.csv） ---------- */
+
+// 「ライブのセトリ」のページ（setlist.html）のデータです。1行が1つの公演です。ライブ名が同じ公演は、1つのツアーとしてまとめて表示します。
+//   本編・アンコール：曲名を「／」で区切って、演奏した順に書きます（例：DADA／有心論）。
+//   曲名のうしろの（　）は、その曲のメモです（例：25コ目の染色体（アコースティック）、Tokyo（feat. iri））。
+//   （　）の前までが曲名として数えられるので、同じ曲は同じ書き方にそろえてください。
+//   確かさ：SETLIST_CONFIDENCE のどれか（ページでは、色のちがう札で表示します）
+export const SETLIST_CONFIDENCE = [
+  { name: "確認済み", slug: "ok", label: "確認済み", desc: "報道のライブレポートに載ったセットリスト" },
+  { name: "未確認", slug: "fan", label: "未確認（ファンの投稿）", desc: "ファンが投稿するサイト（LiveFans など）の情報。まちがいがあるかもしれません" },
+  { name: "一部", slug: "part", label: "一部だけ", desc: "ライブレポートの本文に出てくる曲を順に並べたもの。全曲ではない可能性があります" },
+  { name: "映像", slug: "video", label: "映像の収録曲", desc: "ライブ映像の作品に収められた曲。ツアーのいくつかの公演から選んだもので、1つの公演の曲順ではありません" },
+  { name: "セトリなし", slug: "none", label: "セトリ未確認", desc: "セットリストは、まだ確かめられていません（曲が書いてあるときは、記事などからの推測です）" }
+];
+// 区分：ページの「ライブ」で、この6つに分けて見られます（ライブ名が同じ公演は、同じ区分にそろえます）
+export const SETLIST_CATEGORIES = ["国内ツアー", "海外ツアー", "フェス", "ボクンチ忘年会", "番組出演", "単発ライブ"];
+const SETLIST_COLUMNS = {
+  "区分": "cat", "公演日": "date", "ライブ名": "name", "会場": "venue", "本編": "main", "アンコール": "encore", "ゲスト": "guests",
+  "確かさ": "conf", "出典": "source", "出典URL": "url", "メモ": "note"
+};
+const SETLIST_REQUIRED = ["公演日", "ライブ名", "本編", "確かさ"];
+
+// 曲名（（　）の前まで）と、メモ（（　）の中）に分けます：「25コ目の染色体（アコースティック）」→ { title: "25コ目の染色体", memo: "アコースティック" }
+export function splitSong(text) {
+  const m = String(text).trim().match(/^(.*?)\s*（([^（）]*)）$/);
+  return m && m[1] ? { title: m[1].trim(), memo: m[2].trim() } : { title: String(text).trim(), memo: "" };
+}
+// 同じ曲かどうかを見るための名前（全角・半角、空白、大文字・小文字のちがいは気にしない）
+export const songKey = (title) => nfkc(title).replace(/\s+/g, "").toLowerCase();
+
+// 戻り値：{ lives: 公演の一覧（古い順）, errors: 直す必要がある問題, warnings: 気をつけたい点 }
+export function parseSetlists(text) {
+  const lives = [], errors = [], warnings = [];
+  const err = (line, msg) => errors.push({ line, msg });
+  const warn = (line, msg) => warnings.push({ line, msg });
+  const { rows, lines, unclosedQuote, lastLine } = parseCSV(text);
+  if (unclosedQuote) err(lastLine, "「\"」で始めた項目が閉じられていません。\" の数を確かめてください");
+  if (!rows.length || rows.every((r) => r.every((c) => !c.trim()))) { err(1, "ファイルが空です"); return { lives, errors, warnings }; }
+  const col = readHeader(rows, SETLIST_COLUMNS, SETLIST_REQUIRED, errors, warnings);
+  if (errors.length) return { lives, errors, warnings };
+  const confNames = SETLIST_CONFIDENCE.map((c) => c.name).join("・");
+
+  for (let r = 1; r < rows.length; r++) {
+    const cells = rows[r], line = lines[r];
+    if (cells.every((c) => !c.trim())) continue;
+    const get = (key) => (col[key] === undefined ? "" : String(cells[col[key]] ?? "").trim());
+    const before = errors.length;
+    const name = get("name");
+    if (!name) err(line, "ライブ名が空欄です");
+    if (!get("date")) err(line, "公演日が空欄です（「2019-08-29」のように書きます。日にちがわからないときは「2019-08」）");
+    const date = readDateCell(get("date"), line, err);
+    // 「【kZm】」のように【 】だけの項目は、そこからあとの曲を歌った人の見出し（曲には数えません）
+    const songs = (s) => {
+      let part = "";
+      const out = [];
+      for (const item of splitList(s, /[／]/)) {
+        const h = item.match(/^【([^【】]+)】$/);
+        if (h) part = h[1].trim();
+        else out.push(part ? { ...splitSong(item), part } : splitSong(item));
+      }
+      return out;
+    };
+    const main = songs(get("main")), encore = songs(get("encore"));
+    // 「【アンコール2】ふたりごと」のように、見出しのすぐあとに「／」がないと、見出しごと曲名として数えてしまう
+    if (/【[^【】]+】[^／]/.test((get("main") + "／" + get("encore")).replace(/\s/g, ""))) warn(line, "【 】の見出しのすぐあとは「／」で区切ります（例：【アンコール2】／ふたりごと）");
+    // 曲の区切りは全角の「／」だけ（半角の「/」は曲名の一部として読む）
+    if (/\//.test(get("main") + get("encore"))) warn(line, "曲の区切りは全角の「／」です。半角の「/」は曲名の一部として読みます");
+    const conf = SETLIST_CONFIDENCE.find((c) => c.name === nfkc(get("conf")));
+    if (!conf) err(line, `確かさ「${get("conf")}」は使えません。${confNames} のどれかを書いてください`);
+    if (!main.length && conf && conf.slug !== "none") err(line, "本編の曲が空欄です（曲名を「／」で区切って書きます。セトリがわからない公演は、確かさを「セトリなし」にします）");
+    // 「セトリなし」でも、演奏したと思われる曲を書いておける（ページでは「セトリ未確認」の札のまま出ます。メモに理由を書きます）
+    if (main.length + encore.length && conf && conf.slug === "none" && !get("note")) warn(line, "確かさが「セトリなし」なのに曲が書いてあります。推測の曲なら、メモにそう書いてください");
+    let url = get("url");
+    if (url && !/^https:\/\/[^\s"<>]+$/.test(url)) { warn(line, "出典URL は https:// で始まるものだけ使えます（このリンクは出ません）"); url = ""; }
+    if (!url && conf && conf.slug !== "video" && conf.slug !== "none") warn(line, "出典URL が空欄です（どこで確かめたかを残しておくと、あとで見直せます）");
+    const cat = nfkc(get("cat"));
+    if (col.cat !== undefined && !SETLIST_CATEGORIES.includes(cat)) warn(line, `区分「${get("cat")}」は使えません。${SETLIST_CATEGORIES.join("・")} のどれかを書いてください（空欄だと「すべて」のときだけ出ます）`);
+    if (errors.length > before) continue;
+    const [y, m = 0, d = 0] = date.split("-").map((v) => +v || 0);
+    lives.push({ cat: SETLIST_CATEGORIES.includes(cat) ? cat : "", line, i: lives.length, date, y, m, d, name, venue: get("venue"), main, encore,
+      guests: splitList(get("guests"), /[、,]/), conf, source: get("source"), url, note: get("note") });
+  }
+  lives.sort((a, b) => a.y - b.y || a.m - b.m || a.d - b.d || a.i - b.i);
+  return { lives, errors, warnings };
 }
 
 /* ---------- CSV の1行を作る（記事データ作成ツール用） ---------- */

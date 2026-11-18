@@ -22,7 +22,7 @@ export default {
   // 書くと、楽曲一覧の「CD を探す」の楽天（楽天市場の検索）がアフィリエイトリンクになり、「PR」が出ます。空欄のあいだは、ふつうのリンクです。
   rakutenAffiliate: "36c5bf74.44175142.36c5bf75.a5db70ca",
 
-  // ベータ版の表示。true のあいだは、ロゴ横に「ベータ版」と、記事一覧・年表の上に閉じられる案内が出ます。
+  // ベータ版の表示。true のあいだは、サイト名の横に「ベータ版」と、記事一覧・年表の上に閉じられる案内が出ます。
   // 正式に公開するときは false にします。
   beta: true,
 
@@ -40,7 +40,7 @@ export default {
   feedback: { url: "", kind: "", page: "", content: "", device: "" },
 
   // アクセス数の集計（Cloudflare Web Analytics という無料のサービスを使います。マニュアル13-5）。
-  // cloudflare：Cloudflare の画面で出る「token」（英数字32文字）。書くと、記事一覧・年表・人物紹介のページが見られた回数を数え始めます。
+  // cloudflare：Cloudflare の画面で出る「token」（英数字32文字）。書くと、記事一覧・年表・メンバー紹介のページが見られた回数を数え始めます。
   //      Cookie は使わず、個人情報も集めません。空欄（""）のあいだは、何も数えません。
   analytics: { cloudflare: "aa44802ff1184f02a35106a09d079ba2" }
 };

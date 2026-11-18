@@ -35,17 +35,16 @@
 <header class="header" id="header">
   <div class="header-inner">
     <button id="menuBtn" class="hamburger" type="button" aria-expanded="false" aria-controls="menuClip" aria-label="メニューを開く"><span></span><span></span><span></span></button>
-    <a href="./" class="brand" aria-label="RADWIMPS Archives トップへ"><span class="brand-symbol" aria-hidden="true">r<span>．</span></span><span class="brand-text">RADWIMPS<span>INTERVIEW ARCHIVES</span></span></a>
+    <a href="./" class="brand" aria-label="RADWIMPS Archives トップへ"><span class="brand-text">RADWIMPS<span>Archives</span></span></a>
   </div>
   <div class="menu-clip" id="menuClip" inert aria-hidden="true">
     <nav class="menu-panel" aria-label="メニュー">
-      <a class="nav-item" href="./">記事一覧 <span aria-hidden="true">↗</span></a>
-      <a class="nav-item" href="./?status=fav">お気に入り <span aria-hidden="true">↗</span></a>
-      <a class="nav-item" href="./?status=later">あとで読む <span aria-hidden="true">↗</span></a>
-      <a class="nav-item" href="history.html" aria-current="page">RADWIMPSの歩み <span aria-hidden="true">↗</span></a>
-      <a class="nav-item" href="songs.html">楽曲一覧 <span aria-hidden="true">↗</span></a>
-      <a class="nav-item" href="members.html">メンバー・人物紹介 <span aria-hidden="true">↗</span></a>
-      <a class="nav-item" href="./#admin" id="adminLink" hidden>運営管理 <span aria-hidden="true">↗</span></a>
+      <a class="nav-item" href="./">記事一覧 <span aria-hidden="true">→</span></a>
+      <a class="nav-item" href="history.html" aria-current="page">RADWIMPSの歩み <span aria-hidden="true">→</span></a>
+      <a class="nav-item" href="songs.html">楽曲一覧 <span aria-hidden="true">→</span></a>
+      <a class="nav-item" href="setlist.html">RAD LIVE SET LIST <span aria-hidden="true">→</span></a>
+      <a class="nav-item" href="members.html">メンバー紹介 <span aria-hidden="true">→</span></a>
+      <a class="nav-item" href="./#admin" id="adminLink" hidden>運営管理 <span aria-hidden="true">→</span></a>
     </nav>
   </div>
 </header>
@@ -54,8 +53,17 @@
   <section class="hero wrap" aria-labelledby="historyTitle">
     <p class="eyebrow">RADWIMPS HISTORY <span id="span">2001 —</span></p>
     <h1 id="historyTitle">RADWIMPSの歩み</h1>
-    <p class="hero-description">2001年の結成から現在まで。リリース・ライブ・映画やタイアップ・バンドの出来事と、野田洋次郎のソロ（illion など）、山口智史の VXD（声でバスドラムを鳴らす技術）の活動を、年ごとにたどります。点線の下線がある作品名を押すとタワーレコードや公式の作品ページが、ライブ名を押すと特設サイトや公式サイトのライブ情報が開きます。「▶ MV」などを押すと、その場で動画が見られます。</p>
-    <p class="hist-yt-note">動画は YouTube API サービス（埋め込みプレーヤー）で再生します。再生には、<a href="https://www.youtube.com/t/terms" target="_blank" rel="noopener noreferrer">YouTube 利用規約</a>と<a href="https://policies.google.com/privacy" target="_blank" rel="noopener noreferrer">Google プライバシーポリシー</a>が適用されます。</p>
+    <p class="hero-description">2001年の結成から現在まで。リリース・ライブ・映画やタイアップ・バンドの出来事を、年ごとにたどります。</p>
+    <details class="hist-info">
+      <summary>表示の見かたと注意書き</summary>
+      <p class="hist-guide">野田洋次郎のソロ（illion など）や、山口智史の VXD（声でバスドラムを鳴らす技術）の活動も載せています。</p>
+    <ul class="hist-legend" aria-label="表示の見かた">
+      <li><span class="lg-dotted">作品名・ライブ名</span>購入ページ・公式ページを開く</li>
+      <li><span class="lg-play">▶ MV</span>その場で動画を見る</li>
+      <li><span class="att-btn att-legend" aria-hidden="true"></span>行ったライブの印（セトリと連動）</li>
+    </ul>
+      <p class="hist-yt-note">動画は YouTube API サービス（埋め込みプレーヤー）で再生します。再生には、<a href="https://www.youtube.com/t/terms" target="_blank" rel="noopener noreferrer">YouTube 利用規約</a>と<a href="https://policies.google.com/privacy" target="_blank" rel="noopener noreferrer">Google プライバシーポリシー</a>が適用されます。</p>
+    </details>
     <p class="hist-pr-top" id="prTop" hidden><span class="pr">PR</span>このページには、広告（アフィリエイト）を含むリンクがあります。</p>
     <nav class="era-links" aria-label="年代へ移動" id="eras"></nav>
   </section>
@@ -75,9 +83,9 @@
 </main>
 
 <footer class="site-footer wrap">
-  <div class="footer-brand">RADWIMPS <span>INTERVIEW ARCHIVES</span></div>
+  <div class="footer-brand">RADWIMPS Archives</div>
   <p>UNOFFICIAL FAN ARCHIVE · 本人・所属事務所・各媒体とは関係ありません。</p>
-  <div class="footer-links"><a href="./">記事一覧へ ↗</a></div>
+  <div class="footer-links"><a href="./">記事一覧へ →</a></div>
 </footer>
 
 <button type="button" class="hist-top" id="toTop" aria-label="いちばん上へ" hidden>↑</button>
