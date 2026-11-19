@@ -6,13 +6,14 @@
 <!-- ベータ版の公開を終えたあとの「準備中」の案内ページ。
      11/30 の切り替えで、このファイルを index.html・history.html・members.html・setlist.html・404.html に写します（tools/closing-switch.sh）。
      安全のための決まり（CSP）：HTML の中に直接 <script> や style="…" を書くと動かないので、assets/closing.js・closing.css に書いてください。
-     メールの登録欄を使うときは、配信サービスのホスト名を form-action に足してください。 -->
+     メールの登録欄を使うときは、配信サービスのホスト名を form-action に足してください（送信のあとに別のホストへ移るサービスなら、そのホストも）。
+     このファイルを直したら、tools/closing-switch.sh をもう一度実行して、各ページに写し直してください（公開されるのは写したほうです）。 -->
 <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data:; font-src 'self'; connect-src 'self'; object-src 'none'; base-uri 'self'; form-action 'self'; upgrade-insecure-requests">
 <meta name="referrer" content="strict-origin-when-cross-origin">
 <title>RADWIMPS Archives｜正式版の準備中</title>
 <meta name="description" content="RADWIMPS Archives のベータ版は公開を終え、正式版に向けたアップデートの準備をしています。">
 <meta property="og:title" content="RADWIMPS Archives｜正式版の準備中">
-<meta property="og:description" content="ベータ版は公開を終え、正式版に向けたアップデートの準備をしています。公開日は X でお知らせします。">
+<meta property="og:description" content="ベータ版は公開を終え、正式版に向けたアップデートの準備をしています。公開日に関しては X にてお知らせしております。">
 <meta property="og:type" content="website">
 <meta property="og:url" content="https://radwimps-archive.github.io/radwimps-interview-index/">
 <meta property="og:site_name" content="RADWIMPS Archives">
@@ -56,17 +57,18 @@
       <input id="mailInput" type="email" name="email" required autocomplete="email" inputmode="email" placeholder="you@example.com">
       <button type="submit" class="cl-btn primary">登録する</button>
     </form>
-    <p class="cl-note">登録すると、確認のメールが届きます。メールの配信は外部のサービスを使い、いつでも配信を止められます。</p>
+    <p id="mailMsg" class="cl-msg" role="status"></p>
+    <p class="cl-note">メールの配信には外部のサービスを使います。届いたメールから、いつでも配信を止められます。</p>
   </section>
 
   <section class="cl-section" aria-labelledby="dataTitle">
     <h2 id="dataTitle">保存データについて</h2>
-    <p>お気に入り・あとで読む・既読・参加した公演は、このブラウザに残っています。念のため、ファイルに書き出しておくことをお勧めいたします。書き出したファイルは、正式版の「保存データの管理」で読み込めます。</p>
     <p id="dataCount"></p>
-    <div class="cl-actions">
+    <p id="dataAbout" hidden>正式版は新しいアドレスで公開する予定です。記録を正式版でも使えるように、ファイルに書き出しておくことをお勧めいたします。書き出したファイルは、正式版の「保存データの管理」で読み込めます。</p>
+    <div class="cl-actions" id="dataActions" hidden>
       <button type="button" id="exportBtn" class="cl-btn">ファイルに書き出す</button>
     </div>
-    <p id="dataMsg" class="cl-msg" role="status" aria-live="polite"></p>
+    <p id="dataMsg" class="cl-msg" role="status"></p>
   </section>
 </main>
 

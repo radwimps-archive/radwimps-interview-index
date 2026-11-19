@@ -38,7 +38,8 @@ export default {
   // 公開のお知らせメールの登録欄（準備中の案内ページ closing.html で使います）。
   // action：メール配信サービスの登録フォームの送り先（https:// で始まる URL）。空欄のあいだは、登録欄を出しません。
   // field ：メールアドレスの欄の名前（サービスによって email・EMAIL など。空欄なら email）。
-  // 書いたら、closing.html の CSP の form-action に、送り先のホスト名を足してください。
+  // 書いたら、closing.html の CSP の form-action に、送り先のホスト名（送信後に別のホストへ移るなら、そのホストも）を足し、
+  // tools/closing-switch.sh をもう一度実行して各ページに写し直してください。
   newsletter: { action: "", field: "" },
 
   // ご意見・不具合をメールで受け取る設定（Web3Forms という無料のメール転送サービスを使います。マニュアル13-2）。

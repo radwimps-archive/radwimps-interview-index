@@ -27,6 +27,10 @@ for (const page of PAGES) {
   });
 }
 
+test("404.html の assets の読み込みは / から始まる（深い住所で開いても表示が崩れない）", () => {
+  for (const m of read("404.html").matchAll(/(?:href|src)="([^"#][^"]*assets\/[^"]+)"/g)) assert.match(m[1], /^\//, `404.html の ${m[1]} は "/radwimps-interview-index/assets/…" の形にします`);
+});
+
 test("公開のときに 404.html もコピーされる", () => {
   assert.match(read(".github/workflows/deploy.yml"), /cp -r [^\n]*404\.html/);
 });

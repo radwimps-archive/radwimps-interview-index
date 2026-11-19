@@ -25,8 +25,10 @@ const counts = `お気に入り ${data.favorites.length} 件・あとで読む $
 const total = data.favorites.length + data.later.length + data.read.length + data.attended.length;
 
 $("#dataCount").textContent = total ? `このブラウザには、${counts}が残っています。` : "このブラウザには、保存データはありません。";
+// 保存データがあるときだけ、書き出しの説明とボタンを出す
+$("#dataAbout").hidden = !total;
+$("#dataActions").hidden = !total;
 const exportBtn = $("#exportBtn");
-if (!total) exportBtn.hidden = true;
 exportBtn.addEventListener("click", () => {
   const d = new Date();
   data.exportedAt = d.toISOString();
@@ -50,11 +52,14 @@ if (X) {
 
 // ---------- 公開のお知らせメール ----------
 // newsletter.action：メール配信サービスの登録フォームの送り先（https:// で始まる URL）。
-// 送り先のホスト名は、このページの CSP の form-action にも足すこと（足さないと、ブラウザが送信を止めます）。
+// 送り先のホスト名は、closing.html の CSP の form-action にも足すこと（足さないと、ブラウザが送信を止めます。送信後に別のホストへ移るサービスなら、そのホストも）。
+// closing.html を直したら、tools/closing-switch.sh をもう一度実行して各ページに写し直す。
 const NL = config.newsletter || {};
 if (/^https:\/\/[^\s"']+$/.test(NL.action || "")) {
   const form = $("#mailForm");
   form.action = NL.action;
   if (NL.field) $("#mailInput").name = NL.field; // サービスによって、メールアドレスの欄の名前が違う（例：email・EMAIL）
   $("#mailBox").hidden = false;
+  // 送ると、配信サービスの確認画面が新しいタブで開く（このページには何も出ないので、知らせる）
+  form.addEventListener("submit", () => { $("#mailMsg").textContent = "新しいタブで、配信サービスの確認画面を開きました。"; });
 }

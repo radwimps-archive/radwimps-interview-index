@@ -41,7 +41,7 @@ body::after {
   background-size: 211px 293px, 211px 293px, 331px 251px, 331px 251px, 487px 419px, 487px 419px, 487px 419px, 487px 419px, auto, auto, auto;
 }
 
-.skip { position: absolute; left: 16px; top: -100px; padding: 8px 14px; background: var(--white); color: var(--black); font-size: 14px; z-index: 2; }
+.skip { position: absolute; left: 16px; top: -100px; display: inline-flex; align-items: center; min-height: 44px; padding: 0 14px; background: var(--white); color: var(--black); font-size: 14px; z-index: 2; }
 .skip:focus { top: 12px; }
 :focus-visible { outline: 2px solid var(--white); outline-offset: 3px; }
 
