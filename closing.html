@@ -1,0 +1,77 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<!-- ベータ版の公開を終えたあとの「準備中」の案内ページ。
+     11/30 の切り替えで、このファイルを index.html・history.html・members.html・setlist.html・404.html に写します（tools/closing-switch.sh）。
+     安全のための決まり（CSP）：HTML の中に直接 <script> や style="…" を書くと動かないので、assets/closing.js・closing.css に書いてください。
+     メールの登録欄を使うときは、配信サービスのホスト名を form-action に足してください。 -->
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data:; font-src 'self'; connect-src 'self'; object-src 'none'; base-uri 'self'; form-action 'self'; upgrade-insecure-requests">
+<meta name="referrer" content="strict-origin-when-cross-origin">
+<title>RADWIMPS Archives｜正式版の準備中</title>
+<meta name="description" content="RADWIMPS Archives のベータ版は公開を終え、正式版に向けたアップデートの準備をしています。">
+<meta property="og:title" content="RADWIMPS Archives｜正式版の準備中">
+<meta property="og:description" content="ベータ版は公開を終え、正式版に向けたアップデートの準備をしています。公開日は X でお知らせします。">
+<meta property="og:type" content="website">
+<meta property="og:url" content="https://radwimps-archive.github.io/radwimps-interview-index/">
+<meta property="og:site_name" content="RADWIMPS Archives">
+<meta property="og:locale" content="ja_JP">
+<meta property="og:image" content="https://radwimps-archive.github.io/radwimps-interview-index/assets/ogp.png">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="theme-color" content="#0A0B12">
+<link rel="icon" href="assets/icon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="assets/closing.css">
+<script type="module" src="assets/closing.js"></script>
+</head>
+<body>
+<a href="#main" class="skip">本文へ移動</a>
+
+<header class="cl-header">
+  <p class="cl-brand">RADWIMPS<span>Archives</span></p>
+</header>
+
+<main id="main">
+  <p class="cl-eyebrow">好きな曲から、気になる人から。</p>
+  <h1 class="cl-title">RADWIMPS <span>ARCHIVES</span></h1>
+  <p class="cl-lead">ただいま、正式版の準備をしています。</p>
+
+  <section class="cl-section" aria-labelledby="aboutTitle">
+    <h2 id="aboutTitle">ベータ版は公開を終えました</h2>
+    <p>2026年11月30日をもって、ベータ版の公開を終えました。ご利用いただき、ありがとうございました。</p>
+    <p>いまは、正式版に向けたアップデートの準備をしています。</p>
+    <div id="xBox" hidden>
+      <p><strong>公開日に関しては、X にてお知らせしております。</strong></p>
+      <div class="cl-actions">
+        <a id="xLink" class="cl-btn" href="#" target="_blank" rel="noopener noreferrer"><span>X を見る</span><span aria-hidden="true">↗</span></a>
+      </div>
+    </div>
+  </section>
+
+  <section class="cl-section" id="mailBox" aria-labelledby="mailTitle" hidden>
+    <h2 id="mailTitle">公開をメールで受け取る</h2>
+    <p>正式版を公開したときに、メールでお知らせします。</p>
+    <form id="mailForm" class="cl-mail" method="post" target="_blank">
+      <label for="mailInput">メールアドレス</label>
+      <input id="mailInput" type="email" name="email" required autocomplete="email" inputmode="email" placeholder="you@example.com">
+      <button type="submit" class="cl-btn primary">登録する</button>
+    </form>
+    <p class="cl-note">登録すると、確認のメールが届きます。メールの配信は外部のサービスを使い、いつでも配信を止められます。</p>
+  </section>
+
+  <section class="cl-section" aria-labelledby="dataTitle">
+    <h2 id="dataTitle">保存データについて</h2>
+    <p>お気に入り・あとで読む・既読・参加した公演は、このブラウザに残っています。念のため、ファイルに書き出しておくことをお勧めいたします。書き出したファイルは、正式版の「保存データの管理」で読み込めます。</p>
+    <p id="dataCount"></p>
+    <div class="cl-actions">
+      <button type="button" id="exportBtn" class="cl-btn">ファイルに書き出す</button>
+    </div>
+    <p id="dataMsg" class="cl-msg" role="status" aria-live="polite"></p>
+  </section>
+</main>
+
+<footer class="cl-footer">
+  <p>UNOFFICIAL FAN ARCHIVE · 本人・所属事務所・各媒体とは関係ありません。</p>
+</footer>
+</body>
+</html>

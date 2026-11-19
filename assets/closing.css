@@ -1,0 +1,101 @@
+/* assets/closing.css
+   ベータ版の公開を終えたあとの「準備中」の案内ページ（closing.html と、それを写した index.html などで使います）。
+   正式版の雰囲気を少しだけ見せる：上の黒から群青へのグラデーションに、ごく薄い、止まった星（動かさない）。
+   このページだけで完結するように、style.css は読み込みません。 */
+
+:root {
+  --blue: #1A3FA8;
+  --black: #0A0B12;
+  --white: #FFFFFF;
+  --white-2: rgba(255, 255, 255, .82);  /* 少し控えめな白（群青の上で 6.6 以上） */
+  --line: rgba(255, 255, 255, .55);
+  --f-body: -apple-system, BlinkMacSystemFont, "Hiragino Kaku Gothic ProN", "Noto Sans JP", "Yu Gothic", sans-serif;
+  color-scheme: dark;
+}
+
+* { box-sizing: border-box; }
+html { background: var(--black); }
+body {
+  position: relative; display: flex; flex-direction: column; min-height: 100vh; min-height: 100svh; margin: 0;
+  background: transparent; color: var(--white); font-family: var(--f-body); font-size: 15px; line-height: 1.9;
+  -webkit-text-size-adjust: 100%; text-size-adjust: 100%;
+}
+
+/* 背景の夜空：画面に固定した1枚の層。高さは大きいほうの画面の高さ（iPhone でアドレスバーが縮んでも伸び縮みしない） */
+body::after {
+  content: ""; position: fixed; top: 0; right: 0; left: 0; height: 100vh; height: 100lvh; z-index: -1; pointer-events: none;
+  background:
+    /* ごく薄い星（大きさの違う3枚を重ねて、くり返しが目立たないようにする） */
+    radial-gradient(1px 1px at 23px 41px, rgba(255, 255, 255, .55), transparent 70%),
+    radial-gradient(1px 1px at 131px 167px, rgba(255, 255, 255, .4), transparent 70%),
+    radial-gradient(1.5px 1.5px at 187px 83px, rgba(255, 255, 255, .5), transparent 70%),
+    radial-gradient(1px 1px at 61px 263px, rgba(255, 255, 255, .35), transparent 70%),
+    radial-gradient(1px 1px at 289px 211px, rgba(255, 255, 255, .45), transparent 70%),
+    radial-gradient(1.5px 1.5px at 353px 37px, rgba(255, 255, 255, .35), transparent 70%),
+    radial-gradient(1px 1px at 97px 389px, rgba(255, 255, 255, .3), transparent 70%),
+    radial-gradient(1px 1px at 421px 331px, rgba(255, 255, 255, .4), transparent 70%),
+    /* 上の黒から、ゆっくり群青へ。周りを少し暗く */
+    linear-gradient(180deg, var(--black) 0, rgba(10, 11, 18, .85) 18%, rgba(10, 11, 18, 0) 75%),
+    radial-gradient(ellipse 100% 90% at 50% 60%, transparent 55%, rgba(4, 10, 40, .55) 100%),
+    var(--blue);
+  background-size: 211px 293px, 211px 293px, 331px 251px, 331px 251px, 487px 419px, 487px 419px, 487px 419px, 487px 419px, auto, auto, auto;
+}
+
+.skip { position: absolute; left: 16px; top: -100px; padding: 8px 14px; background: var(--white); color: var(--black); font-size: 14px; z-index: 2; }
+.skip:focus { top: 12px; }
+:focus-visible { outline: 2px solid var(--white); outline-offset: 3px; }
+
+/* いちばん上の帯（ロゴだけ） */
+.cl-header { display: flex; align-items: center; justify-content: center; min-height: calc(60px + env(safe-area-inset-top, 0px)); padding: env(safe-area-inset-top, 0px) 16px 0; }
+.cl-brand { font-size: 15px; font-weight: 300; letter-spacing: .42em; line-height: 1.35; margin-right: -.42em; text-align: center; }
+.cl-brand span { display: block; font-size: 12px; letter-spacing: .5em; opacity: .8; }
+
+main { flex: 1 0 auto; width: 100%; max-width: 640px; margin: 0 auto; padding: 56px 16px 64px; }
+
+/* 見出し */
+.cl-eyebrow { margin: 0 0 14px; font-size: 12px; font-weight: 300; letter-spacing: .3em; text-indent: .3em; color: var(--white-2); text-align: center; }
+.cl-title { margin: 0; font-size: clamp(22px, 7vw, 44px); font-weight: 700; line-height: 1.2; letter-spacing: .08em; text-indent: .08em; text-align: center; white-space: nowrap; }
+.cl-title span { margin-left: .2em; font-weight: 300; }
+.cl-lead { margin: 28px 0 0; font-size: 16px; letter-spacing: .12em; text-align: center; }
+
+/* 本文のまとまり（細い白線で区切る） */
+.cl-section { margin-top: 44px; padding-top: 28px; border-top: 1px solid var(--line); }
+.cl-section h2 { margin: 0 0 10px; font-size: 15px; font-weight: 700; letter-spacing: .1em; }
+.cl-section p { margin: 0 0 12px; color: var(--white-2); }
+.cl-section p strong { color: var(--white); font-weight: 400; }
+
+/* ボタン：細い白線の丸い枠（正式版のプルダウンと同じ形） */
+.cl-btn {
+  display: inline-flex; align-items: center; justify-content: center; gap: 8px; min-height: 44px; padding: 0 22px;
+  border: 1px solid var(--line); border-radius: 22px; background: transparent; color: var(--white);
+  font: inherit; font-size: 14px; letter-spacing: .08em; text-decoration: none; cursor: pointer;
+}
+.cl-btn:hover { background: rgba(255, 255, 255, .12); border-color: var(--white); }
+.cl-btn.primary { background: var(--white); border-color: var(--white); color: var(--black); }
+.cl-btn.primary:hover { background: rgba(255, 255, 255, .88); }
+.cl-actions { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 16px; }
+
+/* メールの登録欄（config.js の newsletter.action があるときだけ出す） */
+.cl-mail { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 16px; }
+.cl-mail label { flex: 1 1 100%; font-size: 13px; color: var(--white-2); }
+.cl-mail input[type="email"] {
+  flex: 1 1 220px; min-height: 44px; padding: 0 16px; border: 1px solid var(--line); border-radius: 22px;
+  background: rgba(10, 11, 18, .35); color: var(--white); font: inherit; font-size: 16px;
+}
+.cl-mail input[type="email"]::placeholder { color: rgba(255, 255, 255, .6); }
+.cl-mail input[type="email"]:focus { outline: 2px solid var(--white); outline-offset: 2px; }
+.cl-note { font-size: 12px; line-height: 1.8; }
+
+.cl-msg { min-height: 1.8em; margin: 10px 0 0; font-size: 13px; color: var(--white); }
+
+/* フッター */
+.cl-footer { flex-shrink: 0; padding: 24px 16px calc(28px + env(safe-area-inset-bottom, 0px)); border-top: 1px solid rgba(255, 255, 255, .2); background: rgba(10, 11, 18, .55); text-align: center; }
+.cl-footer p { margin: 0; font-size: 12px; letter-spacing: .06em; color: var(--white-2); }
+
+[hidden] { display: none !important; }
+
+@media (min-width: 701px) {
+  main { padding-top: 96px; }
+  .cl-brand { font-size: 17px; }
+  .cl-eyebrow { font-size: 13px; letter-spacing: .5em; text-indent: .5em; }
+}
