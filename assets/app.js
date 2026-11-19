@@ -16,6 +16,7 @@ import {
 } from "./data.js";
 import { h, isAdminDevice, setAdminDevice, setupMenu, downloadFile, watchScrollFade } from "./ui.js";
 import { encodeMarks, decodeMarks, PREFIX as TRANSFER } from "./transfer.js";
+import { attended } from "./attended.js";
 import { feedbackUrl, hasFeedback, usesForm, repoUrl, setupBeta, KIND } from "./feedback.js";
 
 /* ---------- 共通の道具 ---------- */
@@ -832,8 +833,9 @@ function showBackup() {
     h("ul", { class: "counts" },
       h("li", null, h("span", { text: "お気に入り" }), h("b", { text: `${count("fv")} 件` })),
       h("li", null, h("span", { text: "あとで読む" }), h("b", { text: `${count("lt")} 件` })),
-      h("li", null, h("span", { text: "既読" }), h("b", { text: `${count("rd")} 件` }))),
-    h("p", { text: "「お気に入り」「あとで読む」「既読」は、このブラウザだけに保存しています。ほかの端末で使いたいときは、下の「ほかの端末に引き継ぐ」でリンク（QR コード）を作ってください。機種変更やブラウザのデータ消去の前に、ファイルに書き出しておくこともできます。" }),
+      h("li", null, h("span", { text: "既読" }), h("b", { text: `${count("rd")} 件` })),
+      h("li", null, h("span", { text: "参加した公演" }), h("b", { text: `${attended.keys().length} 件` }))),
+    h("p", { text: "「お気に入り」「あとで読む」「既読」「参加した公演」は、このブラウザだけに保存しています。機種変更やブラウザのデータ消去の前に、ファイルに書き出しておくことができます（4つとも書き出せます）。ほかの端末で使いたいときは、下の「ほかの端末に引き継ぐ」でリンク（QR コード）を作ってください（リンクで引き継げるのは「お気に入り」「あとで読む」「既読」です）。" }),
     h("div", { class: "panelbtns" }, exportBtn, importBtn), file, msg,
     transferBox()
   ];
@@ -923,12 +925,13 @@ async function receiveTransfer() {
 }
 
 function exportMarks(msg) {
-  const data = { app: "radwimps-interview-index", version: 4, exportedAt: new Date().toISOString(), bookmarks: [], favorites: Object.keys(S.marks.fv), later: Object.keys(S.marks.lt), read: Object.keys(S.marks.rd) };
+  // バージョン5から、参加した公演（attended。公演日の印の名前）も入る
+  const data = { app: "radwimps-interview-index", version: 5, exportedAt: new Date().toISOString(), bookmarks: [], favorites: Object.keys(S.marks.fv), later: Object.keys(S.marks.lt), read: Object.keys(S.marks.rd), attended: attended.keys() };
   const d = new Date();
   const name = `radwimps-archive-backup-${d.getFullYear()}${String(d.getMonth() + 1).padStart(2, "0")}${String(d.getDate()).padStart(2, "0")}.json`;
   downloadFile(name, JSON.stringify(data, null, 2), "application/json");
   msg.classList.remove("err");
-  msg.textContent = `お気に入り ${data.favorites.length} 件・あとで読む ${data.later.length} 件・既読 ${data.read.length} 件をファイルに書き出しました。`;
+  msg.textContent = `お気に入り ${data.favorites.length} 件・あとで読む ${data.later.length} 件・既読 ${data.read.length} 件・参加した公演 ${data.attended.length} 件をファイルに書き出しました。`;
 }
 async function importMarks(file, msg) {
   try {
@@ -938,10 +941,11 @@ async function importMarks(file, msg) {
     const add = (kind, list) => { let n = 0; for (const id of ids(list)) if (!S.marks[kind][id]) { S.marks[kind][id] = 1; n++; } return n; };
     const nf = add("fv", data.favorites); // 今の「お気に入り」（バージョン4から）
     const nl = add("lt", [...ids(data.later), ...ids(data.bookmarks)]), nr = add("rd", data.read); // 以前の「お気に入り（★）」は、あとで読むへ
+    const na = attended.addMany(data.attended); // バージョン5から
     saveMarks();
     render();
     msg.classList.remove("err");
-    msg.textContent = `読み込みました（お気に入り ${nf} 件・あとで読む ${nl} 件・既読 ${nr} 件を追加）。今ある記録はそのまま残ります。`;
+    msg.textContent = `読み込みました（お気に入り ${nf} 件・あとで読む ${nl} 件・既読 ${nr} 件・参加した公演 ${na} 件を追加）。今ある記録はそのまま残ります。`;
   } catch {
     msg.classList.add("err");
     msg.textContent = "このファイルは読み込めませんでした。このサイトで書き出したバックアップファイルを選んでください。";

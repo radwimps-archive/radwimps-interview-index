@@ -28,7 +28,17 @@ export const attended = {
   has: (k) => marks.has(k),
   set(k, on) { if (on) marks.add(k); else marks.delete(k); persist(); notify(); },
   count: (keys) => keys.filter((k) => marks.has(k)).length,
-  onChange(f) { listeners.add(f); }
+  onChange(f) { listeners.add(f); },
+  // 保存データの管理（記事一覧の小窓）での書き出し・読み込み用
+  keys: () => [...marks].sort(),
+  // 印の名前の一覧を追加する（今ある印は消さない）。形のおかしい名前は取り除く。追加した数を返す
+  addMany(list) {
+    marks = load(); // 別のタブで変わっていても、最新の状態に足す
+    let n = 0;
+    for (const k of Array.isArray(list) ? list : []) if (typeof k === "string" && KEY_OK.test(k) && !marks.has(k)) { marks.add(k); n++; }
+    if (n) { persist(); notify(); }
+    return n;
+  }
 };
 // 別のタブ（もう片方のページ）で印が変わったときも、すぐ反映する
 addEventListener("storage", (e) => { if (e.key === STORE || e.key === null) { marks = load(); notify(); } });
