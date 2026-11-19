@@ -85,9 +85,11 @@ export function setupBeta(before) {
   for (const brand of document.querySelectorAll(".brand")) {
     if (!brand.querySelector(".beta-badge")) brand.append(h("span", { class: "beta-badge", text: "ベータ版" }));
   }
+  if (!before) return;
+  if (CLOSE_AT && Date.now() < CLOSE_AT) { setupClosing(before); return; }
   let closed = false;
   try { closed = localStorage.getItem(STORE_BAR) === "1"; } catch { /* 保存できない環境では毎回出す */ }
-  if (closed || !before) return;
+  if (closed) return;
   const url = feedbackUrl({ kind: KIND.bug, title: "ベータ版の感想・不具合", page: location.href });
   const close = h("button", { type: "button", class: "beta-close", "aria-label": "この案内を閉じる", text: "✕" });
   const bar = h("aside", { class: "beta-bar", "aria-label": "ベータ版のお知らせ" },
@@ -99,6 +101,27 @@ export function setupBeta(before) {
   close.addEventListener("click", () => {
     wrap.remove();
     try { localStorage.setItem(STORE_BAR, "1"); } catch { /* 保存できなくても閉じる */ }
+  });
+  before.before(wrap);
+}
+
+// 公開を終える予告（config.js の closing）。いつもの案内を閉じた人にも出るよう、閉じたことは別の名前で覚えます
+const CLOSE_AT = Date.parse(config.closing || "") || 0;
+const STORE_CLOSING = "radwimps-interview-index:closing-bar-closed";
+function setupClosing(before) {
+  try { if (localStorage.getItem(STORE_CLOSING) === config.closing) return; } catch { /* 保存できない環境では毎回出す */ }
+  // 日時は日本時間で書く（例：11月30日（月）23:59）
+  const part = (o) => new Intl.DateTimeFormat("ja-JP", { timeZone: "Asia/Tokyo", ...o }).format(CLOSE_AT);
+  const when = `${part({ month: "long", day: "numeric" })}（${part({ weekday: "short" })}）${part({ hour: "2-digit", minute: "2-digit", hour12: false })}`;
+  const close = h("button", { type: "button", class: "beta-close", "aria-label": "この案内を閉じる", text: "✕" });
+  const bar = h("aside", { class: "beta-bar", "aria-label": "公開終了のお知らせ" },
+    h("p", null, h("strong", { text: `このベータ版は ${when} で公開を終えます。` }), "正式版は年内に公開する予定です。お気に入りなどの保存データは、",
+      h("a", { href: "./#mypage", text: "保存データの管理" }), "から書き出しておけます。"),
+    close);
+  const wrap = h("div", { class: "wrap beta-wrap" }, bar);
+  close.addEventListener("click", () => {
+    wrap.remove();
+    try { localStorage.setItem(STORE_CLOSING, config.closing); } catch { /* 保存できなくても閉じる */ }
   });
   before.before(wrap);
 }
