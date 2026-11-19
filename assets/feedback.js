@@ -126,17 +126,17 @@ function setupClosing(before) {
   const when = `${p.month}月${p.day}日（${p.weekday}）${p.hour}:${p.minute}`;
   // 記事一覧のページでは、絞り込みを残したまま小窓を開く（ほかのページからは、記事一覧へ移って開く）
   const backup = h("a", { href: document.getElementById("listView") ? "#mypage" : "./#mypage", text: "保存データの管理" });
-  // 公開日は未定（同居人の絵ができしだい）なので「近日」。公開日は X で知らせる（config.js の x）
+  // 公開日は未定（同居人の絵ができしだい）。公開日は X で知らせる（config.js の x）
   const X = /^[A-Za-z0-9_]{1,15}$/.test(config.x || "") ? config.x : "";
-  const soon = () => X
-    ? ["正式版は近日公開します。公開日は",
-      h("a", { href: `https://x.com/${X}`, target: "_blank", rel: "noopener noreferrer", text: `X（@${X}）` }), "でお知らせします。"]
-    : ["正式版は近日公開します。"];
+  const xNote = () => X
+    ? ["公開日に関しては",
+      h("a", { class: "beta-x", href: `https://x.com/${X}`, target: "_blank", rel: "noopener noreferrer", "aria-label": `X（@${X}）を新しいタブで開く`, text: "X" }), "にてお知らせしております。"]
+    : [];
   const text = ended
-    ? h("p", null, h("strong", { text: "このベータ版は公開を終了しました。" }), ...soon())
-    : h("p", null, h("strong", { text: `このベータ版は ${when} で公開を終えます。` }), ...soon(),
-      "保存データ（お気に入り・あとで読む・既読・参加した公演）は、このブラウザに残ります。念のため、お気に入り・あとで読む・既読は",
-      backup, "からファイルに書き出しておけます。");
+    ? h("p", null, h("strong", { text: "このベータ版は公開を終え、正式版に向けたアップデート準備に入りました。" }), ...xNote())
+    : h("p", null, h("strong", { text: `このベータ版は${when}に公開を終えて正式版に向けたアップデート準備に入ります。` }), ...xNote(),
+      "保存されているデータ（お気に入り・あとで読む・既読・参加した公演）はこのブラウザに残りますが、念のため",
+      backup, "からファイルに書き出すことをお勧めいたします。");
   const bar = h("aside", { class: "beta-bar", "aria-label": "公開終了のお知らせ" }, text);
   const wrap = h("div", { class: "wrap beta-wrap" }, bar);
   if (!ended) {
