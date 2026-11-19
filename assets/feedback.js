@@ -86,7 +86,7 @@ export function setupBeta(before) {
     if (!brand.querySelector(".beta-badge")) brand.append(h("span", { class: "beta-badge", text: "ベータ版" }));
   }
   if (!before) return;
-  if (CLOSE_AT && Date.now() < CLOSE_AT) { setupClosing(before); return; }
+  if (CLOSE_AT) { try { setupClosing(before); } catch { /* 予告が作れなくても、ページはふつうに動かす */ } return; }
   let closed = false;
   try { closed = localStorage.getItem(STORE_BAR) === "1"; } catch { /* 保存できない環境では毎回出す */ }
   if (closed) return;
@@ -106,23 +106,46 @@ export function setupBeta(before) {
 }
 
 // 公開を終える予告（config.js の closing）。いつもの案内を閉じた人にも出るよう、閉じたことは別の名前で覚えます
-const CLOSE_AT = Date.parse(config.closing || "") || 0;
+//   ・書き方は "2026-11-30T23:59:00+09:00" の形だけを受け付けます（ほかの形は端末によって時刻がずれるため、無効にします）
+//   ・その日時を過ぎたら（差し替えが遅れたときや、古い表示が残っているとき）、「公開を終了しました」を閉じられない形で出します
+const CLOSING_RE = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}(:\d{2})?\+09:00$/;
+const CLOSE_AT = (() => {
+  if (!config.closing) return 0;
+  if (!CLOSING_RE.test(config.closing)) { console.warn("config.js の closing は \"2026-11-30T23:59:00+09:00\" の形で書いてください"); return 0; }
+  return Date.parse(config.closing) || 0;
+})();
 const STORE_CLOSING = "radwimps-interview-index:closing-bar-closed";
 function setupClosing(before) {
-  try { if (localStorage.getItem(STORE_CLOSING) === config.closing) return; } catch { /* 保存できない環境では毎回出す */ }
+  const ended = Date.now() >= CLOSE_AT;
+  if (!ended) {
+    try { if (localStorage.getItem(STORE_CLOSING) === config.closing) return; } catch { /* 保存できない環境では毎回出す */ }
+  }
   // 日時は日本時間で書く（例：11月30日（月）23:59）
-  const part = (o) => new Intl.DateTimeFormat("ja-JP", { timeZone: "Asia/Tokyo", ...o }).format(CLOSE_AT);
-  const when = `${part({ month: "long", day: "numeric" })}（${part({ weekday: "short" })}）${part({ hour: "2-digit", minute: "2-digit", hour12: false })}`;
-  const close = h("button", { type: "button", class: "beta-close", "aria-label": "この案内を閉じる", text: "✕" });
-  const bar = h("aside", { class: "beta-bar", "aria-label": "公開終了のお知らせ" },
-    h("p", null, h("strong", { text: `このベータ版は ${when} で公開を終えます。` }), "正式版は年内に公開する予定です。お気に入りなどの保存データは、",
-      h("a", { href: "./#mypage", text: "保存データの管理" }), "から書き出しておけます。"),
-    close);
+  const p = Object.fromEntries(new Intl.DateTimeFormat("ja-JP", { timeZone: "Asia/Tokyo", month: "numeric", day: "numeric", weekday: "short", hour: "2-digit", minute: "2-digit", hourCycle: "h23" })
+    .formatToParts(CLOSE_AT).map((x) => [x.type, x.value]));
+  const when = `${p.month}月${p.day}日（${p.weekday}）${p.hour}:${p.minute}`;
+  // 記事一覧のページでは、絞り込みを残したまま小窓を開く（ほかのページからは、記事一覧へ移って開く）
+  const backup = h("a", { href: document.getElementById("listView") ? "#mypage" : "./#mypage", text: "保存データの管理" });
+  // 「年内」は 2026 年の正式版公開の予定。予定が変わったら、ここの文面も直す
+  const text = ended
+    ? h("p", null, h("strong", { text: "このベータ版は公開を終了しました。" }), "正式版は年内に公開する予定です。")
+    : h("p", null, h("strong", { text: `このベータ版は ${when} で公開を終えます。` }),
+      "正式版は年内に公開する予定です。保存データ（お気に入り・あとで読む・既読・参加した公演）は、このブラウザに残ります。念のため、お気に入り・あとで読む・既読は",
+      backup, "からファイルに書き出しておけます。");
+  const bar = h("aside", { class: "beta-bar", "aria-label": "公開終了のお知らせ" }, text);
   const wrap = h("div", { class: "wrap beta-wrap" }, bar);
-  close.addEventListener("click", () => {
-    wrap.remove();
-    try { localStorage.setItem(STORE_CLOSING, config.closing); } catch { /* 保存できなくても閉じる */ }
-  });
+  if (!ended) {
+    const close = h("button", { type: "button", class: "beta-close", "aria-label": "この案内を閉じる", text: "✕" });
+    close.addEventListener("click", () => {
+      const next = wrap.nextElementSibling;
+      wrap.remove();
+      try { localStorage.setItem(STORE_CLOSING, config.closing); } catch { /* 保存できなくても閉じる */ }
+      // 閉じたあとは、案内の次にある部品へフォーカスを移す（ページの先頭に飛ばないように）
+      const target = next && next.querySelector("h1, h2, [tabindex]");
+      if (target) { if (!target.hasAttribute("tabindex")) target.setAttribute("tabindex", "-1"); target.focus(); }
+    });
+    bar.append(close);
+  }
   before.before(wrap);
 }
 
