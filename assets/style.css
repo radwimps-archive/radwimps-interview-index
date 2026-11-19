@@ -739,7 +739,7 @@ button.title-link { padding: 0; border: 0; background: none; font: inherit; text
 .beta-bar { display: flex; align-items: center; gap: 10px; padding: 6px 12px 6px 14px; border: 1px solid var(--accent-soft); border-radius: 10px; background: var(--accent-tint); color: var(--ink); font-size: 12px; line-height: 1.7; }
 .beta-bar p { flex: 1; margin: 0; }
 .beta-bar strong { color: var(--accent); }
-.beta-bar a { color: var(--accent); }
+.beta-bar a { color: var(--accent); white-space: nowrap; } /* 2行に分かれると押せる範囲が小さくなるので、折り返さない */
 .beta-close { flex: none; width: 44px; height: 44px; margin: -12px -10px -12px 0; border: 0; border-radius: 50%; background: transparent; color: var(--muted); font-size: 13px; cursor: pointer; }
 .beta-close:hover, .beta-close:focus-visible { background: var(--white); color: var(--ink); }
 
@@ -992,7 +992,7 @@ button.title-link { padding: 0; border: 0; background: none; font: inherit; text
 .sl-sort, .beta-bar a { position: relative; }
 .sl-sort::after { content: ""; position: absolute; inset: -10px -4px; }
 .beta-bar a::after { content: ""; position: absolute; inset: -14px -4px; }
-.beta-bar a.beta-x::after { inset: -14px -18px; } /* 「X」の1文字だけのリンクも、押せる幅を 44px ほどに */
+.beta-bar a.beta-x::after { inset: -15px -18px; } /* 「X」の1文字だけのリンクも、押せる幅を 44px ほどに */
 .sl-songs .sl-song { min-width: 24px; }
 .sl-songs .sl-song::after { content: ""; position: absolute; inset: -3px -6px; }
 .sl-rank-main .sl-song::after { content: ""; position: absolute; inset: -10px -6px -20px; }

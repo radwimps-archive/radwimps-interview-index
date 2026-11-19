@@ -17,6 +17,9 @@ import {
 import { h, isAdminDevice, setAdminDevice, setupMenu, downloadFile, watchScrollFade } from "./ui.js";
 import { encodeMarks, decodeMarks, PREFIX as TRANSFER } from "./transfer.js";
 import { attended } from "./attended.js";
+// 公開直後は、ほかのページで読み込んだ古い attended.js がキャッシュに残っていることがある（keys・addMany がない）。そのときも小窓は開けるように
+const attKeys = () => (typeof attended.keys === "function" ? attended.keys() : []);
+const attAdd = (list) => (typeof attended.addMany === "function" ? attended.addMany(list) : 0);
 import { feedbackUrl, hasFeedback, usesForm, repoUrl, setupBeta, KIND } from "./feedback.js";
 
 /* ---------- 共通の道具 ---------- */
@@ -818,8 +821,16 @@ $("#modalClose").addEventListener("click", closeModal);
 $("#modal").addEventListener("click", (e) => { if (e.target === $("#modal")) closeModal(); });
 $("#modal").addEventListener("close", () => { if (modalBack && document.contains(modalBack)) modalBack.focus(); modalBack = null; });
 
-function showBackup() {
+// 保存データの件数（小窓の上の4つ）。読み込んだあとや、別のタブで変わったときに書き直す
+function countItems() {
   const count = (k) => Object.keys(S.marks[k]).length;
+  return [["お気に入り", count("fv")], ["あとで読む", count("lt")], ["既読", count("rd")], ["参加した公演", attKeys().length]]
+    .map(([l, n]) => h("li", null, h("span", { text: l }), h("b", { text: `${n} 件` })));
+}
+function refreshCounts() { const ul = document.getElementById("backupCounts"); if (ul) ul.replaceChildren(...countItems()); }
+attended.onChange(refreshCounts);
+
+function showBackup() {
   const msg = h("p", { class: "msg", role: "status", id: "backupMsg" });
   const file = h("input", { type: "file", accept: ".json,application/json", hidden: true });
   const exportBtn = h("button", { type: "button", class: "btn primary", text: "ファイルに書き出す" });
@@ -830,11 +841,7 @@ function showBackup() {
   const nodes = [
     h("p", { class: "modal-eyebrow", text: "MY DATA" }),
     h("h2", { id: "modalTitle", text: "保存データの管理" }),
-    h("ul", { class: "counts" },
-      h("li", null, h("span", { text: "お気に入り" }), h("b", { text: `${count("fv")} 件` })),
-      h("li", null, h("span", { text: "あとで読む" }), h("b", { text: `${count("lt")} 件` })),
-      h("li", null, h("span", { text: "既読" }), h("b", { text: `${count("rd")} 件` })),
-      h("li", null, h("span", { text: "参加した公演" }), h("b", { text: `${attended.keys().length} 件` }))),
+    h("ul", { class: "counts", id: "backupCounts" }, ...countItems()),
     h("p", { text: "「お気に入り」「あとで読む」「既読」「参加した公演」は、このブラウザだけに保存しています。機種変更やブラウザのデータ消去の前に、ファイルに書き出しておくことができます（4つとも書き出せます）。ほかの端末で使いたいときは、下の「ほかの端末に引き継ぐ」でリンク（QR コード）を作ってください（リンクで引き継げるのは「お気に入り」「あとで読む」「既読」です）。" }),
     h("div", { class: "panelbtns" }, exportBtn, importBtn), file, msg,
     transferBox()
@@ -926,7 +933,7 @@ async function receiveTransfer() {
 
 function exportMarks(msg) {
   // バージョン5から、参加した公演（attended。公演日の印の名前）も入る
-  const data = { app: "radwimps-interview-index", version: 5, exportedAt: new Date().toISOString(), bookmarks: [], favorites: Object.keys(S.marks.fv), later: Object.keys(S.marks.lt), read: Object.keys(S.marks.rd), attended: attended.keys() };
+  const data = { app: "radwimps-interview-index", version: 5, exportedAt: new Date().toISOString(), bookmarks: [], favorites: Object.keys(S.marks.fv), later: Object.keys(S.marks.lt), read: Object.keys(S.marks.rd), attended: attKeys() };
   const d = new Date();
   const name = `radwimps-archive-backup-${d.getFullYear()}${String(d.getMonth() + 1).padStart(2, "0")}${String(d.getDate()).padStart(2, "0")}.json`;
   downloadFile(name, JSON.stringify(data, null, 2), "application/json");
@@ -941,11 +948,12 @@ async function importMarks(file, msg) {
     const add = (kind, list) => { let n = 0; for (const id of ids(list)) if (!S.marks[kind][id]) { S.marks[kind][id] = 1; n++; } return n; };
     const nf = add("fv", data.favorites); // 今の「お気に入り」（バージョン4から）
     const nl = add("lt", [...ids(data.later), ...ids(data.bookmarks)]), nr = add("rd", data.read); // 以前の「お気に入り（★）」は、あとで読むへ
-    const na = attended.addMany(data.attended); // バージョン5から
+    const na = attAdd(data.attended); // バージョン5から
     saveMarks();
     render();
     msg.classList.remove("err");
     msg.textContent = `読み込みました（お気に入り ${nf} 件・あとで読む ${nl} 件・既読 ${nr} 件・参加した公演 ${na} 件を追加）。今ある記録はそのまま残ります。`;
+    refreshCounts();
   } catch {
     msg.classList.add("err");
     msg.textContent = "このファイルは読み込めませんでした。このサイトで書き出したバックアップファイルを選んでください。";

@@ -33,9 +33,8 @@ export const attended = {
   keys: () => [...marks].sort(),
   // 印の名前の一覧を追加する（今ある印は消さない）。形のおかしい名前は取り除く。追加した数を返す
   addMany(list) {
-    marks = load(); // 別のタブで変わっていても、最新の状態に足す
     let n = 0;
-    for (const k of Array.isArray(list) ? list : []) if (typeof k === "string" && KEY_OK.test(k) && !marks.has(k)) { marks.add(k); n++; }
+    for (const k of Array.isArray(list) ? list.slice(0, 5000) : []) if (typeof k === "string" && k.length < 20 && KEY_OK.test(k) && !marks.has(k)) { marks.add(k); n++; }
     if (n) { persist(); notify(); }
     return n;
   }
