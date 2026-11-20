@@ -7,7 +7,7 @@
   --blue: #1A3FA8;
   --black: #0A0B12;
   --white: #FFFFFF;
-  --white-2: rgba(255, 255, 255, .82);  /* 少し控えめな白（群青の上で 6.6 以上） */
+  --white-2: rgba(255, 255, 255, .82);  /* 少し控えめな白（群青の上で 6.6。明るい星の光の輪の内側でも 5.6 ほどで、4.5 以上） */
   --line: rgba(255, 255, 255, .55);
   --f-body: -apple-system, BlinkMacSystemFont, "Hiragino Kaku Gothic ProN", "Noto Sans JP", "Yu Gothic", sans-serif;
   color-scheme: dark;
