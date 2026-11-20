@@ -1,0 +1,10 @@
+// 正式版プレビュー（preview/official ブランチだけ）を Cloudflare Workers で配るための設定。
+// Cloudflare Access で守り、運営だけが見られるようにする。main には入れない。
+{
+  "name": "radwimps-archives-preview",
+  "compatibility_date": "2026-11-01",
+  "assets": {
+    "directory": "./_site",
+    "not_found_handling": "404-page"
+  }
+}
