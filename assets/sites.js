@@ -18,15 +18,24 @@ const catOf = (kind) => HISTORY_CATEGORIES.find((c) => c.name === kind.history) 
 let sites = [];
 let current = SITE_KINDS.some((k) => k.slug === location.hash.slice(1)) ? location.hash.slice(1) : "all";
 
-function renderTabs() {
+// タブは読み込んだときに1回だけ作る（押すたびに作り直すと、キーボードで押したときにフォーカスが消えるため）。件数が0の種類は出さない
+function buildTabs() {
   const tabs = [{ slug: "all", name: "すべて" }, ...SITE_KINDS];
   $("#siteKinds").replaceChildren(...tabs.map((t) => {
     const n = t.slug === "all" ? sites.length : sites.filter((s) => s.kind.slug === t.slug).length;
     if (!n && t.slug !== "all") return "";
-    return h("button", { type: "button", "data-kind": t.slug, "aria-pressed": String(t.slug === current), "aria-label": `${t.name} ${n}件` },
+    return h("button", { type: "button", "data-kind": t.slug, "aria-pressed": "false", "aria-label": `${t.name} ${n}件` },
       h("span", { text: t.name }), h("small", { text: String(n) }));
   }));
 }
+function syncTabs() {
+  // # で開いた種類のタブがない（件数が0）ときは「すべて」にする
+  if (!document.querySelector(`#siteKinds [data-kind="${CSS.escape(current)}"]`)) current = "all";
+  for (const b of document.querySelectorAll("#siteKinds [data-kind]")) b.setAttribute("aria-pressed", String(b.dataset.kind === current));
+}
+
+// メモの頭の「日付：…。」は運営向けの覚え書きなので、画面には出さない
+const noteOf = (s) => s.note.replace(/^日付：[^。]*。?/, "").trim();
 
 function siteItem(s) {
   const c = catOf(s.kind);
@@ -37,18 +46,18 @@ function siteItem(s) {
     : s.name;
   const links = [];
   if (!s.closed && s.archive) links.push(h("a", { class: "site-archive", href: s.archive, target: "_blank", rel: "noopener noreferrer", "aria-label": `${s.name}の保存版（Internet Archive）を新しいタブで開く`, text: "保存版 ↗" }));
-  return h("li", { class: `hist-item cat-${c.slug}${s.closed ? " is-closed" : ""}` },
+  return h("li", { class: `hist-item cat-${c.slug}` },
     h("p", { class: "hist-meta" },
       h("time", { text: dateLabel(s) }),
       h("span", { class: `hist-cat cat-${c.slug}`, text: s.kind.name }),
       s.closed ? h("span", { class: "site-closed", text: "公開終了" }) : null),
     h("p", { class: "hist-title" }, title),
-    s.note ? h("p", { class: "hist-sub", text: s.note.replace(/^日付：[^。]*。?/, "") }) : null,
+    noteOf(s) ? h("p", { class: "hist-sub", text: noteOf(s) }) : null,
     links.length ? h("p", { class: "site-links" }, ...links) : null);
 }
 
 function render() {
-  renderTabs();
+  syncTabs();
   const list = current === "all" ? sites : sites.filter((s) => s.kind.slug === current);
   const box = $("#sites");
   const years = new Map();
@@ -69,6 +78,10 @@ $("#siteKinds").addEventListener("click", (e) => {
   try { history.replaceState(null, "", location.pathname + location.search + (current === "all" ? "" : `#${current}`)); } catch { /* 変えられない環境 */ }
   render();
 });
+addEventListener("hashchange", () => {
+  const k = location.hash.slice(1);
+  if (sites.length && (k === "" || SITE_KINDS.some((x) => x.slug === k))) { current = k || "all"; render(); }
+});
 
 setupMenu();
 watchScrollFade($("#siteKinds"));
@@ -83,9 +96,11 @@ if (isAdminDevice()) $("#adminLink").hidden = false;
     if (parsed.errors.length) console.warn("特設サイトのデータに、直すところがあります", parsed.errors);
     sites = parsed.sites.filter((s) => s.state === "公開");
     $("#siteCount").textContent = `${sites.length}`;
+    buildTabs();
     render();
   } catch (e) {
     console.error(e);
-    $("#sites").replaceChildren(h("p", { class: "hist-loading", text: "特設サイトの一覧を読み込めませんでした。時間をおいて、ページを開き直してください。" }));
+    $("#sites").replaceChildren(h("h2", { id: "sitesListTitle", class: "sr", text: "特設サイトの一覧" }),
+      h("p", { class: "hist-loading", text: "特設サイトの一覧を読み込めませんでした。時間をおいて、ページを開き直してください。" }));
   }
 })();

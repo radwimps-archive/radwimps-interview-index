@@ -512,7 +512,7 @@ export function parseSites(text) {
     const name = get("name");
     if (!name) err(line, "名前が空欄です");
     const date = readDate(get("y"), get("m"), get("d"), line, err);
-    if (!get("y")) err(line, "年が空欄です（作品の発売日・ライブの初日など、その特設サイトの出来事の日を書きます）");
+    if (!get("y") && !get("m") && !get("d")) err(line, "年が空欄です（作品の発売日・ライブの初日など、その特設サイトの出来事の日を書きます）");
     const kind = SITE_KINDS.find((k) => k.name === nfkc(get("kind")));
     if (!kind) err(line, `種類「${get("kind")}」は使えません。${kinds} のどれかを書いてください`);
     const url = get("url");
@@ -523,10 +523,13 @@ export function parseSites(text) {
     const archive = get("archive");
     if (archive && !/^https:\/\/web\.archive\.org\/web\/\S+$/.test(archive)) err(line, "保存版URL は Internet Archive（https://web.archive.org/web/…）の URL を書きます");
     if (closed && !archive) warn(line, "公開が終わったサイトです。保存版URL（Internet Archive）があれば書いてください（ないときは、名前だけが出ます）");
-    let id = get("id") || "site-" + siteKey(url).replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
-    if (seenId.has(id)) err(line, `id「${id}」は ${seenId.get(id)} 行目と同じです。別の id にしてください`);
-    seenId.set(id, line);
-    if (url && seenUrl.has(siteKey(url))) warn(line, `この URL は ${seenUrl.get(siteKey(url))} 行目にもあります`);
+    // id は書いたときだけ確かめる（空欄なら URL から自動で作る）
+    const ownId = get("id");
+    if (ownId && !/^[a-z0-9][a-z0-9-]{0,60}$/.test(ownId)) err(line, `id「${ownId}」は、半角の英小文字・数字・ハイフンで書いてください（例：site-dearjubilee）`);
+    if (ownId && seenId.has(ownId)) err(line, `id「${ownId}」は ${seenId.get(ownId)} 行目と同じです。別の id にしてください`);
+    if (ownId) seenId.set(ownId, line);
+    const id = ownId || "site-" + siteKey(url).replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
+    if (url && seenUrl.has(siteKey(url))) err(line, `この URL は ${seenUrl.get(siteKey(url))} 行目にもあります（同じ特設サイトは1行だけにします）`);
     seenUrl.set(siteKey(url), line);
 
     if (errors.length > before) continue;

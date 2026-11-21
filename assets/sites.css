@@ -15,4 +15,3 @@
 .site-links { margin: 4px 0 0; font-size: 12px; }
 .site-archive { display: inline-flex; align-items: center; min-height: 44px; padding: 0 2px; color: var(--ink-2); text-decoration: underline; text-underline-offset: 3px; }
 .site-archive:hover { color: var(--ink); }
-.sites-page .paper-sheet :focus-visible { outline-color: #FFFFFF; outline-offset: 2px; }

@@ -18,6 +18,16 @@ test("書き間違い：種類・URL・公開終了・保存版URL", () => {
   assert.equal(errors.length, 4);
 });
 
+test("同じ URL が2行あるとエラー。id を空欄にした行どうしは、id のことでは怒られない", () => {
+  const { errors } = parseSites(HEAD + "公開,2020,1,1,A,その他,https://a.jp/x/,,,,\n公開,2021,1,1,B,その他,https://www.a.jp/x,,,,\n");
+  assert.equal(errors.length, 1);
+  assert.match(errors[0].msg, /URL/);
+});
+
+test("id の書き方（半角の英小文字・数字・ハイフン）", () => {
+  assert.equal(parseSites(HEAD + "公開,2020,1,1,A,その他,https://a.jp/,,,,糸色\n").errors.length, 1);
+});
+
 test("公開終了なのに保存版がないときは「注意」", () => {
   const { errors, warnings } = parseSites(HEAD + "公開,2011,3,,糸色,その他,https://itoshiki.info/,終了,,,\n");
   assert.equal(errors.length, 0);
