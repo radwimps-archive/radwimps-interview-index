@@ -1,0 +1,17 @@
+/* assets/sites.css
+   「特設サイト」の部屋（sites.html）だけで使う見た目。style.css と theme-blue.css のあとに読み込みます。
+   一覧は「RADWIMPSの歩み」の年表と同じ部品（.hist-year・.hist-item など）を使い、ここでは足りないところだけ書きます。
+   夜空の上の文字は白（theme-blue.css が .paper-sheet の中を白に置き換える）。文字は 12px 以上 */
+
+/* 種類のタブ：棚と同じく、上に貼りつかせない。件数は 12px で、はっきりした濃さに */
+.sites-tabs { position: static; margin: 0 0 8px; padding-inline: 16px; }
+.sites-tabs small { font-size: 12px; opacity: 1; }
+@media (min-width: 720px) { .sites-tabs { padding-inline: 32px; } }
+
+/* 「公開終了」の印：白の細い枠（夜空の上で、文字 白 に対して 9.0 以上） */
+.site-closed { display: inline-block; padding: 0 8px; border: 1px solid var(--on-blue-line); border-radius: 10px; font-size: 12px; line-height: 1.7; color: var(--ink); }
+
+/* 公開中のサイトの「保存版 ↗」：小さく、控えめに */
+.site-links { margin: 4px 0 0; font-size: 12px; }
+.site-archive { display: inline-flex; align-items: center; min-height: 44px; padding: 0 2px; color: var(--ink-2); text-decoration: underline; text-underline-offset: 3px; }
+.site-archive:hover { color: var(--ink); }

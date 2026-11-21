@@ -469,6 +469,102 @@ export function parseHistory(text) {
   return { events, errors, warnings };
 }
 
+/* ---------- 特設サイト（sites.csv） ---------- */
+
+// RADWIMPS がこれまでに作ってきた特設サイト（アルバム・ライブ・周年など）の一覧です。「特設サイト」の部屋（sites.html）に並び、
+// 「RADWIMPSの歩み」の年表にも出ます（年表の出来事と同じ URL か、同じ日付でその名前の出来事があれば、そこに印を付ける。なければ、その年に1行足す）。
+// 「種類」の列に書ける値。年表に出すときのカテゴリ（history）も決めます。
+export const SITE_KINDS = [
+  { name: "ライブ・ツアー", slug: "live", history: "ライブ・ツアー" },
+  { name: "作品", slug: "work", history: "リリース" },
+  { name: "映画・ドラマ", slug: "film", history: "映画・タイアップ" }, // RADWIMPS・野田洋次郎がかかわった映像作品の公式サイト（運営の決定 11/21）
+  { name: "周年・企画", slug: "special", history: "バンドの出来事" },
+  { name: "その他", slug: "other", history: "バンドの出来事" }
+];
+const SITE_COLUMNS = {
+  "状態": "state", "年": "y", "月": "m", "日": "d", "名前": "name", "種類": "kind", "URL": "url",
+  "公開終了": "closed", "保存版URL": "archive", "メモ": "note", "id": "id", "ID": "id"
+};
+const SITE_REQUIRED = ["年", "名前", "種類", "URL"];
+
+// URL を比べるための形（https・www・最後の / のちがいは気にしない）
+export const siteKey = (url) => String(url || "").trim().toLowerCase().replace(/^https?:\/\//, "").replace(/^www\./, "").replace(/\/+$/, "");
+
+export function parseSites(text) {
+  const sites = [], errors = [], warnings = [];
+  const err = (line, msg) => errors.push({ line, msg });
+  const warn = (line, msg) => warnings.push({ line, msg });
+  const { rows, lines, unclosedQuote, lastLine } = parseCSV(text);
+  if (unclosedQuote) err(lastLine, "「\"」で始めた項目が閉じられていません。\" の数を確かめてください");
+  if (!rows.length || rows.every((r) => r.every((c) => !c.trim()))) { err(1, "ファイルが空です"); return { sites, errors, warnings }; }
+  const col = readHeader(rows, SITE_COLUMNS, SITE_REQUIRED, errors, warnings);
+  if (errors.length) return { sites, errors, warnings };
+  const kinds = SITE_KINDS.map((k) => k.name).join("・");
+  const seenUrl = new Map(), seenId = new Map();
+
+  for (let r = 1; r < rows.length; r++) {
+    const cells = rows[r], line = lines[r];
+    if (cells.every((c) => !c.trim())) continue;
+    const get = (key) => (col[key] === undefined ? "" : String(cells[col[key]] ?? "").trim());
+    const before = errors.length;
+
+    const state = nfkc(get("state")) || "公開";
+    if (!["公開", "非表示"].includes(state)) err(line, "状態は「公開」か「非表示」で書いてください（空欄は公開）");
+    const name = get("name");
+    if (!name) err(line, "名前が空欄です");
+    const date = readDate(get("y"), get("m"), get("d"), line, err);
+    if (!get("y") && !get("m") && !get("d")) err(line, "年が空欄です（作品の発売日・ライブの初日など、その特設サイトの出来事の日を書きます）");
+    const kind = SITE_KINDS.find((k) => k.name === nfkc(get("kind")));
+    if (!kind) err(line, `種類「${get("kind")}」は使えません。${kinds} のどれかを書いてください`);
+    const url = get("url");
+    // 古い特設サイトには http:// のものがあるので、どちらも使える（リンクで開くだけなので、サイトの安全の決まりには関係しない）
+    if (!/^https?:\/\/[^\s"<>]+$/.test(url)) err(line, "URL は https:// か http:// で始まる形で書いてください");
+    const closedRaw = nfkc(get("closed"));
+    if (closedRaw && closedRaw !== "終了") err(line, "「公開終了」の列は、公開が終わったサイトだけ「終了」と書きます（公開中は空欄）");
+    const closed = closedRaw === "終了";
+    const archive = get("archive");
+    if (archive && !/^https:\/\/web\.archive\.org\/web\/\S+$/.test(archive)) err(line, "保存版URL は Internet Archive（https://web.archive.org/web/…）の URL を書きます");
+    if (closed && !archive) warn(line, "公開が終わったサイトです。保存版URL（Internet Archive）があれば書いてください（ないときは、名前だけが出ます）");
+    // id は書いたときだけ確かめる（空欄なら URL から自動で作る）
+    const ownId = get("id");
+    if (ownId && !/^[a-z0-9][a-z0-9-]{0,60}$/.test(ownId)) err(line, `id「${ownId}」は、半角の英小文字・数字・ハイフンで書いてください（例：site-dearjubilee）`);
+    if (ownId && seenId.has(ownId)) err(line, `id「${ownId}」は ${seenId.get(ownId)} 行目と同じです。別の id にしてください`);
+    if (ownId) seenId.set(ownId, line);
+    const id = ownId || "site-" + siteKey(url).replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
+    if (url && seenUrl.has(siteKey(url))) err(line, `この URL は ${seenUrl.get(siteKey(url))} 行目にもあります（同じ特設サイトは1行だけにします）`);
+    seenUrl.set(siteKey(url), line);
+
+    if (errors.length > before) continue;
+    const [y, m, d] = date.split("-").map((v) => (v ? +v : 0));
+    sites.push({ line, i: sites.length, state, y, m: m || 0, d: d || 0, date, name, kind, url, closed, archive, note: get("note"), id });
+  }
+  // 新しい順（同じ日は CSV に書いた順）
+  sites.sort((a, b) => b.y - a.y || b.m - a.m || b.d - a.d || a.i - b.i);
+  return { sites, errors, warnings };
+}
+
+// 特設サイトを、年表の出来事につなぐ（「RADWIMPSの歩み」で使う）。
+//   1. 年表の出来事の「特設サイト」の列と同じ URL なら、その出来事へ
+//   2. なければ、同じ年月日の出来事のうち、出来事の文に特設サイトの名前が入っているものへ
+//   3. どれにもなければ、その日付に新しい出来事（「〇〇」の特設サイト）を1つ足す
+// events の各出来事に sites（つながった特設サイトの一覧）を付け、足した出来事も入れて、古い順に並べ直したものを返す
+export function attachSites(events, sites) {
+  const loose = (t) => nfkc(t).toLowerCase().replace(/[\s"“”「」『』]/g, "");
+  const out = events.map((e) => ({ ...e, sites: [] }));
+  let extra = 0;
+  for (const s of sites) {
+    if (s.state && s.state !== "公開") continue;
+    let e = out.find((x) => x.site && siteKey(x.site) === siteKey(s.url));
+    if (!e && s.m && s.d) e = out.find((x) => x.y === s.y && x.m === s.m && x.d === s.d && loose(x.title).includes(loose(s.name)));
+    if (e) { e.sites.push(s); continue; }
+    const cat = HISTORY_CATEGORIES.find((c) => c.name === s.kind.history) || HISTORY_DEFAULT_CATEGORY;
+    out.push({ line: 0, i: 100000 + extra++, y: s.y, m: s.m, d: s.d, ey: 0, em: 0, ed: 0, cats: [cat],
+      title: `「${s.name}」の特設サイト`, note: "", site: "", tower: "", videos: [], sites: [s], fromSites: true });
+  }
+  out.sort((a, b) => a.y - b.y || a.m - b.m || a.d - b.d || a.i - b.i);
+  return out;
+}
+
 /* ---------- 楽曲一覧（songs.csv） ---------- */
 
 // 「種類」の列に書ける値（その曲が初めて出た形）。この順番で、楽曲一覧のページの絞り込みに並びます。

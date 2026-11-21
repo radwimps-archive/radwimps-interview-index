@@ -41,6 +41,7 @@ articles.html         記事一覧の骨組みと文章
 maker.html            記事データ作成ツール
 history.html          「RADWIMPSの歩み」（年表）のページ
 shelf.html            「あなたの棚」のページ（お気に入り・あとで読む・既読・参加した公演をまとめて見る）
+sites.html            「特設サイト」のページ（RADWIMPS の特設サイトを年ごとに集める。中身は data/sites.csv）
 songs.html            「楽曲一覧」のページ（歌詞は載せず、許諾を受けた歌詞サイトへリンク）
 setlist.html          「RAD LIVE SET LIST」（ライブのセトリ）（年ごとの公演とセットリスト）のページ
 members.html          「メンバー紹介」のページ
@@ -48,6 +49,7 @@ members.html          「メンバー紹介」のページ
 assets/
   style.css           見た目（色など）
   home.js・home.css   玄関の動きと見た目（まだ読んでいない一節・各部屋への入口の窓）
+  sites.js・sites.css 「特設サイト」の動きと見た目
   text.js             文字をそろえる関数（記事一覧と棚で共通）
   shelf.js・shelf.css 「あなたの棚」の動きと見た目（shelf-data.js：人・曲・年代・ライブごとに分ける計算）
   encounter.js        玄関の「まだ読んでいない一節」の選び方（日替わり・未読から1本）

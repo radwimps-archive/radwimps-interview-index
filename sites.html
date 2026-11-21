@@ -1,0 +1,84 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<!-- 「特設サイト」：RADWIMPS がこれまでに作ってきた特設サイト（作品・ライブ・周年など）を集めた部屋。
+     中身は data/sites.csv です（ここに1行足すと、この部屋と「RADWIMPSの歩み」の年表の両方に出ます）。
+     公開が終わったサイトは「公開終了」の印を付けて残し、Internet Archive の保存版へのリンクを出します。
+     動きは assets/sites.js、見た目は assets/sites.css です。
+     安全のための決まり（CSP）：HTML の中に直接 <script> や style="…" を書くと動かなくなるので、assets フォルダのファイルに書いてください。 -->
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' https://static.cloudflareinsights.com; style-src 'self'; img-src 'self' data:; font-src 'self'; connect-src 'self' https://api.web3forms.com https://cloudflareinsights.com; object-src 'none'; base-uri 'self'; form-action 'self'; upgrade-insecure-requests">
+<meta name="referrer" content="strict-origin-when-cross-origin">
+<title>特設サイト｜RADWIMPS Archives</title>
+<meta name="description" content="RADWIMPS がこれまでに作ってきた特設サイト（作品・ライブ・周年など）を、年ごとに集めています。公開が終わったサイトは、保存版へのリンクで見られます。">
+<meta property="og:title" content="特設サイト｜RADWIMPS Archives">
+<meta property="og:description" content="RADWIMPS がこれまでに作ってきた特設サイト（作品・ライブ・周年など）を、年ごとに集めています。公開が終わったサイトは、保存版へのリンクで見られます。">
+<meta property="og:type" content="website">
+<meta property="og:url" content="https://radwimps-archive.github.io/radwimps-interview-index/sites.html">
+<meta property="og:site_name" content="RADWIMPS Archives">
+<meta property="og:locale" content="ja_JP">
+<meta property="og:image" content="https://radwimps-archive.github.io/radwimps-interview-index/assets/ogp.png">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="theme-color" content="#0A0B12">
+<link rel="icon" href="assets/icon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="assets/style.css">
+<link rel="stylesheet" href="assets/theme-blue.css">
+<link rel="stylesheet" href="assets/sites.css">
+<script type="module" src="assets/sites.js"></script>
+</head>
+<body class="sites-page">
+<a href="#sites" class="skip">特設サイトの一覧へ移動</a>
+
+<!-- いちばん上の帯（ほかのページと同じ。左上のボタンでメニューが開きます） -->
+<header class="header" id="header">
+  <div class="header-inner">
+    <button id="menuBtn" class="hamburger" type="button" aria-expanded="false" aria-controls="menuClip" aria-label="メニューを開く"><span></span><span></span><span></span></button>
+    <a href="./" class="brand" aria-label="RADWIMPS Archives トップへ"><span class="brand-text">RADWIMPS<span>Archives</span></span></a>
+  </div>
+  <div class="menu-clip" id="menuClip" inert aria-hidden="true">
+    <nav class="menu-panel" aria-label="メニュー">
+      <a class="nav-item" href="articles.html">記事一覧 <span aria-hidden="true">→</span></a>
+      <a class="nav-item" href="history.html">RADWIMPSの歩み <span aria-hidden="true">→</span></a>
+      <a class="nav-item" href="songs.html">楽曲一覧 <span aria-hidden="true">→</span></a>
+      <a class="nav-item" href="setlist.html">RAD LIVE SET LIST <span aria-hidden="true">→</span></a>
+      <a class="nav-item" href="members.html">メンバー紹介 <span aria-hidden="true">→</span></a>
+      <a class="nav-item" href="shelf.html">あなたの棚 <span aria-hidden="true">→</span></a>
+      <a class="nav-item" href="sites.html" aria-current="page">特設サイト <span aria-hidden="true">→</span></a>
+      <a class="nav-item" href="articles.html#admin" id="adminLink" hidden>運営管理 <span aria-hidden="true">→</span></a>
+    </nav>
+  </div>
+</header>
+
+<main id="main">
+  <section class="hero wrap" aria-labelledby="sitesTitle">
+    <p class="eyebrow">SPECIAL SITES <span id="siteCount"></span></p>
+    <h1 id="sitesTitle">特設サイト</h1>
+    <p class="hero-description">作品・ライブ・周年のたびに作られてきた特設サイトを、年ごとに集めています。</p>
+  </section>
+
+  <div class="paper-sheet">
+    <!-- 種類で絞り込む（中身は assets/sites.js が入れます） -->
+    <div class="format-tabs sites-tabs" role="group" aria-label="種類で絞り込む" id="siteKinds"></div>
+
+    <section class="timeline wrap" id="sites" aria-labelledby="sitesListTitle" tabindex="-1">
+      <h2 id="sitesListTitle" class="sr">特設サイトの一覧</h2>
+      <p class="hist-loading" id="sitesLoading">特設サイトの一覧を読み込んでいます…</p>
+    </section>
+
+    <p class="hist-note wrap">「保存版」は、インターネットの古いページを保存している Internet Archive（ウェイバックマシン）のページです。保存された時点の内容で、動画や一部の画像は見られないことがあります。公式サイトではありません。</p>
+    <p class="hist-note wrap">公式の発表や各サイトをもとに、運営がまとめた非公式の一覧です。載っていない特設サイトや誤りに気づいたら、お知らせください。</p>
+  </div>
+</main>
+
+<!-- フッター -->
+<footer class="site-footer wrap">
+  <div class="footer-brand">RADWIMPS Archives</div>
+  <p>UNOFFICIAL FAN ARCHIVE · 本人・所属事務所・各媒体とは関係ありません。</p>
+  <div class="footer-links"><a href="articles.html">記事一覧へ →</a></div>
+</footer>
+
+<!-- パソコンでこのファイルを直接開いたときの案内（中身は assets/localfile.js） -->
+<script src="assets/localfile.js"></script>
+</body>
+</html>
