@@ -11,6 +11,7 @@ import { parseArticles, parseSetlists, VIDEO_KIND, RADIO_KIND } from "./data.js"
 import { groupArticles, groupLives } from "./shelf-data.js";
 import { h, setupMenu, isAdminDevice, watchScrollFade } from "./ui.js";
 import { setupBeta } from "./feedback.js";
+import { assignKeys } from "./attended.js";
 
 const $ = (s) => document.querySelector(s);
 
@@ -54,7 +55,7 @@ const TABS = [
   { slug: "att", name: "参加した公演", empty: "参加した公演はまだありません。RAD LIVE SET LIST や RADWIMPSの歩みで、公演の足あとのボタンを押すと、ここに入ります。" }
 ];
 const GROUPS = ["person", "work", "year", "live"];
-const REMOVE_LABEL = { fv: "お気に入りから外す", lt: "あとで読むから外す", rd: "既読を外す", att: "参加した公演から外す" };
+const REMOVE_LABEL = { fv: "お気に入りから外す", lt: "あとで読むから外す", rd: "既読から外す", att: "参加した公演から外す" };
 
 const p = new URLSearchParams(location.search);
 let tab = TABS.some((t) => t.slug === p.get("tab")) ? p.get("tab") : "fv";
@@ -63,11 +64,12 @@ let articles = new Map(); // id → 記事（公開中のもの）
 let lives = new Map();    // 印の名前 → 公演
 let loaded = false;
 let undo = null;          // 直前に外したもの（元に戻す用）
+const toggled = new Map(); // 利用者が開け閉めしたまとまり（「段:分け方:見出し」→ 開いているか）。並べ直しても、その状態を保つ
 
 function saveUrl() {
   const q = new URLSearchParams();
   if (tab !== "fv") q.set("tab", tab);
-  if (tab !== "att" && group !== "person") q.set("group", group);
+  if (group !== "person") q.set("group", group); // 公演の段でも、記事の段で選んだ分け方は残す
   try { history.replaceState(null, "", location.pathname + (q.toString() ? "?" + q : "")); } catch { /* 変えられない環境 */ }
 }
 
@@ -108,7 +110,17 @@ function liveRow(l) {
     h("div", { class: "shelf-item-main" },
       h("p", { class: "shelf-item-title shelf-live-date", text: dotDate(l.date) }),
       h("p", { class: "shelf-item-meta", text: l.venue || "会場不明" })),
+    h("a", { class: "shelf-setlist", href: "setlist.html#mine", text: "セトリ" , "aria-label": `${dotDate(l.date)} ${l.venue || ""}のセットリストを、RAD LIVE SET LIST の「参加公演」で見る` }),
     h("button", { type: "button", class: "shelf-remove", "data-remove": l.ak, "aria-label": `${dotDate(l.date)} ${l.venue || ""}を${REMOVE_LABEL.att}`, text: "外す" }));
+}
+
+// 並べ直したあとも、フォーカスのあった「外す」ボタン（同じ記事・公演）に戻す
+function keepFocus(fn) {
+  const a = document.activeElement;
+  const key = a && a.closest && a.closest("#shelfBody") && (a.dataset.remove || a.dataset.open);
+  const attr = a && a.dataset && a.dataset.remove ? "data-remove" : "data-open";
+  fn();
+  if (key) { const again = document.querySelector(`#shelfBody [${attr}="${CSS.escape(key)}"]`); if (again) again.focus(); }
 }
 
 function render() {
@@ -123,11 +135,13 @@ function render() {
     return;
   }
   const groups = tab === "att" ? groupLives(list) : groupArticles(list, group);
-  const many = list.length > 40; // 多いときは、最初のまとまりだけ開いておく
+  const many = list.length > 40; // 多いときは、最初のまとまりだけ開いておく（利用者が開け閉めしたものは、その状態を保つ）
+  const view = tab === "att" ? "att" : `${tab}:${group}`;
   body.replaceChildren(
     h("p", { class: "shelf-count", text: tab === "att" ? `${list.length}公演` : `${list.length}件` }),
     ...groups.map((g, i) => {
-      const d = h("details", { class: "shelf-group-box", open: !many || i === 0 },
+      const id = `${view}:${g.name}`;
+      const d = h("details", { class: "shelf-group-box", open: toggled.has(id) ? toggled.get(id) : (!many || i === 0), "data-gid": id },
         h("summary", null, h("span", { class: "shelf-group-name", text: g.name }), h("span", { class: "shelf-group-count", text: tab === "att" ? `${g.items.length}公演` : `${g.items.length}件` })),
         h("ul", { class: "shelf-items" }, ...g.items.map(tab === "att" ? liveRow : articleRow)));
       return d;
@@ -178,14 +192,19 @@ $("#shelfBody").addEventListener("auxclick", (e) => {
 $("#shelfStatus").addEventListener("click", (e) => {
   if (!e.target.closest("#shelfUndo") || !undo) return;
   if (undo.tab === "att") setAttended(undo.key, true); else setMark(undo.tab, undo.key, true);
+  const back = undo.key;
   undo = null;
   render();
   showStatus("元に戻しました。", false);
-  $("#shelf").focus();
+  // 戻した記事・公演の「外す」ボタンへ（見つからなければ一覧の先頭へ）
+  const btn = document.querySelector(`#shelfBody [data-remove="${CSS.escape(back)}"]`);
+  if (btn) { const box = btn.closest("details"); if (box) box.open = true; btn.focus(); } else $("#shelf").focus();
 });
 
 // 別のタブ（記事一覧やセットリスト）で印が変わったら、すぐ反映する
-addEventListener("storage", (e) => { if (e.key === STORE_MARKS || e.key === STORE_ATTENDED || e.key === null) render(); });
+addEventListener("storage", (e) => { if (e.key === STORE_MARKS || e.key === STORE_ATTENDED || e.key === null) keepFocus(render); });
+// まとまりを開け閉めしたら覚えておく（並べ直しても、その状態のまま）
+$("#shelfBody").addEventListener("toggle", (e) => { const d = e.target; if (d.dataset && d.dataset.gid) toggled.set(d.dataset.gid, d.open); }, true);
 
 /* ---------- はじめに ---------- */
 
@@ -200,14 +219,10 @@ render();
     const get = (f) => fetch(f, { cache: "no-cache" }).then((r) => { if (!r.ok) throw new Error(`${f}: HTTP ${r.status}`); return r.text(); });
     const [aText, sText] = await Promise.all([get("data/articles.csv"), get("data/setlists.csv")]);
     articles = new Map(parseArticles(aText).items.filter((it) => it.state === "公開" && it.id).map((it) => [it.id, it]));
-    // 公演の印の名前は、公演日（同じ日の2つ目からは「#2」）。RAD LIVE SET LIST と同じく、ファイルの順（日付順）で付ける
-    const seen = new Map();
-    for (const l of parseSetlists(sText).lives) {
-      const n = (seen.get(l.date) || 0) + 1;
-      seen.set(l.date, n);
-      l.ak = n === 1 ? l.date : `${l.date}#${n}`;
-      lives.set(l.ak, l);
-    }
+    // 公演の印の名前は、公演日（同じ日の2つ目からは「#2」）。RAD LIVE SET LIST と同じ assignKeys で付ける
+    const list = parseSetlists(sText).lives;
+    assignKeys(list);
+    for (const l of list) lives.set(l.ak, l);
     loaded = true;
     render();
   } catch (e) {

@@ -5,13 +5,15 @@
 
 /* 段のタブ：記事一覧のタブと同じ形。棚では上に貼りつかせない（中身が短いことが多いため） */
 .shelf-tabs { position: static; margin: 0 0 18px; padding-inline: 16px; }
-@media (min-width: 720px) { .shelf-tabs { padding-inline: 32px; } }
+/* 件数は棚の大事な情報なので、12px 以上・はっきりした濃さに（記事一覧のタブの件数は 14px の .85 倍で 12px を下回るため） */
+.shelf-tabs small { font-size: 12px; opacity: 1; }
+@media (min-width: 720px) { .shelf-tabs { padding-inline: 32px; } .shelf-status:not(:empty) { margin-inline: 32px; } }
 
 .shelf-tools { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin-bottom: 10px; }
 .shelf-group .song-order-btn { min-width: 64px; min-height: 44px; }
 
 .shelf-status { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 12px; min-height: 0; font-size: 13px; color: var(--ink); }
-.shelf-status:not(:empty) { margin-block: 4px 12px; padding: 10px 14px; border: 1px solid var(--rule); border-radius: 5px; background: var(--card); }
+.shelf-status:not(:empty) { margin: 4px 16px 12px; padding: 10px 14px; border: 1px solid var(--rule); border-radius: 5px; background: var(--card); }
 .shelf-undo { min-height: 44px; padding: 0 12px; border: 1px solid var(--blue); border-radius: 5px; background: transparent; color: var(--blue); font-size: 13px; font-weight: 700; cursor: pointer; }
 .shelf-undo:hover { background: var(--accent-tint); }
 
@@ -39,7 +41,9 @@ a.shelf-item-title { padding-block: 4px; }
 a.shelf-item-title:hover { color: var(--blue); text-decoration: underline; }
 .shelf-live-date { font-variant-numeric: tabular-nums; letter-spacing: .04em; }
 .shelf-item-meta { margin: 2px 0 0; font-size: 12px; line-height: 1.7; color: var(--muted); overflow-wrap: anywhere; }
-.shelf-remove { flex: none; min-width: 56px; min-height: 44px; padding: 0 12px; border: 1px solid var(--line-input); border-radius: 5px; background: transparent; color: var(--ink-2); font-size: 13px; cursor: pointer; }
+/* 「外す」の枠は、白いカードの上で 4.0（線の目安 3 以上） */
+.shelf-remove { flex: none; min-width: 56px; min-height: 44px; padding: 0 12px; border: 1px solid #6D7DAA; border-radius: 5px; background: transparent; color: var(--ink-2); font-size: 13px; cursor: pointer; }
+.shelf-setlist { flex: none; display: inline-flex; align-items: center; min-height: 44px; padding: 0 10px; color: var(--blue); font-size: 13px; text-decoration: underline; }
 .shelf-remove:hover { border-color: var(--ink-2); background: var(--paper-2); color: var(--ink); }
 
 .shelf-page .paper-sheet > .hist-note { margin-top: 18px; }

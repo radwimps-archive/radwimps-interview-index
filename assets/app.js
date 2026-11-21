@@ -8,6 +8,7 @@
 // 記事を増やしたり直したりするときは、このファイルではなく data/articles.csv を編集します。
 // 絞り込みの状態は URL（例：?person=野田洋次郎&format=all）に入るので、そのままブックマークや共有ができます。
 
+import { norm } from "./text.js";
 import { analyticsOn, DASHBOARD_URL } from "./analytics.js";
 import config from "./config.js";
 import {
@@ -38,13 +39,7 @@ const esc = (s) => String(s ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "
 function load(key) { try { return JSON.parse(localStorage.getItem(key)); } catch { return null; } }
 function save(key, value) { try { localStorage.setItem(key, JSON.stringify(value)); } catch { /* 保存できない環境では何もしない */ } }
 
-// 検索用に文字をそろえる：全角半角・大文字小文字・ひらがなとカタカナの違いをなくし、記号や空白を取り除く
-const STRIP = /[\s　・、，,。．.／/「」『』【】〔〕［］[\]（）()<>＜＞〈〉《》\-‐–—―_~〜～!！?？:：;；'"“”‘’`*＊#＃|｜×✕+＋&＆]/g;
-function norm(s) {
-  return String(s || "").normalize("NFKC").toLowerCase()
-    .replace(/[ぁ-ゖ]/g, (c) => String.fromCharCode(c.charCodeAt(0) + 0x60))
-    .replace(STRIP, "");
-}
+// 検索用に文字をそろえる（assets/text.js。「あなたの棚」と同じもの）
 // 日付を「2026.10.24」「2026.10」「2026」の形にする
 const dotDate = (d) => (d ? d.replaceAll("-", ".") : "");
 
@@ -754,6 +749,8 @@ $("#loadMore").addEventListener("click", () => {
 /* ---------- お気に入り・あとで読む・既読 ---------- */
 
 function setMark(kind, id, on) {
+  // 書く直前に読み直す（「あなたの棚」など別のタブで変えた印を、手元の古い記録で上書きしないように）
+  S.marks = cleanMarks(load(STORE_MARKS));
   if (on) S.marks[kind][id] = 1; else delete S.marks[kind][id];
   saveMarks();
   renderMenu();
@@ -780,6 +777,13 @@ $("#grid").addEventListener("click", (e) => {
   if (tag) { F.q = tag.dataset.tag; apply(); scrollToList(); return; }
   // 記事を開いたら、既読にする
   if (e.target.closest("[data-open]") && !S.marks.rd[id]) setTimeout(() => setMark("rd", id, true), 0);
+});
+// 別のタブ（「あなたの棚」や、もう1つの記事一覧）で印が変わったら、読み直して表示をそろえる
+addEventListener("storage", (e) => {
+  if (e.key !== STORE_MARKS && e.key !== null) return;
+  S.marks = cleanMarks(load(STORE_MARKS));
+  renderMenu();
+  if (S.loaded) render();
 });
 // 中ボタンで開いたときも既読にする
 $("#grid").addEventListener("auxclick", (e) => {

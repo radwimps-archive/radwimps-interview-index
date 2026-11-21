@@ -5,7 +5,7 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import { groupArticles, groupLives, workMatch } from "../assets/shelf-data.js";
 
-const item = (id, extra = {}) => ({ id, title: id, summary: "", tags: [], members: [], guests: [], date: "", eventName: "", eventDate: "", ...extra });
+const item = (id, extra = {}) => ({ id, kind: "インタビュー", title: id, summary: "", tags: [], members: [], guests: [], date: "", eventName: "", eventDate: "", ...extra });
 
 test("人ごと：メンバーの順に並び、対談相手は後ろ。1つの記事が2人に入ることもある", () => {
   const g = groupArticles([
@@ -36,13 +36,16 @@ test("年代ごと：新しい年から。日付のない記事は「そのほ�
   assert.deepEqual(g.map((x) => x.name), ["2024年", "2019年", "そのほか"]);
 });
 
-test("ライブごと：公演日の新しいライブから。ライブの記事でないものは「そのほか」", () => {
+test("ライブごと：記事一覧の「ライブから探す」と同じく、ライブレポートだけ。公演日の新しいライブから", () => {
+  const live = { kind: "ライブレポート" };
   const g = groupArticles([
-    item("a", { eventName: "ツアーA", eventDate: "2018-01-01" }),
-    item("b", { eventName: "ツアーB", eventDate: "2023-01-01" }),
+    item("a", { ...live, eventName: "ツアーA", eventDate: "2018-01-01" }),
+    item("b", { ...live, eventName: "ツアーB", eventDate: "2023-01-01" }),
+    item("d", { ...live }),
+    item("e", { kind: "番組・会見", eventName: "紅白", eventDate: "2024-12-31" }),
     item("c")
   ], "live");
-  assert.deepEqual(g.map((x) => x.name), ["ツアーB", "ツアーA", "そのほか"]);
+  assert.deepEqual(g.map((x) => x.name), ["ツアーB", "ツアーA", "ライブ名を確認中", "ライブレポート以外"]);
 });
 
 test("参加した公演：ライブ名ごと。新しい公演のあるライブから、公演も新しい順", () => {

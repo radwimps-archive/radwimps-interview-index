@@ -3,15 +3,9 @@
 // 画面を使わない計算だけを置きます（テスト tests/shelf.test.mjs からも使います）。
 // 分け方は、記事一覧の「人から探す」「曲・作品から探す」と同じ決まりです（記事に付いたメンバー・対談相手・タグ・タイトル・説明で決まる）。
 
-import { MEMBERS, MEMBER_ORDER, WORKS } from "./data.js";
-
-// 文字をそろえる（記事一覧 assets/app.js の norm と同じ）：全角半角・大文字小文字・ひらがなとカタカナの違いをなくし、記号や空白を取り除く
-const STRIP = /[\s　・、，,。．.／/「」『』【】〔〕［］[\]（）()<>＜＞〈〉《》\-‐–—―_~〜～!！?？:：;；'"“”‘’`*＊#＃|｜×✕+＋&＆]/g;
-export function norm(s) {
-  return String(s || "").normalize("NFKC").toLowerCase()
-    .replace(/[ぁ-ゖ]/g, (c) => String.fromCharCode(c.charCodeAt(0) + 0x60))
-    .replace(STRIP, "");
-}
+import { MEMBERS, MEMBER_ORDER, WORKS, LIVE_KIND } from "./data.js";
+import { norm } from "./text.js";
+export { norm };
 
 // 曲・作品の記事か（記事一覧の workMatch と同じ）：タグにその名前がある、タイトルや説明に「」『』付きで出てくる、または長めの名前がそのまま出てくる
 const reEsc = (s) => s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
@@ -52,7 +46,11 @@ export function groupArticles(items, mode) {
     for (const it of items) { if (it.date) add(`${it.date.slice(0, 4)}年`, it); else rest.push(it); }
     order = [...groups.keys()].sort().reverse();
   } else if (mode === "live") {
-    for (const it of items) { if (it.eventName) add(it.eventName, it); else rest.push(it); }
+    // 記事一覧の「ライブから探す」と同じく、ライブレポートだけをライブ名ごとに。ライブ名がまだないものは「ライブ名を確認中」
+    for (const it of items) {
+      if (it.kind !== LIVE_KIND) rest.push(it);
+      else add(it.eventName || "ライブ名を確認中", it);
+    }
     // 公演日の新しいライブから
     const latest = (name) => groups.get(name).reduce((m, it) => ((it.eventDate || "") > m ? it.eventDate : m), "");
     order = [...groups.keys()].sort((a, b) => latest(b).localeCompare(latest(a)) || a.localeCompare(b, "ja"));
@@ -61,7 +59,7 @@ export function groupArticles(items, mode) {
   const known = order.filter((n) => groups.has(n));
   const extra = [...groups.keys()].filter((n) => !known.includes(n)).sort((a, b) => groups.get(b).length - groups.get(a).length || a.localeCompare(b, "ja"));
   const out = [...known, ...extra].map((name) => ({ name, items: groups.get(name).sort(byNewest) }));
-  if (rest.length) out.push({ name: "そのほか", items: rest.sort(byNewest) });
+  if (rest.length) out.push({ name: mode === "live" ? "ライブレポート以外" : "そのほか", items: rest.sort(byNewest) });
   return out;
 }
 
