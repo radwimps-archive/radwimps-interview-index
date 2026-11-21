@@ -82,6 +82,7 @@ a.window:focus-visible { outline: 2px solid var(--on-blue); outline-offset: 8px;
 .window.w4 { --win-top: #1E44AE; --win: #16378F; }
 .window.w5 { --win-top: #1B3C9C; --win: #14328A; }
 .window.w6 { --win-top: #1A3FA8; --win: #12307F; }
+.window.w7 { --win-top: #16378F; --win: #0E2766; }
 /* 灯りの消えた窓（まだできていない部屋。今は使っていない） */
 .window.is-dark { border-color: rgba(255, 255, 255, .45); background: #0E2766; box-shadow: inset 0 0 0 3px rgba(10, 11, 18, .35), inset 0 0 0 4px rgba(255, 255, 255, .12); }
 .window.is-dark::after { background: rgba(255, 255, 255, .35); }

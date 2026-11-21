@@ -687,6 +687,11 @@ button.title-link { padding: 0; border: 0; background: none; font: inherit; text
 /* 「▶ MV」などの動画の行と、その場で開くプレーヤー */
 .hist-videos { display: flex; flex-wrap: wrap; align-items: center; margin: 6px 0 -4px; font-size: 13.5px; line-height: 1.4; color: var(--muted); }
 .hist-videos .sep { margin: 0 8px; color: var(--line-input); }
+/* 特設サイトへのリンク（data/sites.csv）。動画の行と同じく小さく */
+.hist-sites { display: flex; flex-wrap: wrap; align-items: center; margin: 2px 0 -6px; font-size: 13px; line-height: 1.4; color: var(--muted); }
+.hist-sites a { display: inline-flex; align-items: center; min-height: 44px; color: var(--ink-2); text-decoration: underline; text-underline-offset: 3px; }
+.hist-sites a:hover { color: var(--ink); }
+.hist-sites .sep { margin: 0 8px; }
 .vbtn { display: inline-flex; align-items: center; gap: 6px; min-height: 36px; padding: 0; border: 0; background: none; color: var(--accent); font: inherit; font-weight: 700; cursor: pointer; -webkit-tap-highlight-color: transparent; }
 .vbtn .tri { font-size: 12px; color: var(--accent); }
 .vbtn .vl { text-decoration: underline; text-decoration-color: var(--accent-soft); text-decoration-thickness: 1.5px; text-underline-offset: 4px; }
@@ -725,7 +730,7 @@ button.title-link { padding: 0; border: 0; background: none; font: inherit; text
   .hist-item::before { left: -38px; top: 23px; }
   .hist-meta { grid-row: 1 / -1; flex-direction: column; align-items: flex-start; gap: 4px; margin: 2px 0 0; }
   .hist-title { font-size: 16px; }
-  .hist-sub, .hist-videos, .hist-player { grid-column: 2; }
+  .hist-sub, .hist-videos, .hist-sites, .hist-player { grid-column: 2; }
 }
 
 /* ---------- ベータ版の表示（config.js の beta が true のときだけ。feedback.js が作ります） ---------- */
