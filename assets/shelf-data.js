@@ -87,3 +87,10 @@ export function personSelf(it, name) {
 export function pickArticles(items, test) {
   return items.filter((it) => it.state === "公開" && it.id && test(it)).sort((a, b) => (b.date || "").localeCompare(a.date || ""));
 }
+
+// 並び順を変える（楽曲一覧・メンバー紹介の短い一覧で、利用者が選ぶ）。list は pickArticles の結果（新しい順）
+// order：new（新しい順）・old（古い順）。どちらも日付のない記事は最後、同じ日付は CSV の順のまま
+export function orderArticles(list, order) {
+  if (order !== "old") return list;
+  return [...list].sort((a, b) => (!a.date) - (!b.date) || (a.date || "").localeCompare(b.date || ""));
+}

@@ -5,13 +5,22 @@
 //   ・印の保存場所と形は、記事一覧・あなたの棚と同じ（assets/marks.js）。
 //   ・記事を開いたら既読にする（記事一覧と同じ）。
 //   ・別のタブで印が変わったら、ボタンの状態をすぐそろえる。
+//   ・並び順（新しい順・古い順）と、すべてをその場に出すかを、利用者が選べる。選んだものはこのブラウザに覚えておき、ページの中のほかの一覧にもそろえる。
 // ページの HTML には、知らせを出す場所 <div id="toast" class="toast" role="status" aria-live="polite"></div> を置いてください。
 
 import { h } from "./ui.js";
 import { VIDEO_KIND, RADIO_KIND } from "./data.js";
-import { STORE_MARKS, loadMarks, setMark } from "./marks.js";
+import { STORE_MARKS, loadMarks, setMark, readJSON, writeJSON } from "./marks.js";
+import { orderArticles } from "./shelf-data.js";
 
-export const ROOM_LIMIT = 5; // 1つの曲・1人に出す記事の数（残りは記事一覧で見る）
+export const ROOM_LIMIT = 5; // 1つの曲・1人に、はじめに出す記事の数（「すべて表示」で残りも出せる。記事一覧でも見られる）
+
+// 並び順と「すべて表示」の選択（このブラウザだけ。保存できない環境でも、そのページの中では効く）
+const STORE_VIEW = "radwimps-interview-index:room-view";
+const saved = readJSON(STORE_VIEW);
+const view = { order: saved.order === "old" ? "old" : "new", all: saved.all === true };
+const ORDER_NAME = { new: "新しい順", old: "古い順" };
+const data = new WeakMap(); // 一覧の要素 → 作ったときの記事と設定（選び直したときに作り直すため）
 
 const SVG = "http://www.w3.org/2000/svg";
 // 記事一覧（app.js の HEART・BOOKMARK）と同じ形
@@ -52,16 +61,41 @@ function row(it, marks) {
 }
 
 // 記事の短い一覧。list：新しい順に並んだ記事（shelf-data.js の pickArticles）
-// heading：見出し（例「この曲の記事」。なしでもよい）、more：記事一覧で全部を見るときの URL、moreText：そのリンクの文
-export function roomArticles(list, { heading, more, moreText }) {
+// heading：見出し（例「この曲の記事」。なしでもよい）、label：並び順などのボタンの読み上げに使う名前（例「前前前世の記事」）、
+// more：記事一覧で全部を見るときの URL、moreText：そのリンクの文
+export function roomArticles(list, opts) {
+  const { heading, label = heading || "記事", more, moreText } = opts;
   const marks = loadMarks();
-  const shown = list.slice(0, ROOM_LIMIT);
-  return h("div", { class: "room-articles" },
-    heading ? h("p", { class: "room-articles-head" }, heading, h("small", { text: list.length > ROOM_LIMIT ? `新しい順に${ROOM_LIMIT}件` : `${list.length}件` })) : null,
+  const many = list.length > ROOM_LIMIT;
+  const all = view.all || !many;
+  const shown = orderArticles(list, view.order).slice(0, all ? list.length : ROOM_LIMIT);
+  const pick = (kind, value, text, pressed, aria) => h("button", { type: "button", class: "room-view-btn", "data-view": kind, "data-value": value, "aria-pressed": String(pressed), "aria-label": aria, text });
+  const tools = list.length > 1 ? h("div", { class: "room-view", role: "group", "aria-label": `${label}の並び順と、出す数` },
+    ...["new", "old"].map((o) => pick("order", o, ORDER_NAME[o], view.order === o, `${label}を${ORDER_NAME[o]}に並べる`)),
+    many ? pick("all", view.all ? "0" : "1", view.all ? `${ROOM_LIMIT}件だけ表示` : `すべて表示（${list.length}件）`, false,
+      view.all ? `${label}を${ROOM_LIMIT}件だけ表示する` : `${label}を${list.length}件すべて、ここに表示する`) : null) : null;
+  const el = h("div", { class: "room-articles" },
+    heading ? h("p", { class: "room-articles-head" }, heading, h("small", { text: `${list.length}件` })) : null,
+    tools,
     h("ul", { class: "room-list" }, ...shown.map((it) => row(it, marks))),
     h("p", { class: "room-articles-foot" },
-      list.length > ROOM_LIMIT && more ? h("a", { class: "room-more", href: more }, moreText || `記事一覧で${list.length}件すべて見る`, h("span", { "aria-hidden": "true", text: "→" })) : null,
+      many && !all && more ? h("a", { class: "room-more", href: more }, moreText || `記事一覧で${list.length}件すべて見る`, h("span", { "aria-hidden": "true", text: "→" })) : null,
       h("a", { class: "room-shelf", href: "shelf.html" }, "あなたの棚へ", h("span", { "aria-hidden": "true", text: "→" }))));
+  data.set(el, { list, opts });
+  return el;
+}
+
+// 並び順・「すべて表示」を選び直したら、ページの中の一覧をすべて作り直す（押したボタンにフォーカスを戻す）
+function rebuildAll(root, focusBox, kind) {
+  let again = null;
+  for (const box of root.querySelectorAll(".room-articles")) {
+    const d = data.get(box);
+    if (!d) continue;
+    const fresh = roomArticles(d.list, d.opts);
+    box.replaceWith(fresh);
+    if (box === focusBox) again = fresh.querySelector(kind === "order" ? `[data-view="order"][data-value="${view.order}"]` : `[data-view="all"]`);
+  }
+  if (again) again.focus();
 }
 
 // ボタンの状態を、保存されている印にそろえる（別のタブで変わったときなど）
@@ -97,6 +131,14 @@ function toast(msg) {
 export function setupRoomArticles(root) {
   const markRead = (id) => { if (!loadMarks().rd.has(id)) { setMark("rd", id, true); syncAll(root); } };
   root.addEventListener("click", (e) => {
+    const v = e.target.closest(".room-articles [data-view]");
+    if (v) {
+      if (v.dataset.view === "order") { if (view.order === v.dataset.value) return; view.order = v.dataset.value; }
+      else view.all = v.dataset.value === "1";
+      writeJSON(STORE_VIEW, view);
+      rebuildAll(root, v.closest(".room-articles"), v.dataset.view);
+      return;
+    }
     const b = e.target.closest(".room-articles [data-mark]");
     if (b) {
       const kind = b.dataset.mark, id = b.dataset.id;

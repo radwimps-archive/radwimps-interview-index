@@ -4,7 +4,7 @@
 //   「歌詞」は、歌詞の掲載を許諾されている歌詞サイト（プチリリ）へのリンクです。
 // ほかのデータともつなげています：
 //   ・記事（data/articles.csv）…その曲にふれた記事の数を出し、押すと記事一覧を ?work=曲名 で開く。
-//     曲名を押して開く欄には、その曲の記事を新しい順に5件、♡（お気に入り）と「あとで読む」のボタン付きで出す（押すと「あなたの棚」に入る。assets/room-articles.js）
+//     曲名を押して開く欄には、その曲の記事を新しい順に5件（並び順と数は利用者が選べる）、♡（お気に入り）と「あとで読む」のボタン付きで出す（押すと「あなたの棚」に入る。assets/room-articles.js）
 //   ・年表（data/history.csv）…「動画」の列にある、その曲の MV を YouTube で開く
 
 import "./analytics.js";
@@ -181,7 +181,7 @@ function songItem(s, inRelease) {
   // 曲名を押すと、「歌詞」「MV・ライブ映像」と「この曲の記事」が曲名の下に開きます。「記事 ○件」は曲名の隣に出したままです
   const more = `articles.html?work=${encodeURIComponent(s.base)}&format=all`;
   const parts = [links.children.length ? links : null,
-    s.articles ? roomArticles(s.articleList, { heading: "この曲の記事", more, moreText: `記事一覧で${s.articles}件すべて見る` }) : null].filter(Boolean);
+    s.articles ? roomArticles(s.articleList, { heading: "この曲の記事", label: `「${s.title}」の記事`, more, moreText: `記事一覧で${s.articles}件すべて見る` }) : null].filter(Boolean);
   let title = el("h3", { class: "song-title", text: s.title }), panel = null;
   if (parts.length) {
     panel = el("div", { class: "song-panel", id: `lyr${++uid}`, hidden: true }, ...parts);

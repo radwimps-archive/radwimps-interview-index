@@ -3,7 +3,7 @@
 
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { groupArticles, groupLives, workMatch, personSelf, pickArticles } from "../assets/shelf-data.js";
+import { groupArticles, groupLives, workMatch, personSelf, pickArticles, orderArticles } from "../assets/shelf-data.js";
 import { loadMarks, setMark, STORE_MARKS } from "../assets/marks.js";
 
 const item = (id, extra = {}) => ({ id, kind: "インタビュー", title: id, summary: "", tags: [], members: [], guests: [], date: "", eventName: "", eventDate: "", ...extra });
@@ -94,4 +94,13 @@ test("印の読み書き：ほかの印を残したまま付け外しでき、�
     setMark("lt", "old", false);
     assert.equal(loadMarks().lt.has("old"), false, "以前の★からも消える（記事一覧で戻らないように）");
   } finally { delete globalThis.localStorage; }
+});
+
+test("並び順：古い順でも日付のない記事は最後。同じ日付は CSV の順のまま。新しい順はそのまま", () => {
+  const list = pickArticles([
+    item("a", { state: "公開", date: "2020-01-01" }), item("c", { state: "公開", date: "" }),
+    item("d", { state: "公開", date: "2023-05-01" }), item("z", { state: "公開", date: "2020-01-01" })
+  ], () => true);
+  assert.deepEqual(orderArticles(list, "old").map((x) => x.id), ["a", "z", "d", "c"]);
+  assert.equal(orderArticles(list, "new"), list);
 });

@@ -1177,3 +1177,8 @@ small { font-size: max(12px, .83em); }
 .person-picks[open] .chev { transform: rotate(180deg); }
 .person-picks .room-articles { margin-top: 0; }
 @media (prefers-reduced-motion: reduce) { .person-picks .chev { transition: none; } }
+/* 短い一覧の並び順・「すべて表示」のボタン */
+.room-view { display: flex; flex-wrap: wrap; gap: 6px; margin: 0 0 8px; }
+.room-view-btn { min-height: 44px; padding: 0 14px; border: 1px solid var(--line-entry); border-radius: 22px; background: var(--card); color: var(--ink); font-size: 13px; cursor: pointer; }
+.room-view-btn[aria-pressed="true"] { border-color: var(--accent); background: var(--accent-tint); color: var(--accent); font-weight: 700; }
+.room-view-btn:hover { border-color: var(--accent); }
