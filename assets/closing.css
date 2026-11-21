@@ -18,7 +18,13 @@
 }
 
 * { box-sizing: border-box; }
-html { background: var(--black); }
+/* いちばん奥の地の色は、夜空の下の端と同じ群青にする（正式版の theme-blue.css と同じ直し方）。
+   iPhone の Safari（下にアドレスの帯が浮く形）は、帯の裏側に画面に固定した背景（body::after）を描かず、この色で塗るため。
+   黒のままだと、画面の下に黒い帯がくっきり見え、帯の伸び縮みに合わせて動いて見えた */
+html { background: var(--blue); }
+/* フッターが画面に入っているあいだは、帯の裏もフッターの見た目の色に（closing.js が footer-in-view を付ける）。
+   #112256 は、フッターの半透明の黒（.cl-footer の rgba(10, 11, 18, .55)）を群青に重ねた色 */
+html.footer-in-view { background: #112256; }
 body {
   position: relative; display: flex; flex-direction: column; min-height: 100vh; min-height: 100svh; margin: 0;
   background: transparent; color: var(--white); font-family: var(--f-body); font-size: 15px; line-height: 1.9;
@@ -26,7 +32,7 @@ body {
 }
 
 /* 背景の夜空：画面に固定した1枚の層。高さは大きいほうの画面の高さ（iPhone でアドレスバーが縮んでも伸び縮みしない）。
-   iPhone の Safari（下にアドレスの帯が浮く形）では 100lvh でも下端に隙間ができ、黒い帯が動いて見えたので、下の安全領域と 120px を足して伸ばす */
+   下の安全領域と 120px を足して長めに伸ばす（それでも iPhone の Safari の下の帯の裏には描かれないので、html の背景色もあわせて直している） */
 body::after {
   content: ""; position: fixed; top: 0; right: 0; left: 0; height: calc(100vh + 120px); height: calc(100lvh + env(safe-area-inset-bottom, 0px) + 120px); z-index: -1; pointer-events: none;
   background:

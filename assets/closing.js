@@ -4,6 +4,7 @@
 //      （書き出すファイルは、記事一覧の「保存データの管理」と同じ形。正式版の「保存データの管理」で読み込めます）
 //   2. config.js の newsletter.action があれば、公開のお知らせメールの登録欄を出す
 //   3. config.js の x があれば、X へのリンクを出す
+//   4. フッターが画面に入っているあいだだけ、html に印（footer-in-view）を付ける（iPhone の下の帯の色合わせ）
 // 保存データは読むだけで、消したり書き換えたりはしません。
 
 import config from "./config.js";
@@ -62,4 +63,12 @@ if (/^https:\/\/[^\s"']+$/.test(NL.action || "")) {
   $("#mailBox").hidden = false;
   // 送ると、配信サービスの確認画面が新しいタブで開く（このページには何も出ないので、知らせる）
   form.addEventListener("submit", () => { $("#mailMsg").textContent = "新しいタブで、配信サービスの確認画面を開きました。"; });
+}
+
+// ---------- フッターが画面に入っているあいだだけ、印（footer-in-view）を付ける ----------
+// iPhone の Safari（下にアドレスの帯が浮く形）は、帯の裏をページのいちばん奥の地の色（html の背景）で塗ります。
+// ふだんは夜空に合わせて群青、フッターが見えているあいだはフッターの色にして、境目が目立たないようにします（closing.css）
+const footer = $(".cl-footer");
+if (footer && typeof IntersectionObserver === "function") {
+  new IntersectionObserver(([e]) => document.documentElement.classList.toggle("footer-in-view", e.isIntersecting)).observe(footer);
 }
