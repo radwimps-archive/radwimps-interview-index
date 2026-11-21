@@ -1,0 +1,56 @@
+/* assets/shelf.css
+   「あなたの棚」（shelf.html）だけで使う見た目。style.css と theme-blue.css のあとに読み込みます。
+   ほかの部屋と同じく、紙の面（.paper-sheet）の上に、段のタブ・分け方のボタン・まとまりごとの一覧を並べます。
+   文字の色は紙の上の決まった色（紺の黒 --ink：13.3、補足 --muted：6.7）。文字は 12px 以上、押せる所は 44px ほど */
+
+/* 段のタブ：記事一覧のタブと同じ形。棚では上に貼りつかせない（中身が短いことが多いため） */
+.shelf-tabs { position: static; margin: 0 0 18px; padding-inline: 16px; }
+@media (min-width: 720px) { .shelf-tabs { padding-inline: 32px; } }
+
+.shelf-tools { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin-bottom: 10px; }
+.shelf-group .song-order-btn { min-width: 64px; min-height: 44px; }
+
+.shelf-status { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 12px; min-height: 0; font-size: 13px; color: var(--ink); }
+.shelf-status:not(:empty) { margin-block: 4px 12px; padding: 10px 14px; border: 1px solid var(--rule); border-radius: 5px; background: var(--card); }
+.shelf-undo { min-height: 44px; padding: 0 12px; border: 1px solid var(--blue); border-radius: 5px; background: transparent; color: var(--blue); font-size: 13px; font-weight: 700; cursor: pointer; }
+.shelf-undo:hover { background: var(--accent-tint); }
+
+.shelf-list { padding-bottom: 12px; }
+.shelf-list:focus { outline: none; }
+.shelf-count { margin: 0 0 8px; font-size: 12px; color: var(--muted); }
+.shelf-empty { margin: 0; padding: 32px 0 40px; font-size: 14px; line-height: 1.9; color: var(--ink-2); }
+
+/* まとまり（人・曲・年代・ライブ）：開け閉めできる見出し */
+.shelf-group-box { border-top: 1px solid var(--rule); }
+.shelf-group-box:last-child { border-bottom: 1px solid var(--rule); }
+.shelf-group-box > summary { display: flex; align-items: center; gap: 10px; min-height: 52px; padding: 6px 2px; cursor: pointer; list-style: none; }
+.shelf-group-box > summary::-webkit-details-marker { display: none; }
+.shelf-group-box > summary::after { content: ""; flex: none; width: 8px; height: 8px; margin: 0 6px 0 auto; border-right: 1.5px solid var(--ink-2); border-bottom: 1.5px solid var(--ink-2); transform: rotate(45deg) translateY(-2px); }
+.shelf-group-box[open] > summary::after { transform: rotate(-135deg) translateY(-2px); }
+.shelf-group-name { font-size: 15px; font-weight: 700; color: var(--ink); }
+.shelf-group-count { font-size: 12px; color: var(--muted); font-variant-numeric: tabular-nums; }
+
+/* 1件ずつの行：白いカード */
+.shelf-items { display: grid; gap: 8px; margin: 0 0 14px; padding: 0; list-style: none; }
+.shelf-item { display: flex; align-items: center; gap: 12px; padding: 12px 12px 12px 16px; border: 1px solid var(--line-card); border-radius: 5px; background: var(--card); }
+.shelf-item-main { flex: 1; min-width: 0; }
+.shelf-item-title { display: block; margin: 0; font-size: 14px; font-weight: 600; line-height: 1.6; color: var(--ink); text-decoration: none; overflow-wrap: anywhere; }
+a.shelf-item-title { padding-block: 4px; }
+a.shelf-item-title:hover { color: var(--blue); text-decoration: underline; }
+.shelf-live-date { font-variant-numeric: tabular-nums; letter-spacing: .04em; }
+.shelf-item-meta { margin: 2px 0 0; font-size: 12px; line-height: 1.7; color: var(--muted); overflow-wrap: anywhere; }
+.shelf-remove { flex: none; min-width: 56px; min-height: 44px; padding: 0 12px; border: 1px solid var(--line-input); border-radius: 5px; background: transparent; color: var(--ink-2); font-size: 13px; cursor: pointer; }
+.shelf-remove:hover { border-color: var(--ink-2); background: var(--paper-2); color: var(--ink); }
+
+.shelf-page .paper-sheet > .hist-note { margin-top: 18px; }
+
+/* ---------- 正式版の配色：紙の面は透明で、夜空の上に直接のる ----------
+   theme-blue.css は .paper-sheet の中の文字の色を白に置き換えるので、白い部品（1件ずつの行・お知らせ）の中だけ、元の紺の色に戻す
+   （記事一覧の記事カードと同じ考え方）。夜空の上のフォーカスの枠は白、白い部品の中は群青 */
+.paper-sheet :where(.shelf-item, .shelf-status) {
+  --ink: #0B1230; --ink-2: #22305C; --muted: #3A4670; --rule: #AEBBD8;
+  --line-card: #C3CDE3; --line-input: #8F9DC2; --paper-2: #E3E9F5; --accent-tint: #E6ECF8;
+}
+.shelf-page .paper-sheet :focus-visible { outline-color: #FFFFFF; outline-offset: 2px; }
+.shelf-page .paper-sheet :where(.shelf-item, .shelf-status) :focus-visible { outline-color: var(--blue); }
+.shelf-page .paper-sheet > .hist-note a { color: #FFFFFF; text-decoration: underline; }

@@ -69,6 +69,7 @@ data/articles.csv を書き換えて保存
 | `setlist.html`・`assets/setlist.js` | 「RAD LIVE SET LIST」のページと動き | 触らない |
 | `members.html`・`assets/members.js` | 「メンバー紹介」のページ（紹介文と SNS のリンクは members.html に直接書きます） | 紹介文や SNS を直すとき（7-4） |
 | `index.html` | 玄関（トップ）。「まだ読んでいない一節」と、各部屋への入口（窓）。動きは `assets/home.js`、見た目は `assets/home.css` | たまに |
+| `shelf.html` | あなたの棚。お気に入り・あとで読む・既読・参加した公演を、人・曲や作品・年代・ライブごとにまとめて見るページ。中身はこのブラウザの印（記事一覧・セットリストと同じ） | 触らない |
 | `articles.html` | 記事一覧の骨組みと文章（見出し・探す入口・フッター・収録方針の文章）。以前のトップの住所（`./?person=…`・`./#admin` など）で開くと、ここへ自動で移ります（`assets/home-redirect.js`） | たまに |
 | `maker.html`・`assets/maker.js`・`assets/maker.css` | 記事データ作成ツール（記事を追加するときの補助） | 触らない（使うだけ） |
 | `404.html` | ない URL を開いたときに出るページ | 触らない |

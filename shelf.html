@@ -1,0 +1,95 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<!-- 「あなたの棚」：お気に入り・あとで読む・既読・参加した公演を1か所に集めるページ（docs/concept.md の「あなたの棚」）。
+     棚の中身はこのブラウザ（localStorage）の印で、記事一覧・RAD LIVE SET LIST・RADWIMPSの歩みで付けた印と同じものです。サーバーには送りません。
+     動きは assets/shelf.js、分け方の計算は assets/shelf-data.js、見た目は assets/shelf.css です。
+     安全のための決まり（CSP）：HTML の中に直接 <script> や style="…" を書くと動かなくなるので、assets フォルダのファイルに書いてください。 -->
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' https://static.cloudflareinsights.com; style-src 'self'; img-src 'self' data:; font-src 'self'; connect-src 'self' https://api.web3forms.com https://cloudflareinsights.com; object-src 'none'; base-uri 'self'; form-action 'self'; upgrade-insecure-requests">
+<meta name="referrer" content="strict-origin-when-cross-origin">
+<meta name="robots" content="noindex">
+<title>あなたの棚｜RADWIMPS Archives</title>
+<meta name="description" content="お気に入り・あとで読む・既読・参加した公演を、人・曲や作品・年代・ライブごとにまとめて見られます。">
+<meta property="og:title" content="あなたの棚｜RADWIMPS Archives">
+<meta property="og:description" content="お気に入り・あとで読む・既読・参加した公演を、人・曲や作品・年代・ライブごとにまとめて見られます。">
+<meta property="og:type" content="website">
+<meta property="og:url" content="https://radwimps-archive.github.io/radwimps-interview-index/shelf.html">
+<meta property="og:site_name" content="RADWIMPS Archives">
+<meta property="og:locale" content="ja_JP">
+<meta property="og:image" content="https://radwimps-archive.github.io/radwimps-interview-index/assets/ogp.png">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="theme-color" content="#0A0B12">
+<link rel="icon" href="assets/icon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="assets/style.css">
+<link rel="stylesheet" href="assets/theme-blue.css">
+<link rel="stylesheet" href="assets/shelf.css">
+<script type="module" src="assets/shelf.js"></script>
+</head>
+<body class="shelf-page">
+<a href="#shelf" class="skip">棚の中身へ移動</a>
+
+<!-- いちばん上の帯（ほかのページと同じ。左上のボタンでメニューが開きます） -->
+<header class="header" id="header">
+  <div class="header-inner">
+    <button id="menuBtn" class="hamburger" type="button" aria-expanded="false" aria-controls="menuClip" aria-label="メニューを開く"><span></span><span></span><span></span></button>
+    <a href="./" class="brand" aria-label="RADWIMPS Archives トップへ"><span class="brand-text">RADWIMPS<span>Archives</span></span></a>
+  </div>
+  <div class="menu-clip" id="menuClip" inert aria-hidden="true">
+    <nav class="menu-panel" aria-label="メニュー">
+      <a class="nav-item" href="articles.html">記事一覧 <span aria-hidden="true">→</span></a>
+      <a class="nav-item" href="history.html">RADWIMPSの歩み <span aria-hidden="true">→</span></a>
+      <a class="nav-item" href="songs.html">楽曲一覧 <span aria-hidden="true">→</span></a>
+      <a class="nav-item" href="setlist.html">RAD LIVE SET LIST <span aria-hidden="true">→</span></a>
+      <a class="nav-item" href="members.html">メンバー紹介 <span aria-hidden="true">→</span></a>
+      <a class="nav-item" href="shelf.html" aria-current="page">あなたの棚 <span aria-hidden="true">→</span></a>
+      <a class="nav-item" href="articles.html#admin" id="adminLink" hidden>運営管理 <span aria-hidden="true">→</span></a>
+    </nav>
+  </div>
+</header>
+
+<main id="main">
+  <section class="hero wrap" aria-labelledby="shelfTitle">
+    <p class="eyebrow">SHELF</p>
+    <h1 id="shelfTitle">あなたの棚</h1>
+    <p class="hero-description">お気に入り・あとで読む・既読・参加した公演を、ここにまとめています。</p>
+  </section>
+
+  <div class="paper-sheet">
+    <!-- 棚の段（お気に入り・あとで読む・既読・参加した公演）。数字は件数。中身は assets/shelf.js が入れます -->
+    <div class="format-tabs shelf-tabs" role="group" aria-label="棚の段を選ぶ" id="shelfTabs"></div>
+
+    <!-- 分け方（記事の段だけ）：人・曲や作品・年代・ライブ -->
+    <div class="shelf-tools wrap" id="shelfTools" hidden>
+      <div class="song-order shelf-group" role="group" aria-label="分け方" id="shelfGroup">
+        <button type="button" class="song-order-btn" data-group="person" aria-pressed="true">人</button>
+        <button type="button" class="song-order-btn" data-group="work" aria-pressed="false">曲・作品</button>
+        <button type="button" class="song-order-btn" data-group="year" aria-pressed="false">年代</button>
+        <button type="button" class="song-order-btn" data-group="live" aria-pressed="false">ライブ</button>
+      </div>
+    </div>
+
+    <!-- 外したときのお知らせと「元に戻す」 -->
+    <div class="shelf-status wrap" id="shelfStatus" role="status" aria-live="polite"></div>
+
+    <section class="shelf-list wrap" id="shelf" aria-labelledby="shelfListTitle" tabindex="-1">
+      <h2 id="shelfListTitle" class="sr">棚の中身</h2>
+      <div id="shelfBody"><p class="hist-loading" id="shelfLoading">棚の中身を読み込んでいます…</p></div>
+    </section>
+
+    <p class="hist-note wrap">棚の中身は、このブラウザの中だけに保存されています（サーバーには送りません）。ほかの端末へ移すときや、念のための書き出しは、<a href="articles.html#mypage">保存データの管理</a>から行えます。</p>
+  </div>
+</main>
+
+<!-- フッター -->
+<footer class="site-footer wrap">
+  <div class="footer-brand">RADWIMPS Archives</div>
+  <p>UNOFFICIAL FAN ARCHIVE · 本人・所属事務所・各媒体とは関係ありません。</p>
+  <div class="footer-links"><a href="articles.html">記事一覧へ →</a></div>
+</footer>
+
+<!-- パソコンでこのファイルを直接開いたときの案内（中身は assets/localfile.js） -->
+<script src="assets/localfile.js"></script>
+</body>
+</html>

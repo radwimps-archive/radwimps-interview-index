@@ -48,6 +48,7 @@
       <a class="nav-item" href="songs.html">楽曲一覧 <span aria-hidden="true">→</span></a>
       <a class="nav-item" href="setlist.html">RAD LIVE SET LIST <span aria-hidden="true">→</span></a>
       <a class="nav-item" href="members.html">メンバー紹介 <span aria-hidden="true">→</span></a>
+      <a class="nav-item" href="shelf.html">あなたの棚 <span aria-hidden="true">→</span></a>
       <a class="nav-item" href="articles.html#admin" id="adminLink" hidden>運営管理 <span aria-hidden="true">→</span></a>
     </nav>
   </div>
@@ -80,7 +81,7 @@
   </form>
 
   <!-- 各部屋への入口：夜の家の「灯りのついた窓」。部屋の違いは青の濃淡だけで出す（差し色は足さない）。
-       あなたの棚はまだ準備中なので、灯りの消えた窓にしておく（押せない） -->
+       （まだできていない部屋は、class="window is-dark" の div にすると、灯りの消えた窓になる） -->
   <section id="windows" class="windows wrap" aria-labelledby="windowsTitle">
     <h2 id="windowsTitle" class="sr">各部屋への入口</h2>
     <ul class="window-list">
@@ -89,7 +90,7 @@
       <li><a class="window w3" href="songs.html"><span class="window-panes" aria-hidden="true"></span><span class="window-en" aria-hidden="true">SONGS</span><strong>楽曲一覧</strong><small>曲と、その曲について語られた記事。</small></a></li>
       <li><a class="window w4" href="setlist.html"><span class="window-panes" aria-hidden="true"></span><span class="window-en" aria-hidden="true">SET LIST</span><strong>RAD LIVE SET LIST</strong><small>公演ごとに演奏された曲。</small></a></li>
       <li><a class="window w5" href="members.html"><span class="window-panes" aria-hidden="true"></span><span class="window-en" aria-hidden="true">MEMBERS</span><strong>メンバー紹介</strong><small>メンバーとサポートメンバー。</small></a></li>
-      <li><div class="window w6 is-dark"><span class="window-panes" aria-hidden="true"></span><span class="window-en" aria-hidden="true">SHELF</span><strong>あなたの棚</strong><small>気に入った言葉を、持ち帰る場所。<span class="window-soon">準備中</span></small></div></li>
+      <li><a class="window w6" href="shelf.html"><span class="window-panes" aria-hidden="true"></span><span class="window-en" aria-hidden="true">SHELF</span><strong>あなたの棚</strong><small>気に入った言葉を、持ち帰る場所。</small></a></li>
     </ul>
   </section>
 </main>
