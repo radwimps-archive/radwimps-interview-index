@@ -6,7 +6,7 @@
 //   どの出来事がどの公演か：data/setlists.csv の公演のうち、出来事の日付（期間）に入るもの。期間の中に別のライブ（フェスなど）があるときは、いちばん公演数の多いツアーだけ。
 
 import "./analytics.js";
-import { parseHistory, parseSetlists, HISTORY_CATEGORIES } from "./data.js";
+import { parseHistory, parseSetlists, parseSites, attachSites, siteKey, HISTORY_CATEGORIES } from "./data.js";
 import { attendButton, attendCount, assignKeys, sync as syncAttend, setupAttendClicks } from "./attended.js";
 import { h as el, setupMenu, isAdminDevice, watchScrollFade, watchStuck } from "./ui.js";
 import config from "./config.js";
@@ -45,6 +45,8 @@ function load(text) {
 // 出来事に当てはまる公演（セトリのデータから）。ライブ・ツアーの出来事だけ
 const isoOf = (y, m, d) => `${y}-${pad(m || 1)}-${pad(d || 1)}`;
 function showsOf(e) {
+  // 特設サイトの一覧から足した行には出さない（同じツアーの行が別にあると、「行った」の印が2か所に出てしまうため）
+  if (e.fromSites) return [];
   if (!e.m || !e.cats.some((c) => c.name === "ライブ・ツアー")) return [];
   const from = isoOf(e.y, e.m, e.d);
   const to = e.ey ? isoOf(e.ey, e.em || 12, e.ed || 31) : e.d ? from : isoOf(e.y, e.m, 31);
@@ -104,7 +106,8 @@ function renderTimeline() {
         ...titleLine(e),
         e.note ? el("p", { class: "hist-sub", text: e.note }) : null,
         attendLine(e),
-        videoLine(e)));
+        videoLine(e),
+        siteLine(e)));
     }
     sec.append(ol);
     box.append(sec);
@@ -208,6 +211,24 @@ function titleLine(e) {
   }, name);
   p.append(e.title.slice(0, open + 1), a, e.title.slice(close));
   return [p];
+}
+
+// 特設サイト（data/sites.csv。「特設サイト」の部屋と同じもの）。出来事の下に小さく「特設サイト ↗」を出す。
+//   公開が終わったサイトは「特設サイト（公開終了）」として、Internet Archive の保存版へつなぐ（保存版がなければ文字だけ）
+function siteLine(e) {
+  // 見出しの作品名・ライブ名が、すでに同じ特設サイト（公開中）へのリンクになっているものは出さない（同じリンクが2つ並ばないように）
+  const list = (e.sites || []).filter((s) => s.closed || !e.site || siteKey(s.url) !== siteKey(e.site));
+  if (!list.length) return null;
+  const p = el("p", { class: "hist-sites" });
+  list.forEach((s, i) => {
+    if (i) p.append(el("span", { class: "sep", "aria-hidden": "true", text: "·" }));
+    const href = s.closed ? s.archive : s.url;
+    const label = s.closed ? "特設サイト（公開終了）" : "特設サイト";
+    p.append(href
+      ? el("a", { href, target: "_blank", rel: "noopener noreferrer", "aria-label": `${s.name}の${s.closed ? "特設サイトの保存版（Internet Archive）" : "特設サイト"}を新しいタブで開く` }, `${label}${s.closed ? "の保存版" : ""} ↗`)
+      : el("span", { text: label }));
+  });
+  return p;
 }
 
 // 動画（MV・予告編など）。CSV の「動画」の列に「ラベル=YouTube の ID か URL」を「 | 」で区切って書く。
@@ -364,6 +385,15 @@ if (isAdminDevice()) $("#adminLink").hidden = false;
     const res = await fetch("data/history.csv", { cache: "no-cache" });
     if (!res.ok) throw new Error();
     events = load(await res.text());
+    // 特設サイト（data/sites.csv）を出来事につなぐ。読めなくても、年表はそのまま見られる
+    try {
+      const sr = await fetch("data/sites.csv", { cache: "no-cache" });
+      if (sr.ok) events = attachSites(events, parseSites(await sr.text()).sites).map((e) => {
+        // 見出しのリンクと同じ特設サイトが「公開終了」なら、見出しのリンク先も保存版に（保存版がなければリンクなし）
+        const same = e.site && e.sites.find((s) => s.closed && siteKey(s.url) === siteKey(e.site));
+        return { ...e, cat: e.cats[0], site: same ? same.archive : e.site };
+      });
+    } catch { /* 特設サイトの印は出さない */ }
     // セトリのデータ（行ったライブの印のため）。読めなくても、年表はそのまま見られる
     try {
       const sl = await fetch("data/setlists.csv", { cache: "no-cache" });
