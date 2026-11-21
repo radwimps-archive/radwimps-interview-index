@@ -25,9 +25,10 @@ body {
   -webkit-text-size-adjust: 100%; text-size-adjust: 100%;
 }
 
-/* 背景の夜空：画面に固定した1枚の層。高さは大きいほうの画面の高さ（iPhone でアドレスバーが縮んでも伸び縮みしない） */
+/* 背景の夜空：画面に固定した1枚の層。高さは大きいほうの画面の高さ（iPhone でアドレスバーが縮んでも伸び縮みしない）。
+   iPhone の Safari（下にアドレスの帯が浮く形）では 100lvh でも下端に隙間ができ、黒い帯が動いて見えたので、下の安全領域と 120px を足して伸ばす */
 body::after {
-  content: ""; position: fixed; top: 0; right: 0; left: 0; height: 100vh; height: 100lvh; z-index: -1; pointer-events: none;
+  content: ""; position: fixed; top: 0; right: 0; left: 0; height: calc(100vh + 120px); height: calc(100lvh + env(safe-area-inset-bottom, 0px) + 120px); z-index: -1; pointer-events: none;
   background:
     var(--stars-bright),
     var(--stars-mid),
