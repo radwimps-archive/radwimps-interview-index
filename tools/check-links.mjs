@@ -10,6 +10,9 @@
 // 判定のしかた
 //   ✗ リンク切れの可能性が高い … ページが見つからない（404・410）、サイト自体がなくなっている、
 //                               別のサイトやトップページに転送される、「ページが見つかりません」と表示される
+//   ？ 中身が記事と違う可能性 … ページは開くが、記事の言葉（RADWIMPS・メンバーや対談相手の名前・タイトルの『』「」の作品名・タグ）が
+//                               ページのどこにも見当たらない（URL はそのままで、別のお知らせなどに差し替わっていたときのため。
+//                               2026-11 に TOWER RECORDS ONLINE の記事の URL が、別のお知らせのページになっていたことから足しました）
 //   △ 要確認 …………………… アクセスを断られた（403 など）、応答がない、サーバーの一時的なエラー
 //                               （自動チェックを断るサイトもあるので、人が開いて確かめます）
 //   ✓ 問題なし
@@ -21,7 +24,12 @@
 
 import { readFile, writeFile, appendFile } from "node:fs/promises";
 import { pathToFileURL } from "node:url";
-import { parseArticles, youtubeId } from "../assets/data.js";
+import { parseArticles, youtubeId, MEMBERS } from "../assets/data.js";
+
+// 文字のそろえ方（全角半角・大文字小文字・ひらがなとカタカナの違いをなくし、記号や空白を取り除く）。
+// 記事一覧の検索と同じ考え方。正式版のブランチでは assets/text.js にまとめてあるので、main に入ったらそちらを使う
+const STRIP = /[\s　・、，,。．.／/「」『』【】〔〕［］[\]（）()<>＜＞〈〉《》\-‐–—―_~〜～!！?？:：;；'"“”‘’`*＊#＃|｜×✕+＋&＆]/g;
+const norm = (s) => String(s || "").normalize("NFKC").toLowerCase().replace(/[ぁ-ゖ]/g, (c) => String.fromCharCode(c.charCodeAt(0) + 0x60)).replace(STRIP, "");
 export { youtubeId };
 
 const DEFAULTS = {
@@ -122,6 +130,39 @@ function networkResult(e) {
   return warn(`接続できませんでした（${code || (e && e.message) || "原因不明"}）`, true);
 }
 
+/* ---------- 中身が記事と合っているか ---------- */
+
+// 記事の言葉：ページの中にこのどれかがあれば「記事のページ」とみなす（文字のそろえ方は記事一覧の検索と同じ norm）
+export function articleTerms(it) {
+  const words = ["RADWIMPS", "ラッドウィンプス"];
+  for (const k of it.members || []) {
+    const m = MEMBERS[k];
+    if (m && k !== "band") words.push(m.name, m.aliases.find((a) => a !== m.name && a.length >= 3) || "");
+  }
+  words.push(...(it.guests || []));
+  for (const m of String(it.title || "").matchAll(/[「『]([^」』]+)[」』]/g)) words.push(m[1]);
+  words.push(...(it.tags || []).map((t) => t.replace(/^#/, "")));
+  return [...new Set(words.map(norm).filter((w) => [...w].length >= 2))];
+}
+
+// HTML から、人が読む文字だけを取り出す（題名・説明の meta も入れる。プログラムや見た目の指定は外す）
+export function pageText(html) {
+  const metas = [...html.matchAll(/<meta[^>]+(?:name|property)=["'](?:description|og:title|og:description|twitter:title)["'][^>]*>/gi)]
+    .map((m) => (m[0].match(/content=["']([^"']*)["']/i) || [])[1] || "");
+  const body = html.replace(/<(script|style|noscript|template)[\s\S]*?<\/\1>/gi, " ").replace(/<!--[\s\S]*?-->/g, " ").replace(/<[^>]+>/g, " ");
+  return decodeEntities([...metas, body].join(" ")).replace(/\s+/g, " ").trim();
+}
+
+// 中身の判定：found（記事の言葉がある）・missing（文字は十分あるのに見当たらない）・unknown（文字が少なく判断できない。画面をプログラムで作るサイトなど）
+export const MIN_TEXT = 300;
+export function contentMatch(html, terms) {
+  if (!terms || !terms.length) return { verdict: "found" };
+  const text = pageText(html);
+  const n = norm(text);
+  if (terms.some((t) => n.includes(t))) return { verdict: "found" };
+  return { verdict: text.length >= MIN_TEXT ? "missing" : "unknown" };
+}
+
 /* ---------- 1件を確かめる ---------- */
 
 async function checkYouTube(id, o) {
@@ -178,8 +219,14 @@ export async function checkUrl(url, opts = {}) {
     if (move && move.type === "top") { await res.body?.cancel().catch(() => {}); return dead("サイトのトップページに転送されます"); }
     if (move && move.type === "upper") { await res.body?.cancel().catch(() => {}); return dead("記事ではなく、一覧などの上のページに転送されます"); }
 
-    const title = pageTitle(await readSome(res, 262144));
+    const html = await readSome(res, 262144);
+    const title = pageTitle(html);
     if (NOT_FOUND.some((re) => re.test(title))) return dead(`ページに「${title.slice(0, 50)}」と表示されています`);
+    // ページは開くが、記事の言葉が見当たらない（URL はそのままで、別のページに差し替わっている）
+    const c = contentMatch(html, o.expect);
+    const shown = title ? `ページの題名は「${title.slice(0, 50)}」` : "ページの題名はありません";
+    if (c.verdict === "missing") return { level: "mismatch", reason: `記事の言葉（${o.expect.slice(0, 3).join("・")} など）がページに見当たりません。${shown}`, title };
+    if (c.verdict === "unknown") return warn(`ページの文字が少なく、中身が記事と合っているか確かめられませんでした。${shown}`);
     return { level: "ok", reason: "", title, movedTo: current !== url ? current : "" };
   }
   return warn("転送が多すぎて、最後まで確かめられませんでした");
@@ -204,11 +251,12 @@ export async function checkAll(items, opts = {}, onDone = () => {}) {
     while (next < items.length) {
       const i = next++;
       await polite(items[i].url);
-      let r = await checkUrl(items[i].url, o);
+      const oi = { ...o, expect: articleTerms(items[i]) };
+      let r = await checkUrl(items[i].url, oi);
       if (r.level === "warn" && r.retry) {
         await sleep(o.retryDelayMs);
         await polite(items[i].url);
-        r = await checkUrl(items[i].url, o);
+        r = await checkUrl(items[i].url, oi);
       }
       results[i] = r;
       onDone(items[i], r);
@@ -235,6 +283,7 @@ function table(rows) {
 export function buildReport(rows, checkedOn) {
   const deadRows = rows.filter(({ it, r }) => it.state === "公開" && r.level === "dead");
   const revived = rows.filter(({ it, r }) => it.state === "リンク切れ" && r.level === "ok");
+  const mismatchRows = rows.filter(({ it, r }) => it.state === "公開" && r.level === "mismatch");
   const warnRows = rows.filter(({ it, r }) => it.state === "公開" && r.level === "warn");
   const nPublic = rows.filter(({ it }) => it.state === "公開").length;
   const nDead = rows.length - nPublic;
@@ -249,17 +298,27 @@ export function buildReport(rows, checkedOn) {
       "4. 問題なく見られたら、そのままで大丈夫です。毎回まちがって引っかかる記事は、メモ列に `リンク確認不要` と書くとチェックから外れます。",
       "");
   }
+  if (mismatchRows.length) {
+    md.push(`## ？ 中身が記事と違う可能性がある記事（${mismatchRows.length} 件）`, "",
+      "ページは開きますが、記事の言葉（RADWIMPS・メンバーや対談相手の名前・作品名など）がページに見当たりません。URL はそのままで、別のお知らせなどに差し替わっているかもしれません。", "",
+      table(mismatchRows), "",
+      "**対応のしかた**", "",
+      "1. タイトルのリンクを開いて、記事の中身が出るか確かめます。",
+      "2. 別のページになっていたら、状態を `リンク切れ` に書き換えます（記事が別の URL に移っていたら、URL を書き換えます）。",
+      "3. 記事が出ていたら、そのままで大丈夫です。毎回まちがって引っかかる記事は、メモ列に `リンク確認不要` と書くとチェックから外れます。",
+      "");
+  }
   if (revived.length) {
     md.push(`## ↺ 開けるようになった記事（${revived.length} 件）`, "", "「リンク切れ」にしている記事のうち、今は開ける記事です。中身を確かめて、問題なければ状態を `公開` に戻してください。", "", table(revived), "");
   }
-  if (!deadRows.length && !revived.length) md.push("対応が必要な記事はありませんでした。", "");
+  if (!deadRows.length && !mismatchRows.length && !revived.length) md.push("対応が必要な記事はありませんでした。", "");
   if (warnRows.length) {
     md.push(`## △ 自動では確かめられなかった記事（${warnRows.length} 件）`, "",
       "自動チェックを断るサイトが多く、たいていは問題ありません。気になるものだけ開いて確かめてください。この欄だけのときは、お知らせ（Issue）は作られません。", "",
       table(warnRows), "");
   }
   md.push("---", "このお知らせは `tools/check-links.mjs` が自動で作りました。直し終わったら、次のチェックで問題がなくなると自動で閉じます（手で閉じてもかまいません）。");
-  return { markdown: md.join("\n"), problems: deadRows.length + revived.length, warnings: warnRows.length };
+  return { markdown: md.join("\n"), problems: deadRows.length + mismatchRows.length + revived.length, warnings: warnRows.length };
 }
 
 /* ---------- 実行 ---------- */
@@ -272,7 +331,7 @@ async function main() {
   const targets = parsed.items.filter((it) => it.state !== "非表示" && !it.note.includes("リンク確認不要"));
   console.log(`${targets.length} 件のリンクを確かめます…\n`);
 
-  const mark = { ok: "✓", dead: "✗", warn: "△" };
+  const mark = { ok: "✓", dead: "✗", mismatch: "？", warn: "△" };
   const results = await checkAll(targets, {}, (it, r) => {
     console.log(`${mark[r.level]} ${String(it.line).padStart(3)}行目  ${it.media}｜${short(it.title, 40)}${r.reason ? "  — " + r.reason : ""}`);
   });
