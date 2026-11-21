@@ -14,7 +14,7 @@ test("今の data/sites.csv はエラーなく読める", () => {
 });
 
 test("書き間違い：種類・URL・公開終了・保存版URL", () => {
-  const { errors } = parseSites(HEAD + "公開,2020,1,1,A,ライブ,http://a.jp/,おわり,https://example.com/,,\n");
+  const { errors } = parseSites(HEAD + "公開,2020,1,1,A,ライブ,ftp://a.jp/,おわり,https://example.com/,,\n");
   assert.equal(errors.length, 4);
 });
 

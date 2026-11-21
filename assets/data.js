@@ -517,7 +517,8 @@ export function parseSites(text) {
     const kind = SITE_KINDS.find((k) => k.name === nfkc(get("kind")));
     if (!kind) err(line, `種類「${get("kind")}」は使えません。${kinds} のどれかを書いてください`);
     const url = get("url");
-    if (!/^https:\/\/[^\s"<>]+$/.test(url)) err(line, "URL は https:// で始まる形で書いてください");
+    // 古い特設サイトには http:// のものがあるので、どちらも使える（リンクで開くだけなので、サイトの安全の決まりには関係しない）
+    if (!/^https?:\/\/[^\s"<>]+$/.test(url)) err(line, "URL は https:// か http:// で始まる形で書いてください");
     const closedRaw = nfkc(get("closed"));
     if (closedRaw && closedRaw !== "終了") err(line, "「公開終了」の列は、公開が終わったサイトだけ「終了」と書きます（公開中は空欄）");
     const closed = closedRaw === "終了";
