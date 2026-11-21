@@ -47,6 +47,7 @@ members.html          「メンバー紹介」のページ
 assets/
   style.css           見た目（色など）
   home.js・home.css   玄関の動きと見た目（まだ読んでいない一節・各部屋への入口の窓）
+  encounter.js        玄関の「まだ読んでいない一節」の選び方（日替わり・未読から1本）
   home-redirect.js    以前のトップの住所（./?person=… など）で開かれたら、記事一覧へ送る
   app.js              記事一覧の画面の動き（探す入口・検索・絞り込み・あとで読む・既読）
   history.js          「RADWIMPSの歩み」（年表）の動き

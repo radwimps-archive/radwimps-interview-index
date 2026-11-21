@@ -6,8 +6,8 @@
 
    文字と地の色の差（コントラスト。4.5 以上）
    ・窓の中のいちばん明るい青 #2D58C4 ／ 白 …… 6.4、少し薄い白（白 82%）…… 4.9
-   ・窓の地（下のほう）#2A54C0〜#1E44AE ／ 白 …… 6.7〜8.4、少し薄い白 …… 5.1〜6.2
-   ・灯りの消えた窓 #12307F ／ 少し薄い白 …… 8.5
+   ・窓の地（下のほう）#2A54C0〜#14328A ／ 白 …… 6.7〜11.3、少し薄い白 …… 5.1〜8.1
+   ・灯りの消えた窓 #0E2766 ／ 少し薄い白 …… 9.8
    ・一節の面は、夜空にうすい黒（rgba(10, 11, 18, .32)）を重ねるので、群青の上（白 9.0・少し薄い白 6.6）より読みやすい */
 
 .home-page .hero { padding-bottom: 28px; }
@@ -42,6 +42,8 @@
 /* ---------- 検索 ---------- */
 .home-search { display: flex; gap: 8px; max-width: 760px; margin-top: 28px; }
 .home-search .search-box { border-color: var(--white); }
+/* 入力欄にいるときの目印（style.css は枠の色だけで示すが、ここでは枠が白のままなので、外に白い線を出す） */
+.home-search .search-box:focus-within { outline: 2px solid var(--on-blue); outline-offset: 2px; }
 .home-search .search-box svg { color: var(--muted); }
 .home-search .search-box input { color: var(--ink); }
 .home-search .search-box input::placeholder { color: var(--muted); }
@@ -52,11 +54,11 @@
 .window-list { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px 14px; margin: 0; padding: 0; list-style: none; }
 .window-list li { display: flex; }
 .window {
-  --win: #2A54C0;
+  --win-top: #2D58C4; --win: #2A54C0;
   position: relative; display: flex; flex-direction: column; width: 100%; min-height: 180px; padding: 12px 12px 14px;
   border: 1px solid rgba(255, 255, 255, .7); border-radius: 2px; color: var(--on-blue); text-decoration: none;
   /* 窓の中：上ほど少し明るい青（灯りの色）。いちばん明るい所でも #2D58C4 まで */
-  background: linear-gradient(180deg, #2D58C4 0, var(--win) 62%);
+  background: linear-gradient(180deg, var(--win-top) 0, var(--win) 62%);
   /* 内側の細い枠と、外にほのかにこぼれる灯り */
   box-shadow: inset 0 0 0 3px rgba(10, 11, 18, .35), inset 0 0 0 4px rgba(255, 255, 255, .25), 0 0 28px rgba(150, 175, 240, .22);
 }
@@ -73,13 +75,14 @@ a.window:hover { box-shadow: inset 0 0 0 3px rgba(10, 11, 18, .35), inset 0 0 0 
 a.window:focus-visible { outline: 2px solid var(--on-blue); outline-offset: 8px; }
 
 /* 部屋ごとの青の濃淡（差し色は足さない） */
-.window.w1 { --win: #2A54C0; }
-.window.w2 { --win: #2850BC; }
-.window.w3 { --win: #2148B4; }
-.window.w4 { --win: #1E44AE; }
-.window.w5 { --win: #2148B4; }
+/* 記事一覧がいちばん明るく、並びの順に少しずつ深い青へ */
+.window.w1 { --win-top: #2D58C4; --win: #2A54C0; }
+.window.w2 { --win-top: #2850BC; --win: #2148B4; }
+.window.w3 { --win-top: #2148B4; --win: #1B3C9C; }
+.window.w4 { --win-top: #1E44AE; --win: #16378F; }
+.window.w5 { --win-top: #1B3C9C; --win: #14328A; }
 /* 灯りの消えた窓（準備中） */
-.window.is-dark { border-color: rgba(255, 255, 255, .45); background: #12307F; box-shadow: inset 0 0 0 3px rgba(10, 11, 18, .35), inset 0 0 0 4px rgba(255, 255, 255, .12); }
+.window.is-dark { border-color: rgba(255, 255, 255, .45); background: #0E2766; box-shadow: inset 0 0 0 3px rgba(10, 11, 18, .35), inset 0 0 0 4px rgba(255, 255, 255, .12); }
 .window.is-dark::after { background: rgba(255, 255, 255, .35); }
 .window.is-dark .window-panes::before, .window.is-dark .window-panes::after { background: rgba(255, 255, 255, .25); }
 .window-soon { display: inline-block; margin-left: 6px; padding: 0 8px; border: 1px solid var(--on-blue-line); border-radius: 10px; font-size: 12px; line-height: 1.6; color: var(--on-blue); white-space: nowrap; }

@@ -639,7 +639,7 @@ function goList(change) {
   render();
   window.scrollTo({ top: 0, behavior: "auto" });
 }
-$("#brand").addEventListener("click", (e) => { e.preventDefault(); setMenuOpen(false, { focusBack: false }); goList(); });
+// 左上のロゴは、玄関（トップ）へ移る（ふつうのリンク。以前は記事一覧の先頭に戻る役目だったが、トップが玄関になったので横取りしない）
 
 /* ---------- 入口・検索・タブ・絞り込みの操作 ---------- */
 

@@ -8,7 +8,8 @@
 //   ・メニューとベータ版の案内は、ほかのページと共通。
 
 import "./analytics.js";
-import { parseArticles, VIDEO_KIND, RADIO_KIND, RELEASE_KIND } from "./data.js";
+import { parseArticles, VIDEO_KIND, RADIO_KIND } from "./data.js";
+import { todayKey, candidatesOf, pickUnread } from "./encounter.js";
 import { h, setupMenu, isAdminDevice } from "./ui.js";
 import { setupBeta } from "./feedback.js";
 
@@ -33,32 +34,6 @@ function markRead(id) {
   try { localStorage.setItem(STORE_MARKS, JSON.stringify(m)); } catch { /* 保存できない環境 */ }
 }
 
-/* ---------- 日替わりの選び方 ---------- */
-
-// 日本時間の今日の日付（例：2026-11-21）
-export function todayKey(now = new Date()) {
-  const p = Object.fromEntries(new Intl.DateTimeFormat("en-CA", { timeZone: "Asia/Tokyo", year: "numeric", month: "2-digit", day: "2-digit" })
-    .formatToParts(now).map((x) => [x.type, x.value]));
-  return `${p.year}-${p.month}-${p.day}`;
-}
-// 文字から番号を作る（同じ文字なら、いつでも同じ番号。FNV-1a という簡単な計算）
-export function hashOf(text) {
-  let x = 0x811c9dc5;
-  for (let i = 0; i < text.length; i++) { x ^= text.charCodeAt(i); x = Math.imul(x, 0x01000193) >>> 0; }
-  return x;
-}
-// 一節として出せる記事：公開中で、紹介文（説明）があり、リリース情報・参考資料ではないもの。順番は id でそろえる（並びが変わらないように）
-export function candidatesOf(items) {
-  return items
-    .filter((it) => it.state === "公開" && it.id && it.summary && it.kind !== RELEASE_KIND && !/^参考資料/.test(it.note || ""))
-    .sort((a, b) => (a.id < b.id ? -1 : a.id > b.id ? 1 : 0));
-}
-// まだ読んでいない記事から、今日の1本を選ぶ（全部読んでいたら null）
-export function pickUnread(candidates, readIds, day) {
-  const unread = candidates.filter((it) => !readIds.has(it.id));
-  return unread.length ? unread[hashOf(day) % unread.length] : null;
-}
-
 /* ---------- 表示 ---------- */
 
 const dotDate = (d) => d.split("-").join(".");
@@ -79,12 +54,18 @@ function show(it) {
   const open = h("a", { class: "home-btn primary", href: it.url, target: "_blank", rel: "noopener noreferrer", "data-open": "" },
     h("span", { text: `${it.media}で${verb}` }), h("span", { class: "arrow", "aria-hidden": "true", text: "↗" }), h("span", { class: "sr", text: "（新しいタブで開きます）" }));
   const actions = h("div", { class: "encounter-actions" }, open);
-  if (unread.length > 1) actions.append(h("button", { type: "button", class: "home-btn", id: "encounterNext", text: "ほかの一節" }));
+  if (unread.some((x) => x !== it)) actions.append(h("button", { type: "button", class: "home-btn", id: "encounterNext", text: "ほかの一節" }));
   card.replaceChildren(
     h("p", { class: "encounter-meta", text: meta }),
     h("p", { class: "encounter-text", text: it.summary }),
     h("p", { class: "encounter-title", text: it.title }),
     actions);
+}
+
+// 開いた記事を既読にして、「ほかの一節」の候補からも外す（画面に出ている一節はそのまま）
+function readNow(it) {
+  markRead(it.id);
+  unread = unread.filter((x) => x !== it);
 }
 
 // 「ほかの一節」：まだ読んでいない記事から、いま出ているもの以外を1本
@@ -98,11 +79,11 @@ function showAnother() {
 
 $("#encounterCard").addEventListener("click", (e) => {
   if (e.target.closest("#encounterNext")) { showAnother(); return; }
-  if (e.target.closest("[data-open]") && current) markRead(current.id);
+  if (e.target.closest("[data-open]") && current) readNow(current);
 });
 // 中ボタンで開いたときも既読にする
 $("#encounterCard").addEventListener("auxclick", (e) => {
-  if (e.button === 1 && e.target.closest("[data-open]") && current) markRead(current.id);
+  if (e.button === 1 && e.target.closest("[data-open]") && current) readNow(current);
 });
 
 /* ---------- はじめに ---------- */

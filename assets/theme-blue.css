@@ -147,7 +147,7 @@ body::before, .header { background: var(--black); }
   .hero .eyebrow { font-size: 13px; letter-spacing: .5em; text-indent: .5em; }
   .hero h1 span { display: block; margin-left: 0; }
 }
-/* 記事一覧（トップ）：サイト名を大見出しに、キャッチコピーを上の小さな文字に。
+/* 玄関（トップ）：サイト名を大見出しに、キャッチコピーを上の小さな文字に。
    サイト名は上の帯のロゴと同じく字間を広く、1行目を太く・2行目を細く。字間のぶん右にずれないよう、左にも同じだけ空ける */
 /* サイト名は1行に横並び：「RADWIMPS」を太く、「ARCHIVES」を細く。画面の幅に合わせて大きさが変わり、折り返さない */
 .hero h1.site-title { font-size: clamp(20px, 6.4vw, 56px); line-height: 1.2; letter-spacing: .08em; text-indent: .08em; white-space: nowrap; }
