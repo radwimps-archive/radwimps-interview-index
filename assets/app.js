@@ -639,7 +639,7 @@ function goList(change) {
   render();
   window.scrollTo({ top: 0, behavior: "auto" });
 }
-$("#brand").addEventListener("click", (e) => { e.preventDefault(); setMenuOpen(false, { focusBack: false }); goList(); });
+// 左上のロゴは、玄関（トップ）へ移る（ふつうのリンク。以前は記事一覧の先頭に戻る役目だったが、トップが玄関になったので横取りしない）
 
 /* ---------- 入口・検索・タブ・絞り込みの操作 ---------- */
 
@@ -960,7 +960,7 @@ function showAbout() {
   const nodes = [
     h("p", { class: "modal-eyebrow", text: "ABOUT" }),
     h("h2", { id: "modalTitle", text: "収録方針と出典について" }),
-    ...$("#aboutText").content.cloneNode(true).children // 文章は index.html の <template id="aboutText"> にあります
+    ...$("#aboutText").content.cloneNode(true).children // 文章は articles.html の <template id="aboutText"> にあります
   ];
   if (hasFeedback) nodes.push(h("p", null, "記事の誤りやリンク切れ、掲載についてのお問い合わせ（削除のご依頼など）は、", h("a", { href: feedbackUrl({ kind: KIND.error, title: "記事の誤り・リンク切れのお知らせ" }), target: "_blank", rel: "noopener noreferrer", text: "こちらから知らせてください" }), usesForm ? "（アカウントは不要です）。" : "（GitHub のアカウントが必要です）。"));
   if (S.updated) nodes.push(h("p", { class: "small-note", text: `最終更新：${S.updated}` }));

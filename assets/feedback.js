@@ -125,7 +125,7 @@ function setupClosing(before) {
     .formatToParts(CLOSE_AT).map((x) => [x.type, x.value]));
   const when = `${p.month}月${p.day}日（${p.weekday}）${p.hour}:${p.minute}`;
   // 記事一覧のページでは、絞り込みを残したまま小窓を開く（ほかのページからは、記事一覧へ移って開く）
-  const backup = h("a", { href: document.getElementById("listView") ? "#mypage" : "./#mypage", text: "保存データの管理" });
+  const backup = h("a", { href: document.getElementById("listView") ? "#mypage" : "articles.html#mypage", text: "保存データの管理" });
   // 公開日は未定（同居人の絵ができしだい）。公開日は X で知らせる（config.js の x）
   const X = /^[A-Za-z0-9_]{1,15}$/.test(config.x || "") ? config.x : "";
   const xNote = () => X

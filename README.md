@@ -36,7 +36,8 @@ RADWIMPS とメンバーのインタビュー・対談・ライブレポート�
 ## ファイル構成
 
 ```
-index.html            サイトの骨組みと文章
+index.html            玄関（トップ）
+articles.html         記事一覧の骨組みと文章
 maker.html            記事データ作成ツール
 history.html          「RADWIMPSの歩み」（年表）のページ
 songs.html            「楽曲一覧」のページ（歌詞は載せず、許諾を受けた歌詞サイトへリンク）
@@ -45,7 +46,10 @@ members.html          「メンバー紹介」のページ
 404.html              ない URL を開いたときのページ
 assets/
   style.css           見た目（色など）
-  app.js              画面の動き（探す入口・検索・絞り込み・あとで読む・既読）
+  home.js・home.css   玄関の動きと見た目（まだ読んでいない一節・各部屋への入口の窓）
+  encounter.js        玄関の「まだ読んでいない一節」の選び方（日替わり・未読から1本）
+  home-redirect.js    以前のトップの住所（./?person=… など）で開かれたら、記事一覧へ送る
+  app.js              記事一覧の画面の動き（探す入口・検索・絞り込み・あとで読む・既読）
   history.js          「RADWIMPSの歩み」（年表）の動き
   songs.js            「楽曲一覧」の動き（記事の数・年表の MV ともつなげる）
   setlist.js          「RAD LIVE SET LIST」（ライブのセトリ）の動き（「ライブ」「ランキング」などの切り替え・曲名で探す）
@@ -54,7 +58,7 @@ assets/
   maker.js・maker.css 記事データ作成ツールの動きと見た目
   transfer.js         「あとで読む」「既読」をほかの端末に引き継ぐリンク（会員登録なし）
   qrcode.js           QR コードを作る部品（MIT ライセンス、Kazuhiko Arase さん作）
-  localfile.js        index.html をパソコンで直接開いたときの案内
+  localfile.js        articles.html をパソコンで直接開いたときの案内
   ogp.png             SNS でリンクを貼ったときの画像
   ui.js               画面の共通部品（メニュー・管理者モード・ファイルの書き出しなど。3つの画面で共通）
   data.js             CSV の読み方と「書ける値」の決まり（記事・年表・セットリスト）、「曲・作品から探す」の作品の一覧（サイトとチェック用プログラムで共通。画面の処理は入れない）

@@ -16,7 +16,8 @@ test("中継役の URL は https の workers.dev だけ受け付ける", () => {
 });
 
 test("ページ名・来た場所の名前", () => {
-  assert.equal(pageName("/"), "記事一覧（トップ）");
+  assert.equal(pageName("/"), "玄関（トップ）");
+  assert.equal(pageName("/articles.html"), "記事一覧");
   assert.equal(pageName("/history.html"), "RADWIMPSの歩み（年表）");
   assert.equal(pageName("/other.html"), "/other.html");
   assert.equal(refName(""), "直接・ブックマークなど");

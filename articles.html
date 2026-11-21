@@ -1,0 +1,251 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<!-- 安全のための決まり（CSP）：このサイトと、決めた所（YouTube の埋め込み・サムネイル、GitHub の API）以外からは、プログラムや画像を読み込みません。
+     HTML の中に直接 <script> や style="…" を書くと動かなくなるので、assets フォルダのファイルに書いてください。 -->
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' https://static.cloudflareinsights.com; style-src 'self'; img-src 'self' data: https://i.ytimg.com; font-src 'self'; connect-src 'self' https://api.github.com https://api.web3forms.com https://cloudflareinsights.com https://*.workers.dev; frame-src https://www.youtube-nocookie.com https://www.youtube.com; object-src 'none'; base-uri 'self'; form-action 'self'; upgrade-insecure-requests">
+<meta name="referrer" content="strict-origin-when-cross-origin">
+<title>記事一覧｜RADWIMPS Archives</title>
+<meta name="description" content="RADWIMPS とメンバーのインタビュー・対談・ライブレポートを、人・曲や作品・年代・ライブから探せる、非公式の索引サイトです。">
+<meta property="og:title" content="記事一覧｜RADWIMPS Archives">
+<meta property="og:description" content="RADWIMPS とメンバーのインタビュー・対談・ライブレポートを、人・曲や作品・年代・ライブから探せる、非公式の索引サイトです。">
+<meta property="og:type" content="website">
+<meta property="og:url" content="https://radwimps-archive.github.io/radwimps-interview-index/articles.html">
+<meta property="og:site_name" content="RADWIMPS Archives">
+<meta property="og:locale" content="ja_JP">
+<meta property="og:image" content="https://radwimps-archive.github.io/radwimps-interview-index/assets/ogp.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:image:alt" content="RADWIMPS Archives：好きな曲から、気になる人から。インタビュー・対談・ライブレポートの非公式索引">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="記事一覧｜RADWIMPS Archives">
+<meta name="twitter:description" content="RADWIMPS とメンバーのインタビュー・対談・ライブレポートを、人・曲や作品・年代・ライブから探せる、非公式の索引サイトです。">
+<meta name="twitter:image" content="https://radwimps-archive.github.io/radwimps-interview-index/assets/ogp.png">
+<meta name="theme-color" content="#0A0B12">
+<link rel="icon" href="assets/icon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="assets/style.css">
+<link rel="stylesheet" href="assets/theme-blue.css">
+<script type="module" src="assets/app.js"></script>
+</head>
+<body>
+<a href="#archive" class="skip">記事一覧へ移動</a>
+
+<!-- いちばん上の帯（左上のボタンでメニューが開きます） -->
+<header class="header" id="header">
+  <div class="header-inner">
+    <button id="menuBtn" class="hamburger" type="button" aria-expanded="false" aria-controls="menuClip" aria-label="メニューを開く"><span></span><span></span><span></span></button>
+    <a href="./" class="brand" id="brand" aria-label="RADWIMPS Archives トップへ"><span class="brand-text">RADWIMPS<span>Archives</span></span></a>
+  </div>
+  <div class="menu-clip" id="menuClip" inert aria-hidden="true">
+    <nav class="menu-panel" aria-label="メニュー">
+      <a class="nav-item" href="articles.html" data-go="list">記事一覧 <span aria-hidden="true">→</span></a>
+      <a class="nav-item" href="history.html">RADWIMPSの歩み <span aria-hidden="true">→</span></a>
+      <a class="nav-item" href="songs.html">楽曲一覧 <span aria-hidden="true">→</span></a>
+      <a class="nav-item" href="setlist.html">RAD LIVE SET LIST <span aria-hidden="true">→</span></a>
+      <a class="nav-item" href="members.html">メンバー紹介 <span aria-hidden="true">→</span></a>
+      <button class="nav-item" type="button" data-act="add">記事を追加 <span aria-hidden="true">＋</span></button>
+      <a class="nav-item" href="#admin" id="adminLink" hidden>運営管理 <span aria-hidden="true">→</span></a>
+    </nav>
+  </div>
+</header>
+
+<main id="main">
+  <!-- 記事一覧（いつもの画面） -->
+  <div id="listView">
+    <section class="hero wrap" aria-labelledby="heroTitle">
+      <p class="eyebrow">ARTICLES</p>
+      <h1 id="heroTitle">記事一覧</h1>
+      <p class="hero-description">インタビュー・対談・ライブレポートを、人・曲や作品・年代・ライブから探せます。</p>
+    </section>
+
+    <section id="archive" class="archive wrap" aria-labelledby="archiveTitle">
+      <!-- 探す入口：押すと下にパネルが開き、記事一覧を絞り込みます -->
+      <div class="discovery">
+        <div class="entry-tabs" id="entryTabs" role="group" aria-label="記事を探す入口">
+          <button type="button" data-entry="people" aria-expanded="false" aria-controls="entryPanel">
+            <span class="entry-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9.5" fill="none" stroke="currentColor" stroke-width="1.6"/><circle cx="12" cy="12" r="5.6" fill="none" stroke="currentColor" stroke-width="1.6"/></svg></span>
+            <strong>人から探す</strong><small>メンバー・共演者</small>
+          </button>
+          <button type="button" data-entry="works" aria-expanded="false" aria-controls="entryPanel">
+            <span class="entry-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M9 18.5V6.2l11-2.4v12.3" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/><ellipse cx="6.4" cy="18.6" rx="2.9" ry="2.3" fill="currentColor"/><ellipse cx="17.4" cy="16.2" rx="2.9" ry="2.3" fill="currentColor"/></svg></span>
+            <strong>曲・作品から探す</strong><small>曲名・アルバム・映画</small>
+          </button>
+          <button type="button" data-entry="years" aria-expanded="false" aria-controls="entryPanel">
+            <span class="entry-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9.2" fill="none" stroke="currentColor" stroke-width="1.6"/><path d="M12 2.8V12H3" fill="none" stroke="currentColor" stroke-width="1.6"/></svg></span>
+            <strong>年代から探す</strong><small>当時の取材を読む</small>
+          </button>
+          <button type="button" data-entry="live" aria-expanded="false" aria-controls="entryPanel">
+            <span class="entry-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M6 18L18 6M9 6h9v9" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
+            <strong>ライブから探す</strong><small>ツアー・公演日</small>
+          </button>
+        </div>
+        <div id="entryPanel" class="entry-panel" hidden></div>
+      </div>
+
+      <div class="archive-heading">
+        <h2 id="archiveTitle" tabindex="-1">記事を探す</h2>
+      </div>
+      <p id="viewNote" class="view-note" hidden></p>
+
+      <div class="search-row">
+        <div class="search-box">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden="true"><circle cx="10.5" cy="10.5" r="6.5" stroke="currentColor" stroke-width="1.5"/><path d="m16 16 5 5" stroke="currentColor" stroke-width="1.5"/></svg>
+          <label class="sr" for="q">キーワードで検索</label>
+          <input id="q" type="search" enterkeyhint="search" autocomplete="off" placeholder="曲名・人名・言葉で探す">
+          <button type="button" id="qclear" class="qclear" aria-label="検索語を消す" hidden>×</button>
+          <kbd aria-hidden="true">/</kbd>
+        </div>
+        <button type="button" id="qgo" class="search-go">検索</button>
+      </div>
+
+      <!-- 絞り込み：検索窓のすぐ下。押すと条件の欄が開きます（最初は閉じています） -->
+      <div class="filters">
+        <details id="filterPanel">
+          <summary>さらに絞り込む <span id="filterNumber" class="filter-number"></span><span class="sr">（数字は選んでいる条件の数）</span><span class="chevron" aria-hidden="true">⌄</span></summary>
+          <div class="filter-body">
+            <div class="filter-field"><label for="fCat">内容から選ぶ</label><select id="fCat"></select></div>
+            <div class="filter-field"><label for="fPerson">PERSON <span>人物</span></label><select id="fPerson"></select></div>
+            <div class="filter-field"><label for="fYear">YEAR <span>年代</span></label><select id="fYear"></select></div>
+            <div class="filter-field"><label for="fMedia">MEDIA <span>掲載メディア</span></label><select id="fMedia"></select></div>
+            <div class="filter-field"><label for="fLang">LANGUAGE <span>言語</span></label><select id="fLang"></select></div>
+            <div class="filter-field"><label for="fKind">TYPE <span>資料の種類</span></label><select id="fKind"></select></div>
+            <div class="filter-field"><label for="fStatus">READING <span>読書の状態</span></label><select id="fStatus"></select></div>
+            <button type="button" class="reset-button" data-act="reset">条件をクリア <span aria-hidden="true">↺</span></button>
+            <div class="sidebar-note">
+              <span class="small-symbol" aria-hidden="true">＊</span>
+              <p>気になる言葉を、少しずつ。</p>
+              <span>お気に入り・あとで読む・既読は、このブラウザに記録されます。</span>
+              <button type="button" data-act="backup">保存データの管理 →</button>
+            </div>
+          </div>
+        </details>
+      </div>
+
+      <div class="format-tabs" id="formatTabs" role="group" aria-label="記事の種類">
+        <button type="button" data-format="text" aria-pressed="true">記事</button>
+        <button type="button" data-format="video" aria-pressed="false">▶ 動画</button>
+        <button type="button" data-format="radio" aria-pressed="false">ラジオ</button>
+        <button type="button" data-format="all" aria-pressed="false">すべて</button>
+        <button type="button" data-format="fav" aria-pressed="false">お気に入り<small id="favCount" hidden>0</small></button>
+        <button type="button" data-format="later" aria-pressed="false">あとで読む<small id="laterCount" hidden>0</small></button>
+      </div>
+
+      <div class="archive-layout">
+        <div class="results">
+          <div class="results-top">
+            <p id="resultCount" class="result-count" role="status" aria-live="polite"></p>
+            <a class="random-link" data-act="random" href="#" target="_blank" rel="noopener noreferrer" aria-label="いまの条件の記事から、ランダムに1つ開く">ランダムに読む <span aria-hidden="true">↗</span></a>
+            <label class="sort-label">並び順 <select id="sort">
+              <option value="new">新しい順</option>
+              <option value="old">古い順</option>
+              <option value="media">メディア順</option>
+            </select></label>
+          </div>
+          <div id="activeFilters" class="active-filters"></div>
+          <div id="liveControls" class="live-controls" hidden>
+            <p>公演日ごとに表示しています。同じ日の同じ公演の記事をまとめ、記事が公開された日とは別に、公演日を青で示しています。</p>
+          </div>
+          <p id="loading" class="loading" role="status">記事を読み込んでいます…</p>
+          <div id="grid" class="article-grid"></div>
+          <div class="load-more-wrap"><button type="button" id="loadMore" class="secondary" hidden>続きを表示</button></div>
+          <div class="empty" id="empty" hidden>
+            <div class="empty-mark" aria-hidden="true">∅</div>
+            <h3>該当する記事がありません</h3>
+            <p id="emptyText">条件を変えて、もう一度探してみてください。</p>
+            <div class="empty-alt" id="emptyAlt"></div>
+            <button type="button" class="primary-flat" data-act="reset">条件をクリア</button>
+          </div>
+          <div class="collection-note"><span class="i" aria-hidden="true">i</span><p>インタビュー本文、誌面掲載情報、公式記録・関連記事を区別して収録しています。全記事の網羅は保証していません。本文の公開状況・閲覧条件は掲載元でご確認ください。</p></div>
+        </div>
+      </div>
+    </section>
+
+    <section class="closing wrap" aria-label="記事の追加">
+      <span class="closing-star" aria-hidden="true">✳</span>
+      <div>
+        <p class="eyebrow">THE COLLECTION CONTINUES</p>
+        <p>まだ知らない言葉が、きっとある。</p>
+        <small>見つけたインタビューを教えてください。確かめてから追加します。</small>
+      </div>
+      <button type="button" data-act="add">記事を追加する <span aria-hidden="true">→</span></button>
+    </section>
+  </div>
+
+  <!-- 管理画面（管理者モードの端末だけ。URL の末尾に #admin を付けて開くと、管理者モードをオンにできます） -->
+  <section id="page-admin" class="page wrap" hidden>
+    <div class="page-head">
+      <h1 id="adminTitle" tabindex="-1">運営管理</h1>
+      <p>記事の追加・修正と、サイトの状態の確認</p>
+    </div>
+    <div id="adminOffView">
+      <p>運営管理は、運営する人の端末だけに出る画面です。この端末で管理者モードをオンにすると、メニューに「運営管理」が出ます（ほかの人の端末には出ません）。</p>
+      <p class="hint">ここでは、記事の追加・編集・非表示・削除をして、GitHub に保存できます。保存には、運営する人が GitHub で作る「合鍵」が必要なので、ほかの人が管理者モードをオンにしても記事は変えられません。</p>
+      <div class="panelbtns"><button type="button" class="btn primary" data-act="admin-on">この端末で管理者モードをオンにする</button></div>
+    </div>
+    <div id="adminOnView" hidden>
+      <h2>記事データの状態</h2>
+      <ul class="admstats" id="admStats"></ul>
+      <div id="admIssues"></div>
+      <h2>記事の管理</h2>
+      <div id="adminEditor" class="admeditor"><p class="hint">読み込んでいます…</p></div>
+      <h2>アクセス状況</h2>
+      <div id="admAnalytics"></div>
+      <h2>よく使う操作</h2>
+      <ul class="admlinks" id="admLinks"></ul>
+      <p class="hint" id="admRepoNote" hidden>GitHub Pages（○○.github.io）で公開すると、ここに GitHub の画面へのリンクが出ます。独自ドメインのときは、assets/config.js の repoUrl に GitHub の URL を書いてください。</p>
+      <div class="panelbtns"><button type="button" class="btn" data-act="admin-off">この端末の管理者モードをオフにする</button></div>
+    </div>
+  </section>
+</main>
+
+<!-- フッター -->
+<footer class="site-footer wrap">
+  <div class="footer-brand">RADWIMPS Archives</div>
+  <p>UNOFFICIAL FAN ARCHIVE · 本人・所属事務所・各媒体とは関係ありません。</p>
+  <div class="footer-links">
+    <button type="button" data-act="backup">保存データの管理 →</button>
+    <button type="button" data-act="about">収録方針と出典について →</button>
+    <a id="report" href="#" target="_blank" rel="noopener noreferrer" hidden>誤りやリンク切れを知らせる ↗</a>
+  </div>
+  <p class="research-date" id="updated"></p>
+</footer>
+
+<!-- 小窓（保存データの管理・収録方針・記事を追加。中身は assets/app.js が作ります） -->
+<dialog id="modal" class="modal" aria-labelledby="modalTitle">
+  <div class="modal-shell">
+    <button type="button" class="modal-close" id="modalClose" aria-label="閉じる">✕</button>
+    <div id="modalBody"></div>
+  </div>
+</dialog>
+
+<!-- 運営管理：記事の編集（中身は assets/admin.js が作ります） -->
+<div id="editSheet" class="sheet" hidden>
+  <div class="sheet-back" data-edit="cancel"></div>
+  <div class="sheet-in" role="dialog" aria-modal="true" aria-labelledby="editTitle">
+    <div class="sheet-head">
+      <h2 id="editTitle">記事を編集</h2>
+      <button type="button" class="btn plain" data-edit="cancel">閉じる</button>
+    </div>
+    <form id="editForm" class="fgroups editform" novalidate></form>
+    <div class="sheet-foot" id="editFoot"></div>
+  </div>
+</div>
+
+<!-- 「収録方針と出典について」の文章（フッターのリンクを押すと、小窓に出ます。ここを書き換えると変わります） -->
+<template id="aboutText">
+  <p>RADWIMPS とメンバーのインタビュー・対談・ライブレポートを、人・曲や作品・年代・ライブから探せるようにまとめた、非公式の索引です。本人・所属事務所・各媒体とは関係ありません。</p>
+  <p>載せているのは、記事・動画・ラジオのタイトル・掲載日・媒体名・短い説明と、掲載元へのリンクです。本文や動画・音声は載せていません。権利は各媒体と取材者にあります。タイトルを押すと、掲載元のページが新しいタブで開きます。</p>
+  <p>リンク先でインタビューやライブレポートの内容が読める・見られる・聴けるものを載せています。有料会員限定のもの（ファンクラブ「ボクンチ」など）は載せていません。ラジオ番組の放送回は「ラジオ」のタブに、雑誌の掲載号の案内や発売のお知らせなど、本文が読めない資料は「リリース情報」のタブに分けています。</p>
+  <p>「説明」は、記事の内容がわかるように運営が書いた紹介文で、掲載元の文章の転載ではありません。掲載日が「年」や「年・月」までのものは、確認できた範囲で記載しています。掲載元のタイトルを確認できなかった記事には、内容がわかる見出しを付けています。</p>
+  <p>リンクは定期的に確認し、開けなくなった記事は一覧から外しています。主な出典は、RADWIMPS 公式サイトの MEDIA 欄と、各媒体の記事ページです。</p>
+  <p><span data-analytics="off">このサイトでは、アクセス解析（訪問者の記録）や広告のための追跡はしていません。</span><span data-analytics="on" hidden>このサイトでは、どのページがどれくらい見られているかを知るために、Cloudflare Web Analytics でアクセス数を数えています。Cookie は使わず、名前やメールアドレスなどの個人を特定できる情報は集めていません。広告のための追跡はしていません。</span>「お気に入り」「あとで読む」「既読」は、このブラウザの中だけに保存され、運営を含めほかの人には送られません（ブラウザのデータを消すと消えます。「保存データの管理」から、ファイルに書き出したり、引き継ぎ用のリンクでほかの端末に移したりできます。リンクの中身もサーバーには送られません）。動画のサムネイル画像と再生には YouTube（Google）のしくみを使っているため、その部分には YouTube と Google の決まりが適用されます。</p>
+</template>
+
+<div id="toast" class="toast" role="status" aria-live="polite"></div>
+
+<!-- パソコンでこのファイルを直接開いたときの案内（中身は assets/localfile.js） -->
+<script src="assets/localfile.js"></script>
+</body>
+</html>
