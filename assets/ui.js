@@ -48,7 +48,18 @@ export function setupMenu() {
     if (isOpen() && !e.target.closest("#menuClip, #menuBtn")) setMenuOpen(false, { focusBack: false });
   });
   document.addEventListener("keydown", (e) => { if (e.key === "Escape" && isOpen()) setMenuOpen(false); });
+  watchFooter();
   return setMenuOpen;
+}
+
+/* ---------- フッターが画面に入っているあいだだけ、印（footer-in-view）を付ける ---------- */
+
+// iPhone の Safari（下にアドレスの帯が浮く形）は、帯の裏をページのいちばん奥の地の色（html の背景）で塗ります。
+// ふだんは夜空に合わせて群青、フッター（黒）が見えているあいだは黒にして、フッターの下に群青がはみ出して見えないようにします（theme-blue.css）
+function watchFooter() {
+  const footer = document.querySelector(".site-footer");
+  if (!footer || typeof IntersectionObserver !== "function") return;
+  new IntersectionObserver(([e]) => document.documentElement.classList.toggle("footer-in-view", e.isIntersecting)).observe(footer);
 }
 
 /* ---------- 横にスクロールできるタブ：続きがある側の端をぼかす ---------- */
