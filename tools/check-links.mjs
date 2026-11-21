@@ -24,7 +24,7 @@
 
 import { readFile, writeFile, appendFile } from "node:fs/promises";
 import { pathToFileURL } from "node:url";
-import { parseArticles, youtubeId, MEMBERS } from "../assets/data.js";
+import { parseArticles, youtubeId, MEMBERS, CATEGORIES, KIND_ORDER } from "../assets/data.js";
 
 // 文字のそろえ方（全角半角・大文字小文字・ひらがなとカタカナの違いをなくし、記号や空白を取り除く）。
 // 記事一覧の検索と同じ考え方。正式版のブランチでは assets/text.js にまとめてあるので、main に入ったらそちらを使う
@@ -114,10 +114,13 @@ async function readSome(res, limit) {
     size += value.length;
   }
   reader.cancel().catch(() => {});
+  const cut = size >= limit; // 最後まで読まずに止めた
   const buf = Buffer.concat(chunks.map((c) => Buffer.from(c)));
   let charset = (res.headers.get("content-type") || "").match(/charset=["']?([\w-]+)/i)?.[1];
   if (!charset) charset = buf.subarray(0, 4096).toString("latin1").match(/<meta[^>]+charset=["']?([\w-]+)/i)?.[1];
-  try { return new TextDecoder(charset || "utf-8").decode(buf); } catch { return new TextDecoder("utf-8").decode(buf); }
+  let text;
+  try { text = new TextDecoder(charset || "utf-8").decode(buf); } catch { text = new TextDecoder("utf-8").decode(buf); }
+  return { text, cut };
 }
 
 function networkResult(e) {
@@ -132,35 +135,60 @@ function networkResult(e) {
 
 /* ---------- 中身が記事と合っているか ---------- */
 
+// どの記事にも付きそうな、手がかりにならない言葉（タグ・作品名から外す。サイトのメニューなどにも出てくるため）
+const GENERIC = new Set([...CATEGORIES.flatMap((c) => [c.name, ...c.aliases]), ...KIND_ORDER,
+  "映画", "ドラマ", "CM", "MV", "PR", "対バン", "劇伴", "主題歌", "ワールドツアー", "ツアー", "ライブ", "LIVE", "TOUR", "フェス", "ラジオ", "ポッドキャスト",
+  "インタビュー", "動画", "YouTube", "Zepp", "アルバム", "シングル", "新曲", "ニュース"].map((w) => norm(w)));
+const usable = (key) => {
+  if (!key || GENERIC.has(key) || /^\d+(周年|th)?$/.test(key)) return false;
+  return /^[a-z0-9]+$/.test(key) ? key.length >= 4 : [...key].length >= 2; // 英数字だけの短い言葉（pr・311 など）は、ほかの言葉や日付の中で当たってしまう
+};
+
 // 記事の言葉：ページの中にこのどれかがあれば「記事のページ」とみなす（文字のそろえ方は記事一覧の検索と同じ norm）
+// 返すもの：[{ show: 元の書き方（お知らせに出す）, key: 探すときの形 }]。RADWIMPS は最後（どの記事でも同じで、お知らせの手がかりにならないため）
 export function articleTerms(it) {
-  const words = ["RADWIMPS", "ラッドウィンプス"];
+  const words = [];
   for (const k of it.members || []) {
     const m = MEMBERS[k];
-    if (m && k !== "band") words.push(m.name, m.aliases.find((a) => a !== m.name && a.length >= 3) || "");
+    // 2文字の呼び名（野田・山口など）は、ほかの言葉の中で当たるので入れない。ローマ字の名前は英語の記事のため
+    if (m && k !== "band") words.push(m.name, m.aliases.find((a) => a !== m.name && a.length >= 3) || "", m.romaji || "");
   }
   words.push(...(it.guests || []));
   for (const m of String(it.title || "").matchAll(/[「『]([^」』]+)[」』]/g)) words.push(m[1]);
   words.push(...(it.tags || []).map((t) => t.replace(/^#/, "")));
-  return [...new Set(words.map(norm).filter((w) => [...w].length >= 2))];
+  words.push("RADWIMPS", "ラッドウィンプス");
+  const seen = new Set(), out = [];
+  for (const show of words) {
+    const key = norm(show);
+    if (seen.has(key) || !usable(key)) continue;
+    seen.add(key);
+    out.push({ show, key });
+  }
+  return out;
 }
 
-// HTML から、人が読む文字だけを取り出す（題名・説明の meta も入れる。プログラムや見た目の指定は外す）
+// HTML から、人が読む文字だけを取り出す（題名・説明の meta と、記事の情報を JSON で持つ script〔JSON-LD・__NEXT_DATA__ など〕も入れる。
+// プログラムや見た目の指定は外す。読み切れずに途中で切れた <script> や <style> は、そこから後ろを捨てる）
 export function pageText(html) {
-  const metas = [...html.matchAll(/<meta[^>]+(?:name|property)=["'](?:description|og:title|og:description|twitter:title)["'][^>]*>/gi)]
-    .map((m) => (m[0].match(/content=["']([^"']*)["']/i) || [])[1] || "");
-  const body = html.replace(/<(script|style|noscript|template)[\s\S]*?<\/\1>/gi, " ").replace(/<!--[\s\S]*?-->/g, " ").replace(/<[^>]+>/g, " ");
-  return decodeEntities([...metas, body].join(" ")).replace(/\s+/g, " ").trim();
+  const metas = [...html.matchAll(/<meta\b[^>]*(?:name|property)=["'](?:description|og:title|og:description|twitter:title)["'][^>]*>/gi)]
+    .map((m) => { const c = m[0].match(/content="([^"]*)"|content='([^']*)'/i); return c ? c[1] ?? c[2] ?? "" : ""; });
+  const json = [...html.matchAll(/<script\b[^>]*type=["']application\/(?:ld\+)?json["'][^>]*>([\s\S]*?)<\/script>/gi)].map((m) => m[1]);
+  let body = html.replace(/<(script|style|noscript|template)\b[\s\S]*?<\/\1>/gi, " ");
+  const open = body.search(/<(script|style|noscript|template)\b/i);
+  if (open >= 0) body = body.slice(0, open);
+  body = body.replace(/<!--[\s\S]*?-->/g, " ").replace(/<[^>]+>/g, " ");
+  return decodeEntities([...metas, ...json, body].join(" ")).replace(/\s+/g, " ").trim();
 }
 
-// 中身の判定：found（記事の言葉がある）・missing（文字は十分あるのに見当たらない）・unknown（文字が少なく判断できない。画面をプログラムで作るサイトなど）
+// 中身の判定：found（記事の言葉がある）・missing（文字は十分あるのに見当たらない）・unknown（判断できない）
+//   unknown になるのは、ページの文字が少ないとき（画面をプログラムで作るサイトなど）と、ページが大きくて最後まで読めなかったとき
 export const MIN_TEXT = 300;
-export function contentMatch(html, terms) {
+export function contentMatch(html, terms, { cut = false } = {}) {
   if (!terms || !terms.length) return { verdict: "found" };
   const text = pageText(html);
   const n = norm(text);
-  if (terms.some((t) => n.includes(t))) return { verdict: "found" };
-  return { verdict: text.length >= MIN_TEXT ? "missing" : "unknown" };
+  if (terms.some((t) => n.includes(t.key))) return { verdict: "found" };
+  return { verdict: text.length >= MIN_TEXT && !cut ? "missing" : "unknown" };
 }
 
 /* ---------- 1件を確かめる ---------- */
@@ -219,13 +247,13 @@ export async function checkUrl(url, opts = {}) {
     if (move && move.type === "top") { await res.body?.cancel().catch(() => {}); return dead("サイトのトップページに転送されます"); }
     if (move && move.type === "upper") { await res.body?.cancel().catch(() => {}); return dead("記事ではなく、一覧などの上のページに転送されます"); }
 
-    const html = await readSome(res, 262144);
+    const { text: html, cut } = await readSome(res, 262144);
     const title = pageTitle(html);
     if (NOT_FOUND.some((re) => re.test(title))) return dead(`ページに「${title.slice(0, 50)}」と表示されています`);
     // ページは開くが、記事の言葉が見当たらない（URL はそのままで、別のページに差し替わっている）
-    const c = contentMatch(html, o.expect);
-    const shown = title ? `ページの題名は「${title.slice(0, 50)}」` : "ページの題名はありません";
-    if (c.verdict === "missing") return { level: "mismatch", reason: `記事の言葉（${o.expect.slice(0, 3).join("・")} など）がページに見当たりません。${shown}`, title };
+    const c = contentMatch(html, o.expect, { cut });
+    const shown = (title ? `ページの題名は「${title.slice(0, 50)}」` : "ページの題名はありません") + (current !== url ? `（${current} に転送されます）` : "");
+    if (c.verdict === "missing") return { level: "mismatch", reason: `記事の言葉（${o.expect.slice(0, 3).map((t) => t.show).join("・")} など）がページに見当たりません。${shown}`, title };
     if (c.verdict === "unknown") return warn(`ページの文字が少なく、中身が記事と合っているか確かめられませんでした。${shown}`);
     return { level: "ok", reason: "", title, movedTo: current !== url ? current : "" };
   }
@@ -257,6 +285,13 @@ export async function checkAll(items, opts = {}, onDone = () => {}) {
         await sleep(o.retryDelayMs);
         await polite(items[i].url);
         r = await checkUrl(items[i].url, oi);
+      }
+      // 中身が違うときも、少し待って1回だけ確かめ直す（メンテナンス中の画面などが一時的に出ていただけのときのため）
+      if (r.level === "mismatch") {
+        await sleep(o.retryDelayMs);
+        await polite(items[i].url);
+        const again = await checkUrl(items[i].url, oi);
+        if (again.level !== "mismatch") r = again;
       }
       results[i] = r;
       onDone(items[i], r);
