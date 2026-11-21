@@ -69,16 +69,21 @@ export function roomArticles(list, opts) {
   const many = list.length > ROOM_LIMIT;
   const all = view.all || !many;
   const shown = orderArticles(list, view.order).slice(0, all ? list.length : ROOM_LIMIT);
-  const pick = (kind, value, text, pressed, aria) => h("button", { type: "button", class: "room-view-btn", "data-view": kind, "data-value": value, "aria-pressed": String(pressed), "aria-label": aria, text });
+  // 並び順は「押されている／いない」のあるボタン（aria-pressed）。読み上げの名前は、見えている文字で始める（音声で操作する人が、見えている文字で押せるように）
+  const pick = (kind, value, text, pressed, cls = "room-view-btn") => h("button", { type: "button", class: cls, "data-view": kind, "data-value": value,
+    "aria-pressed": pressed === null ? null : String(pressed), "aria-label": `${text}：${label}`, text });
+  // 「すべて表示」「5件だけ表示」は、押すたびに文字が入れ替わる、ふつうのボタン
+  const allBtn = (cls) => pick("all", view.all ? "0" : "1", view.all ? `${ROOM_LIMIT}件だけ表示` : `すべて表示（${list.length}件）`, null, cls);
   const tools = list.length > 1 ? h("div", { class: "room-view", role: "group", "aria-label": `${label}の並び順と、出す数` },
-    ...["new", "old"].map((o) => pick("order", o, ORDER_NAME[o], view.order === o, `${label}を${ORDER_NAME[o]}に並べる`)),
-    many ? pick("all", view.all ? "0" : "1", view.all ? `${ROOM_LIMIT}件だけ表示` : `すべて表示（${list.length}件）`, false,
-      view.all ? `${label}を${ROOM_LIMIT}件だけ表示する` : `${label}を${list.length}件すべて、ここに表示する`) : null) : null;
+    ...["new", "old"].map((o) => pick("order", o, ORDER_NAME[o], view.order === o)),
+    many ? allBtn() : null) : null;
   const el = h("div", { class: "room-articles" },
-    heading ? h("p", { class: "room-articles-head" }, heading, h("small", { text: `${list.length}件` })) : null,
+    heading ? h("p", { class: "room-articles-head" }, heading, h("small", { text: all ? `${list.length}件` : `${list.length}件中${ROOM_LIMIT}件` })) : null,
     tools,
     h("ul", { class: "room-list" }, ...shown.map((it) => row(it, marks))),
     h("p", { class: "room-articles-foot" },
+      // すべて出しているときは、一覧の下でも5件に戻せるように（長い一覧の上まで戻らなくてよいように）
+      many && view.all ? allBtn("room-view-btn room-fold") : null,
       many && !all && more ? h("a", { class: "room-more", href: more }, moreText || `記事一覧で${list.length}件すべて見る`, h("span", { "aria-hidden": "true", text: "→" })) : null,
       h("a", { class: "room-shelf", href: "shelf.html" }, "あなたの棚へ", h("span", { "aria-hidden": "true", text: "→" }))));
   data.set(el, { list, opts });
@@ -87,6 +92,7 @@ export function roomArticles(list, opts) {
 
 // 並び順・「すべて表示」を選び直したら、ページの中の一覧をすべて作り直す（押したボタンにフォーカスを戻す）
 function rebuildAll(root, focusBox, kind) {
+  // kind が空のときは、フォーカスを動かさない（別のタブで選び直したとき）
   let again = null;
   for (const box of root.querySelectorAll(".room-articles")) {
     const d = data.get(box);
@@ -157,5 +163,12 @@ export function setupRoomArticles(root) {
     const open = e.button === 1 && e.target.closest(".room-articles [data-open]");
     if (open) markRead(open.dataset.open);
   });
-  addEventListener("storage", (e) => { if (e.key === STORE_MARKS || e.key === null) syncAll(root); });
+  addEventListener("storage", (e) => {
+    if (e.key === STORE_MARKS || e.key === null) syncAll(root);
+    // 別のタブで並び順や数を選び直したら、このタブの一覧もそろえる
+    if (e.key === STORE_VIEW || e.key === null) {
+      const v = readJSON(STORE_VIEW), order = v.order === "old" ? "old" : "new", all = v.all === true;
+      if (order !== view.order || all !== view.all) { view.order = order; view.all = all; rebuildAll(root, null, ""); }
+    }
+  });
 }
