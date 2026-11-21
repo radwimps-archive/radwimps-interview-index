@@ -1155,3 +1155,31 @@ small { font-size: max(12px, .83em); }
 /* 楽曲一覧の「表示の見かた」：説明が長いので、札と説明を1つの文として折り返す */
 .song-legend li { display: block; }
 .song-legend .lg-label { color: var(--ink); font-weight: 600; }
+
+/* 楽曲一覧・メンバー紹介：「この曲の記事」「新しい記事」の短い一覧（♡・あとで読むで「あなたの棚」に入れる。assets/room-articles.js） */
+.room-articles { margin-top: 10px; }
+.room-articles-head { display: flex; align-items: baseline; gap: 8px; margin: 0 0 6px; font-size: 13px; font-weight: 700; color: var(--ink); }
+.room-articles-head small { font-size: 12px; font-weight: 400; color: var(--muted); }
+.room-list { display: grid; gap: 6px; margin: 0; padding: 0; list-style: none; }
+.room-item { display: flex; align-items: center; gap: 6px; padding: 6px 4px 6px 12px; border: 1px solid var(--line-card); border-radius: 5px; background: var(--card); }
+.room-item-main { flex: 1; min-width: 0; }
+.room-item-title { display: block; padding-block: 4px; font-size: 13px; font-weight: 600; line-height: 1.6; color: var(--ink); text-decoration: none; overflow-wrap: anywhere; }
+.room-item-title:hover { color: var(--accent); text-decoration: underline; }
+.room-item-meta { display: flex; flex-wrap: wrap; gap: 0 8px; margin: 0; font-size: 12px; line-height: 1.6; color: var(--muted); overflow-wrap: anywhere; }
+.room-read { color: var(--accent); }
+.room-item-actions { flex: none; display: flex; }
+.room-articles-foot { display: flex; flex-wrap: wrap; gap: 0 16px; margin: 2px 0 0; }
+.room-more, .room-shelf { display: inline-flex; align-items: center; gap: 4px; min-height: 44px; font-size: 13px; font-weight: 600; color: var(--accent); text-decoration: none; }
+.room-more:hover, .room-shelf:hover { text-decoration: underline; }
+.person-picks summary { display: flex; align-items: center; gap: 6px; min-height: 44px; list-style: none; cursor: pointer; font-size: 13px; font-weight: 600; color: var(--accent); }
+.person-picks summary::-webkit-details-marker { display: none; }
+.person-picks .chev { display: inline-block; transition: transform .2s; }
+.person-picks[open] .chev { transform: rotate(180deg); }
+.person-picks .room-articles { margin-top: 0; }
+@media (prefers-reduced-motion: reduce) { .person-picks .chev { transition: none; } }
+/* 短い一覧の並び順・「すべて表示」のボタン */
+.room-view { display: flex; flex-wrap: wrap; gap: 6px; margin: 0 0 8px; }
+.room-view-btn { min-height: 44px; padding: 0 14px; border: 1px solid var(--line-entry); border-radius: 22px; background: var(--card); color: var(--ink); font-size: 13px; cursor: pointer; }
+.room-view-btn[aria-pressed="true"] { border-color: var(--accent); background: var(--accent); color: #FFFFFF; font-weight: 700; } /* 選んでいる並び順は、地を紺にして白抜き（白い地どうしでは見分けにくいため） */
+.room-fold { margin-right: 8px; }
+.room-view-btn:hover { border-color: var(--accent); }

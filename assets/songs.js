@@ -3,7 +3,8 @@
 // ※ 歌詞には著作権があるので、歌詞の本文はこのサイトに載せません（データにも入れません）。
 //   「歌詞」は、歌詞の掲載を許諾されている歌詞サイト（プチリリ）へのリンクです。
 // ほかのデータともつなげています：
-//   ・記事（data/articles.csv）…その曲にふれた記事の数を出し、押すと記事一覧を ?work=曲名 で開く
+//   ・記事（data/articles.csv）…その曲にふれた記事の数を出し、押すと記事一覧を ?work=曲名 で開く。
+//     曲名を押して開く欄には、その曲の記事を新しい順に5件（並び順と数は利用者が選べる）、♡（お気に入り）と「あとで読む」のボタン付きで出す（押すと「あなたの棚」に入る。assets/room-articles.js）
 //   ・年表（data/history.csv）…「動画」の列にある、その曲の MV を YouTube で開く
 
 import "./analytics.js";
@@ -11,13 +12,12 @@ import { parseSongs, parseArticles, parseHistory, SONG_KINDS } from "./data.js";
 import { h as el, setupMenu, isAdminDevice } from "./ui.js";
 import { feedbackUrl, hasFeedback, setupBeta, KIND } from "./feedback.js";
 import config from "./config.js";
+import { pickArticles } from "./shelf-data.js";
+import { norm, STRIP } from "./text.js"; // 文字のそろえ方は、記事一覧・あなたの棚と同じもの（assets/text.js）
+import { roomArticles, setupRoomArticles } from "./room-articles.js";
 
 const $ = (s) => document.querySelector(s);
 
-// 検索用に文字をそろえる（記事一覧の検索と同じ考え方：全角半角・大文字小文字・ひらがなとカタカナ・記号の違いをなくす）
-const STRIP = /[\s　・、，,。．.／/「」『』【】〔〕［］[\]（）()<>＜＞〈〉《》\-‐–—―_~〜～!！?？:：;；'"“”‘’`*＊#＃|｜×✕+＋&＆]/g;
-const norm = (s) => String(s || "").normalize("NFKC").toLowerCase()
-  .replace(/[ぁ-ゖ]/g, (c) => String.fromCharCode(c.charCodeAt(0) + 0x60)).replace(STRIP, "");
 const reEsc = (s) => s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 // 「すずめ feat.十明」→「すずめ」のように、記事を探すときの曲名（feat. より後ろを外す）
 const baseTitle = (t) => t.replace(/\s*\(?\s*feat\..*$/i, "").trim();
@@ -84,16 +84,16 @@ const dateLabel = (s) => `${s.y}${s.m ? "." + pad(s.m) : ""}${s.d ? "." + pad(s.
 // 発売順では年の見出しの下に置くので、月日だけ（「RADWIMPSの歩み」と同じ書き方。日が分からないときは「05月」）
 const monthDay = (s) => (s.m ? (s.d ? `${pad(s.m)}.${pad(s.d)}` : `${pad(s.m)}月`) : "");
 
-// 記事の数：記事一覧の「曲・作品から探す」（?work=）と同じ決まりで数えます
-function articleCounter(items) {
-  const list = items.filter((it) => it.state === "公開").map((it) => ({
-    title: it.title, summary: it.summary, tags: new Set(it.tags.map(norm)), w: norm([it.title, it.summary, it.tags.join(" "), it.eventName].join(" "))
+// その曲の記事：記事一覧の「曲・作品から探す」（?work=）と同じ決まりで選び、新しい順に並べます（数もこの件数）
+function articleFinder(items) {
+  const list = pickArticles(items, () => true).map((it) => ({
+    it, tags: new Set(it.tags.map(norm)), w: norm([it.title, it.summary, it.tags.join(" "), it.eventName].join(" "))
   }));
   return (name) => {
     const n = norm(name);
-    if (!n) return 0;
+    if (!n) return [];
     const quoted = new RegExp(`[「『“"]${reEsc(name)}[」』”"]`);
-    return list.filter((it) => it.tags.has(n) || quoted.test(it.title) || quoted.test(it.summary) || ([...n].length >= 4 && it.w.includes(n))).length;
+    return list.filter((x) => x.tags.has(n) || quoted.test(x.it.title) || quoted.test(x.it.summary) || ([...n].length >= 4 && x.w.includes(n))).map((x) => x.it);
   };
 }
 
@@ -117,12 +117,13 @@ function videoMap(events) {
 function load(songText, articleText, historyText) {
   const parsed = parseSongs(songText);
   if (parsed.errors.length) console.warn("楽曲のデータに、直すところがあります", parsed.errors);
-  const count = articleText ? articleCounter(parseArticles(articleText).items) : () => 0;
+  const find = articleText ? articleFinder(parseArticles(articleText).items) : () => [];
   const videos = historyText ? videoMap(parseHistory(historyText).events) : new Map();
   return parsed.songs.map((s) => {
     const base = baseTitle(s.title);
     const sortKey = kanaKey(s.yomi || base);
-    return { ...s, base, sortKey, row: rowOf(sortKey), articles: count(base), video: videos.get(norm(base)) || null,
+    const list = find(base);
+    return { ...s, base, sortKey, row: rowOf(sortKey), articles: list.length, articleList: list, video: videos.get(norm(base)) || null,
       _h: norm([s.title, s.work, s.album, s.tieup, s.note, kindLabel(s.kind)].join(" ")) };
   });
 }
@@ -158,7 +159,7 @@ function songItem(s, inRelease) {
   if (s.tieup) subs.push(el("p", { class: "song-sub song-tieup", text: s.tieup }));
   if (/^メジャーデビュー/.test(s.note)) subs.push(el("p", { class: "song-sub", text: s.note }));
 
-  const links = el("div", { class: "song-links song-panel", id: `lyr${++uid}`, hidden: true });
+  const links = el("div", { class: "song-links" });
   // 歌のない曲（「メモ」が「インスト」「スキット」で始まる曲）と、歌詞を載せない曲（「歌詞非公開」で始まる曲）には、「歌詞」を出さない
   if (/^(インスト|スキット|歌詞非公開)/.test(s.note)) {
     // 何も出さない
@@ -177,13 +178,17 @@ function songItem(s, inRelease) {
     const label = s.video.kind === "MV" ? "MV" : s.video.kind;
     links.append(el("a", { class: "song-btn", href: youtube(s.video.id), target: "_blank", rel: "noopener noreferrer", "aria-label": `「${s.title}」の${label}を YouTube で見る`, text: `▶ ${label}` }));
   }
-  // 曲名を押すと、「歌詞」「MV・ライブ映像」が曲名の下に開きます。「記事」は曲名の隣に出したままです
+  // 曲名を押すと、「歌詞」「MV・ライブ映像」と「この曲の記事」が曲名の下に開きます。「記事 ○件」は曲名の隣に出したままです
+  const more = `articles.html?work=${encodeURIComponent(s.base)}&format=all`;
+  const parts = [links.children.length ? links : null,
+    s.articles ? roomArticles(s.articleList, { heading: "この曲の記事", label: `「${s.title}」の記事`, more, moreText: `記事一覧で${s.articles}件すべて見る` }) : null].filter(Boolean);
   let title = el("h3", { class: "song-title", text: s.title }), panel = null;
-  if (links.children.length) {
-    panel = links;
-    title = el("h3", { class: "song-title" }, el("button", { type: "button", class: "song-title-btn", "aria-expanded": "false", "aria-controls": links.id, title: "押すと、歌詞などが開きます" }, s.title));
+  if (parts.length) {
+    panel = el("div", { class: "song-panel", id: `lyr${++uid}`, hidden: true }, ...parts);
+    const hint = links.children.length && s.articles ? "押すと、歌詞などと、この曲の記事が開きます" : s.articles ? "押すと、この曲の記事が開きます" : "押すと、歌詞などが開きます";
+    title = el("h3", { class: "song-title" }, el("button", { type: "button", class: "song-title-btn", "aria-expanded": "false", "aria-controls": panel.id, title: hint }, s.title));
   }
-  const art = s.articles ? el("a", { class: "song-btn song-articles", href: `articles.html?work=${encodeURIComponent(s.base)}&format=all`, text: `記事 ${s.articles}件` }) : null;
+  const art = s.articles ? el("a", { class: "song-btn song-articles", href: more, text: `記事 ${s.articles}件` }) : null;
   return el("li", { class: "song-item" }, el("div", { class: "song-head" }, title, art), panel, meta, linkBox, ...subs);
 }
 function releasePanel(kind, work, base) {
@@ -344,6 +349,7 @@ toTop.addEventListener("click", () => {
 });
 
 setupMenu();
+setupRoomArticles($("#songs")); // 曲名の下の「この曲の記事」の ♡・あとで読む
 setupBeta(document.querySelector("#main").firstElementChild);
 if (hasFeedback) {
   document.querySelector(".site-footer .footer-links").append(

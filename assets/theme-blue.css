@@ -360,7 +360,7 @@ main > .hist-note { color: var(--on-blue-2); }
 :is(.archive, .paper-sheet, .page) :where(.entry-tabs button, .entry-panel, .search-box, .article-card, .empty, .filter-field select, .panel-label input,
   .person-chip, .chip, .secondary, .btn, .active-filters button, .admbar.on, .counts li, .admstats li, .statcard, .stattip, .admconnect, .panel, .addform input, .addform textarea, .addform select, .admfield input,
   .conf-part, .sl-live, .sl-clear, .sl-chip, .transfer-url, .person-card, .sns, .sl-drop-btn, .sl-drop-menu, .att-chip, .sl-search-box, .sl-song-clear,
-  .hist-shop, .page-guide details, .search-go, select, textarea, input:not([type="checkbox"]):not([type="radio"])) {
+  .hist-shop, .page-guide details, .search-go, .room-item, select, textarea, input:not([type="checkbox"]):not([type="radio"])) {
   --ink: #0B1230;
   --ink-2: #22305C;
   --muted: #3A4670;
@@ -384,7 +384,7 @@ main > .hist-note { color: var(--on-blue-2); }
   --accent-soft: #B9C7EA;
 }
 /* 白い部品の文字の色（部品ごとの色の指定があれば、そちらが優先される） */
-:where(.archive, .paper-sheet, .page) :where(.entry-tabs button, .entry-panel, .admbar.on, .article-card, .empty, .sl-live, .person-card, .page-guide details, .counts li, .admstats li, .statcard, .admconnect, .panel) { color: var(--ink); }
+:where(.archive, .paper-sheet, .page) :where(.entry-tabs button, .entry-panel, .admbar.on, .article-card, .empty, .sl-live, .person-card, .room-item, .page-guide details, .counts li, .admstats li, .statcard, .admconnect, .panel) { color: var(--ink); }
 /* 入力欄・選択欄（白）の文字は紺のまま */
 :is(.archive, .paper-sheet, .page) :where(select, textarea, input:not([type="checkbox"]):not([type="radio"])) { color: var(--ink); }
 /* 並び順の欄は地が透明（青の上）なので白の文字。開いたときの選択肢は白地に紺 */
@@ -429,7 +429,7 @@ main > .hist-note { color: var(--on-blue-2); }
 /* 青の上では、フォーカスの枠は白（白い部品の中は群青のまま） */
 .archive :focus-visible, .paper-sheet :focus-visible, .page :focus-visible { outline-color: #FFFFFF; }
 /* 白い部品の内側に出る枠は群青に（入口の4つのボタンは、枠がボタンの外の青の上に出るので白のまま） */
-:is(.archive, .paper-sheet, .page) :is(.article-card, .empty, .entry-panel, .search-box, .sl-live, .page-guide, .person-card, .panel, .admconnect, .counts li, .statcard, .sl-drop-menu, .admbar) :focus-visible { outline-color: var(--blue); }
+:is(.archive, .paper-sheet, .page) :is(.article-card, .empty, .entry-panel, .search-box, .sl-live, .page-guide, .person-card, .room-item, .panel, .admconnect, .counts li, .statcard, .sl-drop-menu, .admbar) :focus-visible { outline-color: var(--blue); }
 /* 「表示の見かた」の見出し（白い箱）は、枠を箱の内側に描く（外側だと群青の枠が夜空の青に溶けて見えない） */
 .page-guide details > summary:focus-visible { outline-offset: -4px; }
 /* セトリの検索欄の枠は、欄の外側（青の上）に出るので白 */
@@ -437,11 +437,11 @@ main > .hist-note { color: var(--on-blue-2); }
 
 /* ---------- 楽曲一覧（songs.html）：ほかの部屋と同じ夜空の上に ---------- */
 /* 白いボタン（歌詞・MV・記事・お店・並び順・開閉）の中は、元の紺の色に戻す（上の「白い部品」と同じ考え方） */
-.paper-sheet :where(.song-btn, .song-order-btn, .song-open-btn, .song-fold-btn) {
+.paper-sheet :where(.song-btn, .song-order-btn, .song-open-btn, .song-fold-btn, .room-view-btn) {
   --ink: #0B1230; --ink-2: #22305C; --muted: #3A4670; --line-entry: #B7C3DD;
   --accent: var(--blue); --accent-tint: #E6ECF8; --accent-soft: #B9C7EA;
 }
-.paper-sheet :is(.song-btn, .song-order-btn, .song-open-btn, .song-fold-btn):focus-visible { outline-color: #FFFFFF; outline-offset: 2px; }
+.paper-sheet :is(.song-btn, .song-order-btn, .song-open-btn, .song-fold-btn, .room-view-btn):focus-visible { outline-color: #FFFFFF; outline-offset: 2px; }
 /* 検索と並び順の帯：ページの途中では透明で夜空に溶け込ませ、上に貼りついたら（.stuck）タブの帯と同じ暗い地を敷く */
 .paper-sheet .song-bar { background: transparent; }
 .paper-sheet .song-bar.stuck { background: linear-gradient(180deg, var(--black), #0E1430); border-bottom-color: rgba(255, 255, 255, .32); box-shadow: none; }
@@ -459,6 +459,8 @@ main > .hist-note { color: var(--on-blue-2); }
 .paper-sheet :is(.song-title-btn, .song-work-btn)[aria-expanded="true"] { text-decoration-style: solid; }
 /* 開いたときの「歌詞・MV」「CD を探す」の面は、まわりより少し暗い夜の面に */
 .paper-sheet .song-buy { background: rgba(10, 11, 18, .32); }
+/* 「この曲の記事」：白い行（.room-item）は上の「白い部品」で紺に戻す。行の外のリンク（すべて見る・あなたの棚へ）は青の上なので白 */
+.paper-sheet .song-panel :is(.room-more, .room-shelf) { color: var(--ink); text-decoration: underline; text-underline-offset: 4px; }
 
 /* 動きを控える設定の人には、ボタンの色の変化もすぐに切り替える */
 @media (prefers-reduced-motion: reduce) {
