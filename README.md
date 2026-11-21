@@ -63,10 +63,9 @@ assets/
 data/
   articles.csv        記事の一覧
   releases.csv        年ごとの主なリリース（「年代から探す」で年を選ぶと出る）
-  songs.csv           楽曲一覧（曲名・初めて出た作品・発売日・タイアップ・歌詞サイトの URL）
+  songs.csv           楽曲一覧（曲名・初めて出た作品・発売日・タイアップ・歌詞サイトの URL。「RAD LIVE SET LIST」の「ライブ未演奏」とランキングでも使う）
   history.csv         「RADWIMPSの歩み」（年表）の出来事
   setlists.csv        「RAD LIVE SET LIST」（ライブのセトリ）の公演とセットリスト（1行が1公演）
-  songs.csv           楽曲一覧（「RAD LIVE SET LIST」の「ライブ未演奏」とランキングで使う）
 tools/
   validate.mjs        書式チェック（記事・年ごとのリリース・年表・セットリスト）
   check-links.mjs     リンク確認

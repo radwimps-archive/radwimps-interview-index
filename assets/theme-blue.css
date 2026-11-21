@@ -199,7 +199,7 @@ body::before, .header { background: var(--black); }
   .archive, .paper-sheet, .page { border-radius: 3px; }
   .archive, .page { padding-inline: 32px; }
   .people.paper-sheet { padding-inline: 32px; }
-  .paper-sheet > .wrap, .paper-sheet > .hist-tabs-bar > .wrap { padding-inline: 32px; }
+  .paper-sheet > .wrap, .paper-sheet > .hist-tabs-bar > .wrap, .paper-sheet > .song-bar > .wrap { padding-inline: 32px; }
 }
 @media (min-width: 1232px) { .archive, .paper-sheet, .page { width: calc(100% - 64px); } }
 /* 紙の上では、フォーカスの枠は群青に（白だと見えないため） */
@@ -304,7 +304,7 @@ main > .hist-note { color: var(--on-blue-2); }
 @media (min-width: 1232px) { .site-footer, main > .hist-note.wrap { padding-inline: max(64px, calc((100% - 1200px) / 2 + 32px)); } }
 /* 701〜719px は、style.css の .wrap の余白（40px）が効く幅。紙はまだ画面いっぱいなので、紙の中の余白はスマホと同じ 16px にそろえる */
 @media (min-width: 701px) and (max-width: 719px) {
-  .paper-sheet > .wrap, .paper-sheet > .hist-tabs-bar > .wrap, main > .hist-note.wrap { padding-inline: 16px; }
+  .paper-sheet > .wrap, .paper-sheet > .hist-tabs-bar > .wrap, .paper-sheet > .song-bar > .wrap, main > .hist-note.wrap { padding-inline: 16px; }
 }
 .footer-brand { font-weight: 300; letter-spacing: .3em; }
 .site-footer p, .footer-links button, .footer-links a { color: rgba(255, 255, 255, .78); }
@@ -421,6 +421,8 @@ main > .hist-note { color: var(--on-blue-2); }
 .archive :focus-visible, .paper-sheet :focus-visible, .page :focus-visible { outline-color: #FFFFFF; }
 /* 白い部品の内側に出る枠は群青に（入口の4つのボタンは、枠がボタンの外の青の上に出るので白のまま） */
 :is(.archive, .paper-sheet, .page) :is(.article-card, .empty, .entry-panel, .search-box, .sl-live, .page-guide, .person-card, .panel, .admconnect, .counts li, .statcard, .sl-drop-menu, .admbar) :focus-visible { outline-color: var(--blue); }
+/* 「表示の見かた」の見出し（白い箱）は、枠を箱の内側に描く（外側だと群青の枠が夜空の青に溶けて見えない） */
+.page-guide details > summary:focus-visible { outline-offset: -4px; }
 /* セトリの検索欄の枠は、欄の外側（青の上）に出るので白 */
 .paper-sheet .sl-search-box input:focus { outline-color: #FFFFFF; }
 
@@ -444,6 +446,8 @@ main > .hist-note { color: var(--on-blue-2); }
 .song-shop .pr { font-size: 12px; }
 /* 曲名・作品名の「▾」は、青の上でも見える濃さに（style.css の --muted の予備の色 #888 では足りない） */
 .paper-sheet :is(.song-title-btn, .song-work-btn)::after { color: var(--muted); }
+/* 開いている曲名・作品名は、点線の下線を実線にして、閉じているものと見分けられるように（色はどちらも白のため） */
+.paper-sheet :is(.song-title-btn, .song-work-btn)[aria-expanded="true"] { text-decoration-style: solid; }
 /* 開いたときの「歌詞・MV」「CD を探す」の面は、まわりより少し暗い夜の面に */
 .paper-sheet .song-buy { background: rgba(10, 11, 18, .32); }
 
