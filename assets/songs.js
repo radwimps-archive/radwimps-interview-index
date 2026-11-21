@@ -81,6 +81,8 @@ function rowOf(key) {
 
 const pad = (n) => String(n).padStart(2, "0");
 const dateLabel = (s) => `${s.y}${s.m ? "." + pad(s.m) : ""}${s.d ? "." + pad(s.d) : ""}`;
+// 発売順では年の見出しの下に置くので、月日だけ（「RADWIMPSの歩み」と同じ書き方。日が分からないときは「05月」）
+const monthDay = (s) => (s.m ? (s.d ? `${pad(s.m)}.${pad(s.d)}` : `${pad(s.m)}月`) : "");
 
 // 記事の数：記事一覧の「曲・作品から探す」（?work=）と同じ決まりで数えます
 function articleCounter(items) {
@@ -260,7 +262,7 @@ function render() {
       const work = relName(f);
       const cdBuy = releasePanel(f.kind, work, f.work === f.title || !f.work ? f.base : work);
       ol.append(el("li", { class: "hist-item song-release" },
-        el("p", { class: "hist-meta" }, el("time", { text: dateLabel(f) }),
+        el("p", { class: "hist-meta" }, f.m ? el("time", { text: monthDay(f) }) : null,
           el("button", { type: "button", class: "song-fold-btn", "aria-expanded": String(!shut), "aria-controls": olId, title: "押すと、この作品の曲を開く・閉じる" }, `${items.length} 曲`)),
         el("p", { class: "song-release-work" }, cdBuy ? workBtn(work, cdBuy) : el("span", { text: work }), el("span", { class: "song-kind", text: kindLabel(f.kind) })),
         cdBuy,
