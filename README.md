@@ -67,6 +67,7 @@ data/
 tools/
   validate.mjs        書式チェック（記事・年ごとのリリース・年表・セットリスト）
   check-links.mjs     リンク確認
+  build.sh            公開するファイルを _site にまとめる（Cloudflare・GitHub Pages の両方で使う）
 tests/
   data.test.mjs       data.js（CSV の読み取り）のテスト
   transfer.test.mjs   引き継ぎリンクのテスト
@@ -75,9 +76,9 @@ tests/
 docs/manual.md        運用マニュアル
 ```
 
-ビルドの手順や `npm install` は必要ありません。ファイルはそのまま公開されます。
+`npm install` は必要ありません。公開するファイルは `tools/build.sh` がまとめます（Cloudflare の「ビルドコマンド」は `sh tools/build.sh`。GitHub Pages の公開でも同じものを使います）。いちばん上の階層の `.html` はすべて公開されるので、ページを足しても Cloudflare の設定を直す必要はありません。
 チェック用プログラムとテストは Node.js だけで動きます（`node tools/validate.mjs`、`node --test`）。
-`assets` に新しいファイルを足すときは、名前を小文字の英字だけにします（例：`ui.js`）。公開時に古いファイルが残らないようにする仕組み（`.github/workflows/deploy.yml`）が、その形の名前にだけ効くためです。
+`assets` に新しいファイルを足すときは、名前を小文字の英字とハイフンだけにします（例：`ui.js`・`shelf-data.js`）。公開時に古いファイルが残らないようにする仕組み（`tools/build.sh`）が、その形の名前にだけ効くためです。
 
 ## 安全対策
 

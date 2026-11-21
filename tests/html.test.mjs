@@ -5,7 +5,7 @@
 
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { readFileSync } from "node:fs";
+import { readFileSync, readdirSync } from "node:fs";
 
 const PAGES = ["index.html", "history.html", "members.html", "setlist.html", "maker.html", "404.html"];
 const read = (f) => readFileSync(new URL(`../${f}`, import.meta.url), "utf8").replace(/<!--[\s\S]*?-->/g, "");
@@ -27,6 +27,12 @@ for (const page of PAGES) {
   });
 }
 
-test("公開のときに 404.html もコピーされる", () => {
-  assert.match(read(".github/workflows/deploy.yml"), /cp -r [^\n]*404\.html/);
+test("公開のときに、すべてのページ（404.html も）がまとめられる（tools/build.sh を GitHub の公開でも使う）", () => {
+  assert.match(read("tools/build.sh"), /cp -r \.\/\*\.html assets data _site\//);
+  assert.match(read(".github/workflows/deploy.yml"), /sh tools\/build\.sh/);
+});
+
+test("ページの一覧（PAGES）が、いちばん上の階層の .html と同じ（足したページがテストから漏れないように）", () => {
+  const files = readdirSync(new URL("../", import.meta.url)).filter((f) => f.endsWith(".html")).sort();
+  assert.deepEqual([...PAGES].sort(), files);
 });
