@@ -477,6 +477,7 @@ export function parseHistory(text) {
 export const SITE_KINDS = [
   { name: "ライブ・ツアー", slug: "live", history: "ライブ・ツアー" },
   { name: "作品", slug: "work", history: "リリース" },
+  { name: "映画・ドラマ", slug: "film", history: "映画・タイアップ" }, // RADWIMPS・野田洋次郎がかかわった映像作品の公式サイト（運営の決定 11/21）
   { name: "周年・企画", slug: "special", history: "バンドの出来事" },
   { name: "その他", slug: "other", history: "バンドの出来事" }
 ];
