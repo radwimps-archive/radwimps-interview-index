@@ -34,7 +34,8 @@ let catalog = [];        // 楽曲一覧（data/songs.csv）：{ title, work, y,
 
 // 楽曲一覧の曲名と、セトリの曲名を同じものとして比べるための名前
 // （「グランドエスケープ feat.三浦透子」→「グランドエスケープ」、‘I’ と 'I' のちがいも同じとみなす）
-const catalogKey = (t) => songKey(t.replace(/\s*[(（]?feat\..*$/i, "").replace(/[‘’`]/g, "'"));
+// 「〜」（波ダッシュ）と「～」（全角チルダ）は見た目が同じなので、同じ曲として比べる
+const catalogKey = (t) => songKey(t.replace(/\s*[(（]?feat\..*$/i, "").replace(/[‘’`]/g, "'").replace(/[〜～~]/g, "~"));
 
 const pad = (n) => String(n).padStart(2, "0");
 const dateLabel = (l) => (l.d ? `${l.y}.${pad(l.m)}.${pad(l.d)}` : l.m ? `${l.y}.${pad(l.m)}` : String(l.y));
@@ -522,10 +523,14 @@ async function loadCatalog() {
     if (!res.ok) return;
     const { rows } = parseCSV(await res.text());
     const head = rows[0] || [], ci = (n) => head.indexOf(n);
-    const [iT, iW, iY] = [ci("曲名"), ci("初めて出た作品"), ci("年")];
+    const [iT, iW, iY, iK, iL] = [ci("曲名"), ci("初めて出た作品"), ci("年"), ci("種類"), ci("歌詞URL")];
     if (iT < 0) return;
     // 「〈宿題発表-skit-〉」のような skit（曲と曲のあいだの短い寸劇）は、ライブでやる曲ではないので入れない
-    catalog = rows.slice(1).filter((r) => (r[iT] || "").trim() && !/skit/i.test(r[iT])).map((r) => {
+    // サウンドトラックの曲のうち、歌詞のない劇伴（映画の場面の音楽）と、映画用に短くした「(movie edit)」の版も入れない
+    // （歌のある「夢灯籠」「スパークル」などは入れる）
+    const isScore = (r) => iK >= 0 && (r[iK] || "").trim() === "サウンドトラック"
+      && (iL < 0 || !(r[iL] || "").trim() || /\(movie edit\)\s*$/i.test(r[iT]));
+    catalog = rows.slice(1).filter((r) => (r[iT] || "").trim() && !/skit/i.test(r[iT]) && !isScore(r)).map((r) => {
       const title = r[iT].trim();
       return { title, work: (r[iW] || "").trim(), y: +(r[iY] || 0) || 0, k: catalogKey(title) };
     }).sort((a, b) => a.y - b.y);

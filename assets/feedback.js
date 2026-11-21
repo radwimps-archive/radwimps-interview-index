@@ -85,9 +85,11 @@ export function setupBeta(before) {
   for (const brand of document.querySelectorAll(".brand")) {
     if (!brand.querySelector(".beta-badge")) brand.append(h("span", { class: "beta-badge", text: "ベータ版" }));
   }
+  if (!before) return;
+  if (CLOSE_AT) { try { setupClosing(before); } catch { /* 予告が作れなくても、ページはふつうに動かす */ } return; }
   let closed = false;
   try { closed = localStorage.getItem(STORE_BAR) === "1"; } catch { /* 保存できない環境では毎回出す */ }
-  if (closed || !before) return;
+  if (closed) return;
   const url = feedbackUrl({ kind: KIND.bug, title: "ベータ版の感想・不具合", page: location.href });
   const close = h("button", { type: "button", class: "beta-close", "aria-label": "この案内を閉じる", text: "✕" });
   const bar = h("aside", { class: "beta-bar", "aria-label": "ベータ版のお知らせ" },
@@ -100,6 +102,55 @@ export function setupBeta(before) {
     wrap.remove();
     try { localStorage.setItem(STORE_BAR, "1"); } catch { /* 保存できなくても閉じる */ }
   });
+  before.before(wrap);
+}
+
+// 公開を終える予告（config.js の closing）。いつもの案内を閉じた人にも出るよう、閉じたことは別の名前で覚えます
+//   ・書き方は "2026-11-30T23:59:00+09:00" の形だけを受け付けます（ほかの形は端末によって時刻がずれるため、無効にします）
+//   ・その日時を過ぎたら（差し替えが遅れたときや、古い表示が残っているとき）、「公開を終了しました」を閉じられない形で出します
+const CLOSING_RE = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}(:\d{2})?\+09:00$/;
+const CLOSE_AT = (() => {
+  if (!config.closing) return 0;
+  if (!CLOSING_RE.test(config.closing)) { console.warn("config.js の closing は \"2026-11-30T23:59:00+09:00\" の形で書いてください"); return 0; }
+  return Date.parse(config.closing) || 0;
+})();
+const STORE_CLOSING = "radwimps-interview-index:closing-bar-closed";
+function setupClosing(before) {
+  const ended = Date.now() >= CLOSE_AT;
+  if (!ended) {
+    try { if (localStorage.getItem(STORE_CLOSING) === config.closing) return; } catch { /* 保存できない環境では毎回出す */ }
+  }
+  // 日時は日本時間で書く（例：11月30日（月）23:59）
+  const p = Object.fromEntries(new Intl.DateTimeFormat("ja-JP", { timeZone: "Asia/Tokyo", month: "numeric", day: "numeric", weekday: "short", hour: "2-digit", minute: "2-digit", hourCycle: "h23" })
+    .formatToParts(CLOSE_AT).map((x) => [x.type, x.value]));
+  const when = `${p.month}月${p.day}日（${p.weekday}）${p.hour}:${p.minute}`;
+  // 記事一覧のページでは、絞り込みを残したまま小窓を開く（ほかのページからは、記事一覧へ移って開く）
+  const backup = h("a", { href: document.getElementById("listView") ? "#mypage" : "./#mypage", text: "保存データの管理" });
+  // 公開日は未定（同居人の絵ができしだい）。公開日は X で知らせる（config.js の x）
+  const X = /^[A-Za-z0-9_]{1,15}$/.test(config.x || "") ? config.x : "";
+  const xNote = () => X
+    ? ["公開日に関しては",
+      h("a", { class: "beta-x", href: `https://x.com/${X}`, target: "_blank", rel: "noopener noreferrer", "aria-label": `X（@${X}）を新しいタブで開く`, text: "X" }), "にてお知らせしております。"]
+    : [];
+  const text = ended
+    ? h("p", null, h("strong", { text: "このベータ版は公開を終え、正式版に向けたアップデート準備に入りました。" }), ...xNote())
+    : h("p", null, h("strong", { text: `このベータ版は${when}に公開を終えて正式版に向けたアップデート準備に入ります。` }), ...xNote(),
+      "保存されているデータ（お気に入り・あとで読む・既読・参加した公演）はこのブラウザに残りますが、念のため",
+      backup, "からファイルに書き出すことをお勧めいたします。");
+  const bar = h("aside", { class: "beta-bar", "aria-label": "公開終了のお知らせ" }, text);
+  const wrap = h("div", { class: "wrap beta-wrap" }, bar);
+  if (!ended) {
+    const close = h("button", { type: "button", class: "beta-close", "aria-label": "この案内を閉じる", text: "✕" });
+    close.addEventListener("click", () => {
+      const next = wrap.nextElementSibling;
+      wrap.remove();
+      try { localStorage.setItem(STORE_CLOSING, config.closing); } catch { /* 保存できなくても閉じる */ }
+      // 閉じたあとは、案内の次にある部品へフォーカスを移す（ページの先頭に飛ばないように）
+      const target = next && next.querySelector("h1, h2, [tabindex]");
+      if (target) { if (!target.hasAttribute("tabindex")) target.setAttribute("tabindex", "-1"); target.focus(); }
+    });
+    bar.append(close);
+  }
   before.before(wrap);
 }
 
