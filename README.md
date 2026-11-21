@@ -39,6 +39,7 @@ RADWIMPS とメンバーのインタビュー・対談・ライブレポート�
 index.html            サイトの骨組みと文章
 maker.html            記事データ作成ツール
 history.html          「RADWIMPSの歩み」（年表）のページ
+songs.html            「楽曲一覧」のページ（歌詞は載せず、許諾を受けた歌詞サイトへリンク）
 setlist.html          「RAD LIVE SET LIST」（ライブのセトリ）（年ごとの公演とセットリスト）のページ
 members.html          「メンバー紹介」のページ
 404.html              ない URL を開いたときのページ
@@ -46,6 +47,7 @@ assets/
   style.css           見た目（色など）
   app.js              画面の動き（探す入口・検索・絞り込み・あとで読む・既読）
   history.js          「RADWIMPSの歩み」（年表）の動き
+  songs.js            「楽曲一覧」の動き（記事の数・年表の MV ともつなげる）
   setlist.js          「RAD LIVE SET LIST」（ライブのセトリ）の動き（「ライブ」「ランキング」などの切り替え・曲名で探す）
   admin.js            運営管理の「記事の管理」（記事の編集と GitHub への保存。運営管理を開いたときだけ読み込み）
   feedback.js         ベータ版の表示と、ご意見・不具合の送信フォーム（Web3Forms 経由でメールに届く。未設定なら Google フォーム／GitHub の Issue）
@@ -61,6 +63,7 @@ assets/
 data/
   articles.csv        記事の一覧
   releases.csv        年ごとの主なリリース（「年代から探す」で年を選ぶと出る）
+  songs.csv           楽曲一覧（曲名・初めて出た作品・発売日・タイアップ・歌詞サイトの URL）
   history.csv         「RADWIMPSの歩み」（年表）の出来事
   setlists.csv        「RAD LIVE SET LIST」（ライブのセトリ）の公演とセットリスト（1行が1公演）
   songs.csv           楽曲一覧（「RAD LIVE SET LIST」の「ライブ未演奏」とランキングで使う）
