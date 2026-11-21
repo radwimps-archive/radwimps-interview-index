@@ -13,14 +13,11 @@ import { h as el, setupMenu, isAdminDevice } from "./ui.js";
 import { feedbackUrl, hasFeedback, setupBeta, KIND } from "./feedback.js";
 import config from "./config.js";
 import { pickArticles } from "./shelf-data.js";
+import { norm, STRIP } from "./text.js"; // 文字のそろえ方は、記事一覧・あなたの棚と同じもの（assets/text.js）
 import { roomArticles, setupRoomArticles } from "./room-articles.js";
 
 const $ = (s) => document.querySelector(s);
 
-// 検索用に文字をそろえる（記事一覧の検索と同じ考え方：全角半角・大文字小文字・ひらがなとカタカナ・記号の違いをなくす）
-const STRIP = /[\s　・、，,。．.／/「」『』【】〔〕［］[\]（）()<>＜＞〈〉《》\-‐–—―_~〜～!！?？:：;；'"“”‘’`*＊#＃|｜×✕+＋&＆]/g;
-const norm = (s) => String(s || "").normalize("NFKC").toLowerCase()
-  .replace(/[ぁ-ゖ]/g, (c) => String.fromCharCode(c.charCodeAt(0) + 0x60)).replace(STRIP, "");
 const reEsc = (s) => s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 // 「すずめ feat.十明」→「すずめ」のように、記事を探すときの曲名（feat. より後ろを外す）
 const baseTitle = (t) => t.replace(/\s*\(?\s*feat\..*$/i, "").trim();

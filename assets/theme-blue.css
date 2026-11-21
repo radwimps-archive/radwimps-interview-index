@@ -429,7 +429,7 @@ main > .hist-note { color: var(--on-blue-2); }
 /* 青の上では、フォーカスの枠は白（白い部品の中は群青のまま） */
 .archive :focus-visible, .paper-sheet :focus-visible, .page :focus-visible { outline-color: #FFFFFF; }
 /* 白い部品の内側に出る枠は群青に（入口の4つのボタンは、枠がボタンの外の青の上に出るので白のまま） */
-:is(.archive, .paper-sheet, .page) :is(.article-card, .empty, .entry-panel, .search-box, .sl-live, .page-guide, .person-card, .panel, .admconnect, .counts li, .statcard, .sl-drop-menu, .admbar) :focus-visible { outline-color: var(--blue); }
+:is(.archive, .paper-sheet, .page) :is(.article-card, .empty, .entry-panel, .search-box, .sl-live, .page-guide, .person-card, .room-item, .panel, .admconnect, .counts li, .statcard, .sl-drop-menu, .admbar) :focus-visible { outline-color: var(--blue); }
 /* 「表示の見かた」の見出し（白い箱）は、枠を箱の内側に描く（外側だと群青の枠が夜空の青に溶けて見えない） */
 .page-guide details > summary:focus-visible { outline-offset: -4px; }
 /* セトリの検索欄の枠は、欄の外側（青の上）に出るので白 */

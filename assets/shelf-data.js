@@ -82,7 +82,8 @@ export function personSelf(it, name) {
   return key ? it.members.includes(key) : it.guests.includes(name);
 }
 
-// 公開中の記事のうち、条件に合うものを新しい順に（日付のない記事は最後）
+// 公開中の記事のうち、条件に合うものを新しい順に（日付のない記事は最後）。
+// 同じ日付の記事は、記事一覧の「新しい順」と同じく data/articles.csv の順のまま（日付だけで比べる。sort は元の順を保つ）
 export function pickArticles(items, test) {
-  return items.filter((it) => it.state === "公開" && it.id && test(it)).sort(byNewest);
+  return items.filter((it) => it.state === "公開" && it.id && test(it)).sort((a, b) => (b.date || "").localeCompare(a.date || ""));
 }

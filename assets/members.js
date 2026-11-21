@@ -29,13 +29,17 @@ setupRoomArticles(people);
     if (!r.ok) throw new Error(`data/articles.csv: HTTP ${r.status}`);
     const items = parseArticles(await r.text()).items;
     for (const link of people.querySelectorAll(".person-card a.person-articles")) {
-      const name = new URL(link.href).searchParams.get("person");
+      const url = new URL(link.href);
+      const name = url.searchParams.get("person");
       if (!name) continue;
+      // 下の欄には動画・ラジオも出るので、「○○の記事を見る」も「すべて」のタブで開く（楽曲一覧の「記事 ○件」と同じ）
+      url.searchParams.set("format", "all");
+      link.setAttribute("href", "articles.html" + url.search);
       const list = pickArticles(items, (it) => personSelf(it, name));
       if (!list.length) continue;
       // 開くまでは閉じておく（紹介文が読みにくくならないように）
       link.before(h("details", { class: "person-picks" },
-        h("summary", null, h("span", { text: `新しい記事 ${Math.min(list.length, ROOM_LIMIT)}件` }), h("span", { class: "chev", "aria-hidden": "true", text: "⌄" })),
+        h("summary", null, h("span", { text: list.length > ROOM_LIMIT ? `新しい記事（全${list.length}件のうち${ROOM_LIMIT}件）` : `新しい記事（${list.length}件）` }), h("span", { class: "chev", "aria-hidden": "true", text: "⌄" })),
         roomArticles(list, {})));
     }
   } catch (e) {

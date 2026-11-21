@@ -68,9 +68,11 @@ test("楽曲一覧・メンバー紹介の記事：公開中だけを新しい�
     item("a", { state: "公開", date: "2020-01-01" }),
     item("b", { state: "非表示", date: "2024-01-01" }),
     item("c", { state: "公開", date: "" }),
-    item("d", { state: "公開", date: "2023-05-01" })
+    item("d", { state: "公開", date: "2023-05-01" }),
+    item("z", { state: "公開", date: "2020-01-01" }),
+    item("e", { state: "公開", date: "2020-01-01" })
   ], () => true);
-  assert.deepEqual(list.map((x) => x.id), ["d", "a", "c"]);
+  assert.deepEqual(list.map((x) => x.id), ["d", "a", "z", "e", "c"], "同じ日付は CSV の順のまま（記事一覧と同じ）");
 });
 
 test("メンバー紹介の記事：記事一覧の ?person= と同じ「本人が語っている記事」（メンバーはメンバー欄、ほかの人は対談相手の欄）", () => {
