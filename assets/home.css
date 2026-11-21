@@ -1,0 +1,95 @@
+/* assets/home.css
+   玄関（index.html）だけで使う見た目。style.css と theme-blue.css のあとに読み込みます。
+   ・いちばん大きく「まだ読んでいない一節」。夜空の上に、うすく暗い面と白の細い線の枠。
+   ・その下に、各部屋への入口＝夜の家の「灯りのついた窓」。窓の中は夜空より少し明るい青（星は入れない）で、文字を読みやすくする。
+     部屋の違いは青の濃淡だけで出す（差し色は足さない）。あなたの棚は準備中なので、灯りの消えた窓。
+
+   文字と地の色の差（コントラスト。4.5 以上）
+   ・窓の中のいちばん明るい青 #2D58C4 ／ 白 …… 6.4、少し薄い白（白 82%）…… 4.9
+   ・窓の地（下のほう）#2A54C0〜#1E44AE ／ 白 …… 6.7〜8.4、少し薄い白 …… 5.1〜6.2
+   ・灯りの消えた窓 #12307F ／ 少し薄い白 …… 8.5
+   ・一節の面は、夜空にうすい黒（rgba(10, 11, 18, .32)）を重ねるので、群青の上（白 9.0・少し薄い白 6.6）より読みやすい */
+
+.home-page .hero { padding-bottom: 28px; }
+
+/* ---------- まだ読んでいない一節 ---------- */
+.encounter { max-width: 760px; padding-bottom: 8px; color: var(--on-blue); }
+.encounter:focus { outline: none; }
+.encounter-label { margin: 0 0 14px; font-size: 13px; font-weight: 400; letter-spacing: .3em; text-indent: .3em; text-align: center; color: var(--on-blue-2); }
+.encounter-card {
+  min-height: 220px; padding: 28px 22px 24px; border: 1px solid var(--on-blue-line); border-radius: 4px;
+  background: rgba(10, 11, 18, .32);
+}
+.encounter-loading, .encounter-empty { margin: 0; font-size: 14px; line-height: 1.9; color: var(--on-blue-2); }
+.encounter-meta { margin: 0 0 14px; font-size: 12px; letter-spacing: .08em; color: var(--on-blue-2); }
+/* 紹介文：このページでいちばん大きな文字 */
+.encounter-text { margin: 0; font-size: 18px; line-height: 2; letter-spacing: .04em; color: var(--on-blue); text-wrap: pretty; }
+.encounter-title { margin: 18px 0 0; padding-top: 14px; border-top: 1px solid rgba(255, 255, 255, .25); font-size: 13px; line-height: 1.8; color: var(--on-blue-2); }
+.encounter-actions { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 20px; }
+
+/* ボタン：細い白線の丸い枠（正式版のプルダウン・準備中の案内ページと同じ形）。primary は白地に黒 */
+.home-btn {
+  display: inline-flex; align-items: center; justify-content: center; gap: 8px; min-height: 44px; max-width: 100%; padding: 0 20px;
+  border: 1px solid var(--on-blue-line); border-radius: 22px; background: transparent; color: var(--on-blue);
+  font: inherit; font-size: 14px; letter-spacing: .06em; text-decoration: none; cursor: pointer;
+}
+.home-btn:hover { border-color: var(--on-blue); background: rgba(255, 255, 255, .12); }
+.home-btn.primary { border-color: var(--white); background: var(--white); color: var(--black); }
+.home-btn.primary:hover { background: rgba(255, 255, 255, .88); }
+.home-btn span:first-child { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.home-btn .arrow { flex: none; }
+
+/* ---------- 検索 ---------- */
+.home-search { display: flex; gap: 8px; max-width: 760px; margin-top: 28px; }
+.home-search .search-box { border-color: var(--white); }
+.home-search .search-box svg { color: var(--muted); }
+.home-search .search-box input { color: var(--ink); }
+.home-search .search-box input::placeholder { color: var(--muted); }
+.home-search .search-go { border-color: var(--white); background: var(--black); }
+
+/* ---------- 各部屋への入口：灯りのついた窓 ---------- */
+.windows { max-width: 960px; padding-block: 44px 64px; }
+.window-list { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px 14px; margin: 0; padding: 0; list-style: none; }
+.window-list li { display: flex; }
+.window {
+  --win: #2A54C0;
+  position: relative; display: flex; flex-direction: column; width: 100%; min-height: 180px; padding: 12px 12px 14px;
+  border: 1px solid rgba(255, 255, 255, .7); border-radius: 2px; color: var(--on-blue); text-decoration: none;
+  /* 窓の中：上ほど少し明るい青（灯りの色）。いちばん明るい所でも #2D58C4 まで */
+  background: linear-gradient(180deg, #2D58C4 0, var(--win) 62%);
+  /* 内側の細い枠と、外にほのかにこぼれる灯り */
+  box-shadow: inset 0 0 0 3px rgba(10, 11, 18, .35), inset 0 0 0 4px rgba(255, 255, 255, .25), 0 0 28px rgba(150, 175, 240, .22);
+}
+/* 窓の下の、細い窓台 */
+.window::after { content: ""; position: absolute; left: -6px; right: -6px; bottom: -6px; height: 3px; border-radius: 1px; background: rgba(255, 255, 255, .55); }
+/* 窓の上半分の、十字の桟（文字には重ねない） */
+.window-panes { position: relative; display: block; height: 44px; margin: 0 0 12px; }
+.window-panes::before { content: ""; position: absolute; top: 0; bottom: 0; left: 50%; width: 1px; background: rgba(255, 255, 255, .4); }
+.window-panes::after { content: ""; position: absolute; left: 0; right: 0; top: 50%; height: 1px; background: rgba(255, 255, 255, .4); }
+.window-en { font-size: 12px; font-weight: 300; letter-spacing: .24em; line-height: 1.5; color: var(--on-blue-2); }
+.window strong { margin-top: 4px; font-size: 16px; word-break: auto-phrase; font-weight: 700; line-height: 1.5; letter-spacing: .04em; }
+.window small { display: block; margin-top: 6px; font-size: 12px; line-height: 1.7; color: var(--on-blue-2); }
+a.window:hover { box-shadow: inset 0 0 0 3px rgba(10, 11, 18, .35), inset 0 0 0 4px rgba(255, 255, 255, .4), 0 0 34px rgba(170, 195, 250, .38); }
+a.window:focus-visible { outline: 2px solid var(--on-blue); outline-offset: 8px; }
+
+/* 部屋ごとの青の濃淡（差し色は足さない） */
+.window.w1 { --win: #2A54C0; }
+.window.w2 { --win: #2850BC; }
+.window.w3 { --win: #2148B4; }
+.window.w4 { --win: #1E44AE; }
+.window.w5 { --win: #2148B4; }
+/* 灯りの消えた窓（準備中） */
+.window.is-dark { border-color: rgba(255, 255, 255, .45); background: #12307F; box-shadow: inset 0 0 0 3px rgba(10, 11, 18, .35), inset 0 0 0 4px rgba(255, 255, 255, .12); }
+.window.is-dark::after { background: rgba(255, 255, 255, .35); }
+.window.is-dark .window-panes::before, .window.is-dark .window-panes::after { background: rgba(255, 255, 255, .25); }
+.window-soon { display: inline-block; margin-left: 6px; padding: 0 8px; border: 1px solid var(--on-blue-line); border-radius: 10px; font-size: 12px; line-height: 1.6; color: var(--on-blue); white-space: nowrap; }
+
+@media (min-width: 701px) {
+  .encounter-card { padding: 40px 44px 34px; }
+  .encounter-text { font-size: 21px; }
+  .window-list { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 28px 24px; }
+  .window { min-height: 210px; padding: 16px 18px 18px; }
+  .window-panes { height: 64px; margin-bottom: 16px; }
+  .window strong { font-size: 18px; }
+  .window small { font-size: 13px; }
+}

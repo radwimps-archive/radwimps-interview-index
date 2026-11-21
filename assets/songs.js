@@ -183,7 +183,7 @@ function songItem(s, inRelease) {
     panel = links;
     title = el("h3", { class: "song-title" }, el("button", { type: "button", class: "song-title-btn", "aria-expanded": "false", "aria-controls": links.id, title: "押すと、歌詞などが開きます" }, s.title));
   }
-  const art = s.articles ? el("a", { class: "song-btn song-articles", href: `./?work=${encodeURIComponent(s.base)}&format=all`, text: `記事 ${s.articles}件` }) : null;
+  const art = s.articles ? el("a", { class: "song-btn song-articles", href: `articles.html?work=${encodeURIComponent(s.base)}&format=all`, text: `記事 ${s.articles}件` }) : null;
   return el("li", { class: "song-item" }, el("div", { class: "song-head" }, title, art), panel, meta, linkBox, ...subs);
 }
 function releasePanel(kind, work, base) {

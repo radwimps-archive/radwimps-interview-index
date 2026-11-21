@@ -1,5 +1,5 @@
 // assets/localfile.js
-// パソコンで index.html を直接開いたときの案内です（ブラウザの制限で、このときは記事を表示できません）。
+// パソコンで articles.html などを直接開いたときの案内です（ブラウザの制限で、このときは記事を表示できません）。
 // ※ module ではない、ふつうのスクリプトとして読み込みます（module は、ファイルを直接開いたときに動かないため）。
 if (location.protocol === "file:") {
   const loading = document.getElementById("loading");
