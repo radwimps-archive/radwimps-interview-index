@@ -84,7 +84,10 @@ body { position: relative; background: transparent; color: var(--ink); }
 /* 画面に固定した背景の層（スクロールしても動かない） */
 /* 高さは、スマホのアドレスバーを隠したときの大きいほうの画面の高さ（100lvh）に固定する。
    iPhone の Safari で、スクロールしてアドレスバーが縮むたびに、星や陰影が伸び縮みして見えないように */
-body::after { content: ""; position: fixed; top: 0; right: 0; left: 0; height: 100vh; height: 100lvh; z-index: -1; pointer-events: none; background: var(--sky); }
+/* iPhone の Safari（下にアドレスの帯が浮く形）では、100lvh でも画面の下端まで届かず、隙間に html の黒が帯のように見え、
+   アドレスの帯の伸び縮みに合わせて動いて見えた。下の安全領域（ホームバーのあたり）と、さらに 120px を足して、下端の隙間をなくす
+   （はみ出した分は画面の外なので見えない。陰影の位置はわずかに下がるだけ） */
+body::after { content: ""; position: fixed; top: 0; right: 0; left: 0; height: calc(100vh + 120px); height: calc(100lvh + env(safe-area-inset-bottom, 0px) + 120px); z-index: -1; pointer-events: none; background: var(--sky); }
 /* 中身の短いページ（404 など）でも、フッターが画面のいちばん下に来るようにする（フッターの下に青が見えないように）。
    本文（main）が残りの高さを埋める。100svh はスマホのアドレスバーを出した状態の高さ（使えないブラウザは 100vh） */
 body { display: flex; flex-direction: column; min-height: 100vh; min-height: 100svh; }
