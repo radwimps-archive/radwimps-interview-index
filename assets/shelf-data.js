@@ -72,3 +72,17 @@ export function groupLives(lives) {
     .map(([name, list]) => ({ name, items: list.sort((a, b) => b.date.localeCompare(a.date)) }))
     .sort((a, b) => b.items[0].date.localeCompare(a.items[0].date));
 }
+
+// 楽曲一覧・メンバー紹介に出す「この曲の記事」「この人の記事」のための計算（棚に入れるボタン付きの短い一覧。assets/room-articles.js）
+
+// 人の記事か：記事一覧の ?person=名前 を開いたときと同じ「本人が語っている記事」（メンバー欄、メンバーでない人は対談相手の欄にいる）
+const MEMBER_KEY = Object.fromEntries(MEMBER_ORDER.map((k) => [MEMBERS[k].name, k]));
+export function personSelf(it, name) {
+  const key = MEMBER_KEY[name];
+  return key ? it.members.includes(key) : it.guests.includes(name);
+}
+
+// 公開中の記事のうち、条件に合うものを新しい順に（日付のない記事は最後）
+export function pickArticles(items, test) {
+  return items.filter((it) => it.state === "公開" && it.id && test(it)).sort(byNewest);
+}

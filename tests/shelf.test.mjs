@@ -3,7 +3,8 @@
 
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { groupArticles, groupLives, workMatch } from "../assets/shelf-data.js";
+import { groupArticles, groupLives, workMatch, personSelf, pickArticles } from "../assets/shelf-data.js";
+import { loadMarks, setMark, STORE_MARKS } from "../assets/marks.js";
 
 const item = (id, extra = {}) => ({ id, kind: "インタビュー", title: id, summary: "", tags: [], members: [], guests: [], date: "", eventName: "", eventDate: "", ...extra });
 
@@ -60,4 +61,35 @@ test("参加した公演：ライブ名ごと。新しい公演のあるライ�
   ]);
   assert.deepEqual(g.map((x) => x.name), ["ツアーB", "ツアーA"]);
   assert.deepEqual(g[1].items.map((x) => x.date), ["2018-03-01", "2018-01-01"]);
+});
+
+test("楽曲一覧・メンバー紹介の記事：公開中だけを新しい順に。日付のない記事は最後", () => {
+  const list = pickArticles([
+    item("a", { state: "公開", date: "2020-01-01" }),
+    item("b", { state: "非表示", date: "2024-01-01" }),
+    item("c", { state: "公開", date: "" }),
+    item("d", { state: "公開", date: "2023-05-01" })
+  ], () => true);
+  assert.deepEqual(list.map((x) => x.id), ["d", "a", "c"]);
+});
+
+test("メンバー紹介の記事：記事一覧の ?person= と同じ「本人が語っている記事」（メンバーはメンバー欄、ほかの人は対談相手の欄）", () => {
+  assert.equal(personSelf(item("a", { members: ["takeda"] }), "武田祐介"), true);
+  assert.equal(personSelf(item("a", { members: ["noda"], tags: ["武田祐介"] }), "武田祐介"), false);
+  assert.equal(personSelf(item("a", { members: ["band"] }), "RADWIMPS"), true);
+  assert.equal(personSelf(item("a", { guests: ["森瑞希"] }), "森瑞希"), true);
+});
+
+test("印の読み書き：ほかの印を残したまま付け外しでき、以前の「お気に入り（★）」はあとで読むとして扱う", () => {
+  const store = new Map();
+  globalThis.localStorage = { getItem: (k) => store.get(k) ?? null, setItem: (k, v) => store.set(k, String(v)) };
+  try {
+    store.set(STORE_MARKS, JSON.stringify({ rd: { x: 1 }, bm: { old: 1 } }));
+    assert.deepEqual([...loadMarks().lt], ["old"]);
+    assert.equal(setMark("fv", "a", true), true);
+    let m = loadMarks();
+    assert.ok(m.fv.has("a") && m.rd.has("x"), "既読は残る");
+    setMark("lt", "old", false);
+    assert.equal(loadMarks().lt.has("old"), false, "以前の★からも消える（記事一覧で戻らないように）");
+  } finally { delete globalThis.localStorage; }
 });

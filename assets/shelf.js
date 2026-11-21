@@ -12,34 +12,18 @@ import { groupArticles, groupLives } from "./shelf-data.js";
 import { h, setupMenu, isAdminDevice, watchScrollFade } from "./ui.js";
 import { setupBeta } from "./feedback.js";
 import { assignKeys } from "./attended.js";
+import { STORE_MARKS, loadMarks, setMark, readJSON, writeJSON, idsOf } from "./marks.js";
 
 const $ = (s) => document.querySelector(s);
 
 /* ---------- 印の読み書き ---------- */
 
-const STORE_MARKS = "radwimps-interview-index:marks";       // assets/app.js と同じ：fv お気に入り・lt あとで読む・rd 既読・bm 以前の「お気に入り（★）」
+// 記事の印（お気に入り・あとで読む・既読）の読み書きは assets/marks.js（楽曲一覧・メンバー紹介と同じもの）
 const STORE_ATTENDED = "radwimps-interview-index:attended"; // assets/attended.js と同じ：公演日（2つ目からは「#2」付き）
 const ATT_KEY = /^\d{4}(-\d{2}){0,2}(#\d{1,2})?$/;
 
-const readJSON = (key) => { try { const v = JSON.parse(localStorage.getItem(key)); return v && typeof v === "object" ? v : {}; } catch { return {}; } };
-const writeJSON = (key, v) => { try { localStorage.setItem(key, JSON.stringify(v)); return true; } catch { return false; } };
-const idsOf = (o) => new Set(o && typeof o === "object" ? Object.keys(o).filter((k) => o[k] && k.length < 160) : []);
-
-function loadMarks() {
-  const m = readJSON(STORE_MARKS);
-  // 以前の「お気に入り（★）」は、記事一覧と同じく「あとで読む」として扱う
-  return { fv: idsOf(m.fv), lt: new Set([...idsOf(m.lt), ...idsOf(m.bm)]), rd: idsOf(m.rd) };
-}
 const loadAttended = () => new Set([...idsOf(readJSON(STORE_ATTENDED))].filter((k) => ATT_KEY.test(k)));
 
-// 印を付ける・外す（ほかの印はそのまま残す）
-function setMark(kind, id, on) {
-  const m = readJSON(STORE_MARKS);
-  for (const k of ["fv", "lt", "rd", "bm"]) if (!m[k] || typeof m[k] !== "object") m[k] = {};
-  if (on) m[kind][id] = 1; else delete m[kind][id];
-  if (kind === "lt" && !on) delete m.bm[id]; // 以前の「お気に入り（★）」に残っていると、記事一覧で「あとで読む」に戻ってしまうため
-  return writeJSON(STORE_MARKS, m);
-}
 function setAttended(key, on) {
   const a = readJSON(STORE_ATTENDED);
   if (on) a[key] = 1; else delete a[key];
