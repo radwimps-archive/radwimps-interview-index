@@ -1145,4 +1145,7 @@ small { font-size: max(12px, .83em); }
 .song-kinds::-webkit-scrollbar { display: none; }
 .song-kinds button { flex: none; padding-inline: 12px; }
 .song-kinds button[aria-pressed="true"] { flex-grow: 0; }
+/* 楽曲一覧の「表示の見かた」：説明が長いので、札と説明を1つの文として折り返す */
+.song-legend li { display: block; }
+.song-legend .lg-label { color: var(--ink); font-weight: 600; }
 .song-kinds button small { margin-left: 5px; font-size: .85em; font-weight: 400; font-variant-numeric: tabular-nums; opacity: .8; }

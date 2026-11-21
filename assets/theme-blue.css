@@ -424,6 +424,29 @@ main > .hist-note { color: var(--on-blue-2); }
 /* セトリの検索欄の枠は、欄の外側（青の上）に出るので白 */
 .paper-sheet .sl-search-box input:focus { outline-color: #FFFFFF; }
 
+/* ---------- 楽曲一覧（songs.html）：ほかの部屋と同じ夜空の上に ---------- */
+/* 白いボタン（歌詞・MV・記事・お店・並び順・開閉）の中は、元の紺の色に戻す（上の「白い部品」と同じ考え方） */
+.paper-sheet :where(.song-btn, .song-order-btn, .song-open-btn, .song-fold-btn) {
+  --ink: #0B1230; --ink-2: #22305C; --muted: #3A4670; --line-entry: #B7C3DD;
+  --accent: var(--blue); --accent-tint: #E6ECF8; --accent-soft: #B9C7EA;
+}
+.paper-sheet :is(.song-btn, .song-order-btn, .song-open-btn, .song-fold-btn):focus-visible { outline-color: #FFFFFF; outline-offset: 2px; }
+/* 検索と並び順の帯：ページの途中では透明で夜空に溶け込ませ、上に貼りついたら（.stuck）タブの帯と同じ暗い地を敷く */
+.paper-sheet .song-bar { background: transparent; }
+.paper-sheet .song-bar.stuck { background: linear-gradient(180deg, var(--black), #0E1430); border-bottom-color: rgba(255, 255, 255, .32); box-shadow: none; }
+/* 年の数字は、歩みと同じ細い字間の広い数字に */
+.song-row .hist-year-head span { font-size: 34px; font-weight: 200; }
+@media (min-width: 701px) { .song-row .hist-year-head span { font-size: 44px; } }
+/* 作品名の隣の種類の札・小さな説明・お店のリンクは、12px 以上に */
+.song-kind { padding: 2px 8px; border: 1px solid rgba(255, 255, 255, .45); font-size: 12px; }
+.song-label { font-size: 12px; }
+.song-shop { font-size: 12px; }
+.song-shop .pr { font-size: 12px; }
+/* 曲名・作品名の「▾」は、青の上でも見える濃さに（style.css の --muted の予備の色 #888 では足りない） */
+.paper-sheet :is(.song-title-btn, .song-work-btn)::after { color: var(--muted); }
+/* 開いたときの「歌詞・MV」「CD を探す」の面は、まわりより少し暗い夜の面に */
+.paper-sheet .song-buy { background: rgba(10, 11, 18, .32); }
+
 /* 動きを控える設定の人には、ボタンの色の変化もすぐに切り替える */
 @media (prefers-reduced-motion: reduce) {
   .closing button span { transition: none; }

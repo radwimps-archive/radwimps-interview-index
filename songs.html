@@ -23,9 +23,10 @@
 <meta name="twitter:title" content="楽曲一覧｜RADWIMPS Archives">
 <meta name="twitter:description" content="RADWIMPS の曲の一覧です。曲名・初めて出た作品・発売日・タイアップを並べ、歌詞は許諾を受けた歌詞サイト（プチリリ）へのリンクで見られます。インタビュー記事や MV にもつながります。">
 <meta name="twitter:image" content="https://radwimps-archive.github.io/radwimps-interview-index/assets/ogp.png">
-<meta name="theme-color" content="#FFFFFF">
+<meta name="theme-color" content="#0A0B12">
 <link rel="icon" href="assets/icon.svg" type="image/svg+xml">
 <link rel="stylesheet" href="assets/style.css">
+<link rel="stylesheet" href="assets/theme-blue.css">
 <script type="module" src="assets/songs.js"></script>
 </head>
 <body class="songs-page">
@@ -49,16 +50,16 @@
   </div>
 </header>
 
-<!-- 人物を足すときは、<article class="person-card"> … </article> をひとまとまりで写して、名前・紹介文・リンクを書き換えます（マニュアル 7-4） -->
 <main id="main">
   <section class="hero wrap" aria-labelledby="songsTitle">
     <p class="eyebrow">SONGS <span id="songCount"></span></p>
     <h1 id="songsTitle">楽曲一覧</h1>
-    <p class="hero-description">RADWIMPS の曲を、初めて世に出た順（「50音順」に切り替えもできます）に並べました。曲名・初めて出た作品（シングル・アルバムなど）・発売日・タイアップがわかります。曲名を押すと「歌詞」のボタン（歌詞の掲載を許諾されている歌詞サイト「プチリリ」でその曲の歌詞が開きます）などが開きます（新しいタブで開きます）。「記事」を押すと、その曲にふれたインタビューの一覧が開きます。アルバム名・シングル名を押すと、CD で出た作品は「CD を探す」（タワーレコード・Amazon・楽天）、配信シングルは「聴く」（Spotify・Apple Music・YouTube Music）が開きます。</p>
+    <p class="hero-description">RADWIMPS の曲を、初めて世に出た順にたどります。曲名から、歌詞やその曲が語られた記事へ。</p>
     <p class="hist-pr-top" id="prTop" hidden><span class="pr">PR</span>このページには、広告（アフィリエイト）を含むリンクがあります。</p>
-    <p class="song-lyric-note">歌詞には著作権があるため、このサイトには歌詞を載せていません。歌詞は、各歌詞サイトや配信サービスでご覧ください。</p>
   </section>
 
+  <!-- ここから下は、ほかの部屋と同じ「紙」の面（.paper-sheet）にのせます（正式版の配色では、地は透明で夜空が見えます） -->
+  <div class="paper-sheet">
   <!-- 検索と並び順（スクロールしても上に残ります。スクロールすると少し小さくなります） -->
   <div class="song-sentinel" id="songSentinel" aria-hidden="true"></div>
   <div class="song-bar" id="songBar">
@@ -85,8 +86,23 @@
     <p class="hist-loading" id="songLoading">曲の一覧を読み込んでいます…</p>
   </section>
 
+  <!-- 表示の見かたと注意書き：一覧を読む邪魔にならないよう、いちばん下の注意書きの前に置きます。開くと読めます -->
+  <div class="page-guide wrap">
+    <details class="hist-info">
+      <summary>表示の見かたと注意書き</summary>
+      <p class="hist-guide">「発売順」では初めて世に出た作品（シングル・アルバムなど）ごとに、「50音順」では曲名の読みの順に並びます。</p>
+      <ul class="hist-legend song-legend" aria-label="表示の見かた">
+        <li><span class="lg-dotted">曲名</span>を押すと、「歌詞」と MV のボタンが出ます。「歌詞」は、歌詞の掲載を許諾されている歌詞サイト「プチリリ」を新しいタブで開きます</li>
+        <li><span class="lg-dotted">作品名</span>を押すと、CD で出た作品は「CD を探す」（タワーレコード・Amazon・楽天）、配信シングルは「聴く」（Spotify・Apple Music・YouTube Music）が開きます</li>
+        <li><span class="lg-label">記事 ◯件</span>を押すと、その曲にふれたインタビューの一覧が開きます</li>
+      </ul>
+      <p class="hist-guide">歌詞には著作権があるため、このサイトには歌詞を載せていません。歌詞は、各歌詞サイトや配信サービスでご覧ください。</p>
+    </details>
+  </div>
+
   <p class="hist-note hist-pr wrap" id="prNote" hidden><span class="pr">PR</span>「PR」の印がある「CD を探す」のリンクは、アフィリエイト（広告）リンクです。ここから購入されると、運営に紹介料が入ることがあります。価格や在庫は、各ストアのページで確かめてください。</p>
   <p class="hist-note wrap">公式サイト・Wikipedia・各媒体の発表をもとに、運営がまとめた非公式の一覧です。シングルのカップリング曲など、まだ載せていない曲があります。「歌詞」のリンク先は外部のサイトで、このサイトとは関係ありません。誤りに気づいたら、お知らせください。</p>
+  </div>
 </main>
 
 
