@@ -18,10 +18,14 @@ export function workMatch(it, name) {
   return [...n].length >= 4 && norm([it.title, it.summary, it.tags.join(" "), it.eventName].join(" ")).includes(n);
 }
 
+// 曲・作品のまとまりに入れるときの優先の順（同じグループの中は、記事一覧の「曲・作品から探す」の並び順）
+const GROUP_PRIORITY = ["曲", "アルバム・EP", "映画", "ドラマ・CM"];
+const WORKS_BY_PRIORITY = [...WORKS].sort((a, b) => (GROUP_PRIORITY.indexOf(a.group) + 99) % 99 - (GROUP_PRIORITY.indexOf(b.group) + 99) % 99);
+
 const byNewest = (a, b) => (b.date || "").localeCompare(a.date || "") || a.title.localeCompare(b.title, "ja");
 
 // 記事を分ける。mode：person（人ごと）・work（曲・作品ごと）・year（年代ごと）・live（ライブごと）
-// 返すもの：[{ name: 見出し, items: [記事…] }…]。1つの記事が、いくつかのまとまりに入ることもある（例：2人の対談は、2人のどちらにも出る）
+// 返すもの：[{ name: 見出し, items: [記事…] }…]。1つの記事は、どれか1つのまとまりにだけ入る（同じ記事が何度も出ないように。運営の決定 11/21）
 // どこにも入らない記事は、最後の「そのほか」にまとめる
 export function groupArticles(items, mode) {
   const groups = new Map();
@@ -29,18 +33,15 @@ export function groupArticles(items, mode) {
   const rest = [];
   let order = [];
   if (mode === "person") {
+    // 1つの記事は1か所だけ：「メンバー」欄に最初に書かれている人のまとまりへ（対談相手のまとまりは作らない）
     order = MEMBER_ORDER.map((k) => MEMBERS[k].name);
-    for (const it of items) {
-      const names = [...it.members.map((k) => MEMBERS[k].name), ...it.guests];
-      if (!names.length) rest.push(it);
-      for (const n of new Set(names)) add(n, it);
-    }
+    for (const it of items) { if (it.members.length) add(MEMBERS[it.members[0]].name, it); else rest.push(it); }
   } else if (mode === "work") {
-    order = WORKS.map((w) => w.name);
+    // 1つの記事は1か所だけ：いくつかの作品にあてはまるときは、曲 → アルバム・EP → 映画 → ドラマ・CM の順で先にあてはまったものへ
+    order = WORKS_BY_PRIORITY.map((w) => w.name);
     for (const it of items) {
-      const hit = WORKS.filter((w) => workMatch(it, w.name));
-      if (!hit.length) rest.push(it);
-      for (const w of hit) add(w.name, it);
+      const hit = WORKS_BY_PRIORITY.find((w) => workMatch(it, w.name));
+      if (hit) add(hit.name, it); else rest.push(it);
     }
   } else if (mode === "year") {
     for (const it of items) { if (it.date) add(`${it.date.slice(0, 4)}年`, it); else rest.push(it); }
@@ -55,7 +56,7 @@ export function groupArticles(items, mode) {
     const latest = (name) => groups.get(name).reduce((m, it) => ((it.eventDate || "") > m ? it.eventDate : m), "");
     order = [...groups.keys()].sort((a, b) => latest(b).localeCompare(latest(a)) || a.localeCompare(b, "ja"));
   }
-  // 決まった順（メンバー・作品の一覧の順）にないもの（対談相手など）は、記事の多い順に後ろへ
+  // 決まった順（メンバー・作品の一覧の順）にないものは、記事の多い順に後ろへ
   const known = order.filter((n) => groups.has(n));
   const extra = [...groups.keys()].filter((n) => !known.includes(n)).sort((a, b) => groups.get(b).length - groups.get(a).length || a.localeCompare(b, "ja"));
   const out = [...known, ...extra].map((name) => ({ name, items: groups.get(name).sort(byNewest) }));

@@ -7,14 +7,20 @@ import { groupArticles, groupLives, workMatch } from "../assets/shelf-data.js";
 
 const item = (id, extra = {}) => ({ id, kind: "インタビュー", title: id, summary: "", tags: [], members: [], guests: [], date: "", eventName: "", eventDate: "", ...extra });
 
-test("人ごと：メンバーの順に並び、対談相手は後ろ。1つの記事が2人に入ることもある", () => {
+test("人ごと：1つの記事は「メンバー」欄の最初の人にだけ入る。対談相手のまとまりは作らない", () => {
   const g = groupArticles([
     item("a", { members: ["takeda"], date: "2020-01-01" }),
-    item("b", { members: ["noda"], guests: ["新海誠"], date: "2021-01-01" }),
+    item("b", { members: ["noda", "takeda"], guests: ["新海誠"], date: "2021-01-01" }),
     item("c", { members: ["noda"], date: "2022-01-01" })
   ], "person");
-  assert.deepEqual(g.map((x) => x.name), ["野田洋次郎", "武田祐介", "新海誠"]);
+  assert.deepEqual(g.map((x) => x.name), ["野田洋次郎", "武田祐介"]);
+  assert.equal(g.reduce((n, x) => n + x.items.length, 0), 3, "同じ記事が2回出ない");
   assert.deepEqual(g[0].items.map((x) => x.id), ["c", "b"], "新しい記事が上");
+});
+
+test("曲・作品ごと：映画と曲の両方にあてはまる記事は、曲のまとまりにだけ入る", () => {
+  const g = groupArticles([item("a", { tags: ["余命10年", "うるうびと"] })], "work");
+  assert.deepEqual(g.map((x) => x.name), ["うるうびと"]);
 });
 
 test("曲・作品ごと：タグや「」付きの曲名で入り、どれにも入らない記事は「そのほか」", () => {
