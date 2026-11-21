@@ -83,6 +83,9 @@
    iPhone の Safari（下にアドレスの帯が浮く形）は、帯の裏側に画面に固定した背景（body::after）を描かず、この色で塗るため。
    黒のままだと、画面の下に黒い帯がくっきり見え、帯の伸び縮みに合わせて動いて見えた */
 html { background: var(--blue); }
+/* フッター（黒）が画面に入っているあいだは、帯の裏も黒に（ui.js の watchFooter が footer-in-view を付ける。
+   スクリプトのない 404 のページは、中身が短くフッターがいつも見えているので黒に）。メニューを開いているあいだは夜空に合わせて群青のまま */
+html.footer-in-view:not(:has(.menu-clip.open)), html:has(.nf-links):not(:has(.menu-clip.open)) { background: var(--black); }
 body { position: relative; background: transparent; color: var(--ink); }
 /* 画面に固定した背景の層（スクロールしても動かない） */
 /* 高さは、スマホのアドレスバーを隠したときの大きいほうの画面の高さ（100lvh）に固定する。
