@@ -66,7 +66,9 @@ export class Table {
         if (prev.type === "edit" && toCSVLine(prev.cells) === prev.orig) this.ops.splice(this.ops.indexOf(prev), 1);
       }
     } else this.ops.push({ ...op, cells: op.cells ? op.cells.slice() : null });
-    this.applyOp(this.rows, op);
+    // 読み込んだときの表に、変更を順に当て直す（直してもとに戻したとき、行の位置も読み込んだときのままにするため）
+    this.rows = this.base.map((r) => r.slice());
+    for (const o of this.ops) this.applyOp(this.rows, o);
     return true;
   }
   counts() {
@@ -75,23 +77,29 @@ export class Table {
     return { ...c, total: this.ops.length };
   }
   reset() { this.rows = this.base.map((r) => r.slice()); this.ops = []; }
-  // 最新の CSV を読み込み直して、まだ保存していない変更を重ねる。戻り値：重ねられなかった変更の数
-  //   ・最新の CSV に、変更したあとの行がもうあるとき（前の保存が、返事が届かなかっただけで済んでいたなど）は、当て済みとして捨てる
-  //   ・消すはずの行がもうないとき（別の場所でも消していた）も、当て済みとして捨てる
-  //   ・直すはずの行が、別の場所で先に直されていたときは、直した内容を追加の行として残し、数に入れる（年表で見比べて、いらないほうを消してもらう）
+  // 最新の CSV を読み込み直して、まだ保存していない変更を重ねる。戻り値：{ lost, gone }
+  //   ・当て済みとして捨てるもの（前の保存が、返事が届かなかっただけで済んでいたなど）：
+  //       追加 … 同じ行がもうある　／　直す … もとの行がもうなく、直したあとの行がもうある
+  //   ・lost：直すはずの行が、別の場所で先に直されていた数（直した内容は追加の行として残す。年表で見比べて、いらないほうを消してもらう）
+  //   ・gone：消すはずの行が見つからなかった数（別の場所でも消していたか、別の場所で直されていた。消す変更は捨てるので、年表で確かめてもらう）
   reload(text) {
     const ops = this.ops;
     this.load(text);
-    let lost = 0;
-    const has = (cells) => this.rows.some((r) => toCSVLine(r) === toCSVLine(cells));
+    let lost = 0, gone = 0;
+    const has = (line) => this.rows.some((r) => toCSVLine(r) === line);
     for (const op of ops) {
-      if (op.type !== "delete" && has(op.cells)) continue;
+      if (op.type === "delete") {
+        if (this.applyOp(this.rows, op)) this.ops.push(op); else gone++;
+        continue;
+      }
+      const after = toCSVLine(op.cells);
+      if (op.type === "add" && has(after)) continue;
+      if (op.type === "edit" && !has(op.orig) && has(after)) continue;
       if (this.applyOp(this.rows, op)) { this.ops.push(op); continue; }
-      if (op.type === "delete") continue;
       lost++;
       this.ops.push({ ...op, type: "add", orig: null });
     }
-    return lost;
+    return { lost, gone };
   }
   errors() { return this.parse(this.text()).errors; }
 }

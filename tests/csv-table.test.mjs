@@ -61,13 +61,13 @@ test("GitHub 側が先に変わっていたら、最新に重ねる。同じ行�
   t.doOp({ type: "delete", orig: toCSVLine(b), cells: null });
   t.doOp({ type: "add", orig: null, cells: row(2012, 1, 1, "C") });
   // 別の場所で、新しい行が足された（重ならない変更）
-  assert.equal(t.reload(csv("2010,1,1,,,,リリース,A,,,,", "2011,1,1,,,,リリース,B,,,,", "2013,1,1,,,,リリース,X,,,,")), 0);
+  assert.deepEqual(t.reload(csv("2010,1,1,,,,リリース,A,,,,", "2011,1,1,,,,リリース,B,,,,", "2013,1,1,,,,リリース,X,,,,")), { lost: 0, gone: 0 });
   assert.deepEqual(t.rows.map((r) => r[7] + r[8]), ["Aこちらで直した", "C", "X"]);
   // 別の場所で、同じ行（A）が先に直された
   const t2 = make(csv("2010,1,1,,,,リリース,A,,,,"));
   const x = t2.rows[0], x2 = x.slice(); x2[8] = "こちら";
   t2.doOp({ type: "edit", orig: toCSVLine(x), cells: x2 });
-  assert.equal(t2.reload(csv("2010,1,1,,,,リリース,A,あちら,,,")), 1);
+  assert.deepEqual(t2.reload(csv("2010,1,1,,,,リリース,A,あちら,,,")), { lost: 1, gone: 0 });
   assert.deepEqual(t2.rows.map((r) => r[8]), ["あちら", "こちら"]);
   assert.deepEqual(t2.counts(), { add: 1, edit: 0, delete: 0, total: 1 }); // 次は追加として保存される
 });
@@ -93,15 +93,15 @@ test("前の保存が済んでいたのに返事が届かなかったとき：�
   t.doOp({ type: "edit", orig: toCSVLine(a), cells: a2 });
   t.doOp({ type: "add", orig: null, cells: row(2011, 1, 1, "B") });
   const already = t.text(); // GitHub 側には、もう保存されていた
-  assert.equal(t.reload(already), 0);
+  assert.deepEqual(t.reload(already), { lost: 0, gone: 0 });
   assert.equal(t.rows.length, 2);
   assert.equal(t.counts().total, 0);
 });
 
-test("両方で同じ行を消していたときは、取りこぼしに数えない", () => {
+test("消すはずの行が見つからないとき（両方で消した・向こうで直された）は、消す変更を取りやめて gone に数える", () => {
   const t = make(csv("2010,1,1,,,,リリース,A,,,,", "2011,1,1,,,,リリース,B,,,,"));
   t.doOp({ type: "delete", orig: toCSVLine(t.rows[0]), cells: null });
-  assert.equal(t.reload(csv("2011,1,1,,,,リリース,B,,,,")), 0);
+  assert.deepEqual(t.reload(csv("2011,1,1,,,,リリース,B,,,,")), { lost: 0, gone: 1 });
   assert.equal(t.counts().total, 0);
   assert.deepEqual(t.rows.map((r) => r[7]), ["B"]);
 });
@@ -134,4 +134,29 @@ test("同じ内容の行が2つあるとき、どちらを直しても、1つだ
   t.doOp({ type: "edit", orig: toCSVLine(t.rows[1]), cells: a2 });
   assert.equal(t.rows.length, 2);
   assert.equal(t.rows.filter((r) => r[8] === "直した").length, 1);
+});
+
+test("向こうで直された行を、こちらで消していたとき：行は残り、gone に数える", () => {
+  const t = make(csv("2010,1,1,,,,リリース,A,,,,"));
+  t.doOp({ type: "delete", orig: toCSVLine(t.rows[0]), cells: null });
+  assert.deepEqual(t.reload(csv("2010,1,1,,,,リリース,A,向こうで直した,,,")), { lost: 0, gone: 1 });
+  assert.equal(t.rows.length, 1);
+});
+
+test("ほかの行と同じ内容になる「直す」も、重ね直しで消えない（もとの行がまだあるとき）", () => {
+  const t = make(csv("2010,1,1,,,,リリース,A,,,,", "2010,1,1,,,,リリース,B,,,,"));
+  t.doOp({ type: "edit", orig: toCSVLine(t.rows[0]), cells: t.rows[1].slice() });
+  assert.deepEqual(t.reload(csv("2010,1,1,,,,リリース,A,,,,", "2010,1,1,,,,リリース,B,,,,", "2020,1,1,,,,リリース,X,,,,")), { lost: 0, gone: 0 });
+  assert.deepEqual(t.rows.map((r) => r[7]), ["B", "B", "X"]);
+  assert.equal(t.counts().edit, 1);
+});
+
+test("日付を直してからもとに戻すと、行の位置も読み込んだときのまま", () => {
+  const t = make(csv("2010,1,1,,,,リリース,A,,,,", "2010,1,1,,,,リリース,B,,,,"));
+  const a = t.rows[0], a2 = a.slice(); a2[0] = "2011";
+  t.doOp({ type: "edit", orig: toCSVLine(a), cells: a2 });
+  assert.deepEqual(t.rows.map((r) => r[7]), ["B", "A"]);
+  t.doOp({ type: "edit", orig: toCSVLine(a2), cells: a.slice() });
+  assert.deepEqual(t.rows.map((r) => r[7]), ["A", "B"]);
+  assert.equal(t.counts().total, 0);
 });

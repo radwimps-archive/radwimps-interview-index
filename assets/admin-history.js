@@ -45,6 +45,11 @@ function confirmInline(btn, msg) {
   setTimeout(() => { btn.dataset.armed = ""; }, 3000);
   return false;
 }
+// GitHub 側が先に変わっていて、変更を重ねきれなかったときの知らせ
+function reloadNote(t, lost, gone) {
+  return (lost ? `${t.label}のうち ${lost} 件は、別の場所（GitHub など）で同じ行が先に直されていました。こちらで直した内容は新しい行として残してあるので、見比べて、いらないほうを消してください。` : "")
+    + (gone ? `消すはずだった${t.label} ${gone} 件は、もうないか、別の場所で直されていました（消す変更は取りやめました）。` : "");
+}
 // 直した内容を、ページの年表に映す
 const show = () => A.opts.rebuild(T.history.text(), T.sites.text());
 
@@ -58,9 +63,9 @@ async function connect(token, repo) {
     await A.gh.init();
     for (const t of Object.values(T)) {
       const { text, sha } = await A.gh.read(t.file, t.what);
-      const lost = t.ops.length ? t.reload(text) : (t.load(text), 0);
+      const { lost, gone } = t.ops.length ? t.reload(text) : (t.load(text), { lost: 0, gone: 0 });
       t.sha = sha;
-      if (lost) toast(`${t.label}のうち ${lost} 件は、GitHub 側で先に直されていました。年表で見比べてから保存してください`);
+      if (lost || gone) toast(reloadNote(t, lost, gone) + "年表で確かめてから保存してください");
     }
     A.mode = "github";
     show(); // GitHub の最新の内容で年表を表示する（サイトへの反映を待っているあいだの変更も見える）
@@ -74,12 +79,11 @@ async function connect(token, repo) {
 function startPractice() {
   // GitHub から読み込んだあと（保存で合鍵の問題が出たときなど）は、その内容と変更をそのまま使う。
   // まだ何も読み込んでいなければ、ページを開いたときに読んだ CSV（公開中のサイトのもの）から始める
-  if (!T.history.header.length) {
-    const { history, sites } = A.opts.sourceTexts();
-    if (!history) { toast("年表を読み込めていません。ページを読み込み直してください"); return; }
-    T.history.load(history);
-    T.sites.load(sites || "");
-  }
+  // 表ごとに見る（GitHub から片方だけ読めたときは、読めなかったほうだけ、ページを開いたときの CSV から）
+  const src = A.opts.sourceTexts();
+  if (!T.history.header.length && !src.history) { toast("年表を読み込めていません。ページを読み込み直してください"); return; }
+  if (!T.history.header.length) T.history.load(src.history);
+  if (!T.sites.header.length && src.sites) T.sites.load(src.sites);
   A.mode = "practice"; A.error = "";
   show(); // 年表を、この表の中身で作り直す（「直す」の行番号を、表とそろえるため）
   render();
@@ -102,8 +106,8 @@ async function save() {
       if (res.status === 409 || res.status === 422) {
         // 開いているあいだに GitHub 側で変わっていた：最新を読み込み、今回の変更を重ねてからもう一度保存する
         const { text, sha } = await A.gh.read(t.file, t.what);
-        const lost = t.reload(text); t.sha = sha;
-        if (lost) throw new GhError(`${t.label}のうち ${lost} 件は、別の場所（GitHub など）で同じ行が先に直されていました。こちらで直した内容は新しい行として残してあるので、年表で見比べて、いらないほうを消してから、もう一度保存してください`);
+        const { lost, gone } = t.reload(text); t.sha = sha;
+        if (lost || gone) throw new GhError(reloadNote(t, lost, gone) + "年表で確かめてから、もう一度保存してください");
         res = await A.gh.write(t.file, t.text(), t.sha, message);
       }
       if (!res.ok) throw await A.gh.fail(res, t.what);
@@ -316,8 +320,10 @@ function openEditor(table, index) {
   // 閉じたあとに戻る場所（押したボタン。年表を作り直してもボタンを探し直せるよう、目印で覚える）
   const from = document.activeElement;
   A.returnTo = from && from.closest ? (from.matches("[data-hedit]") ? `[data-hedit="${from.dataset.hedit}"]`
-    : from.matches("[data-sedit]") ? `[data-sedit="${from.dataset.sedit}"]` : from.closest("#histAdmin") ? "#histAdmin button" : null) : null;
+    : from.matches("[data-sedit]") ? `[data-sedit="${from.dataset.sedit}"]` : from.matches(".hadm-pick") ? ".hadm-pick"
+    : from.closest("#histAdmin") ? "#histAdmin button" : null) : null;
   const t = T[table], isNew = index === null;
+  if (!t.header.length) { toast(`${t.label}の一覧を読み込めていないので、ここでは直せません。ページを読み込み直してください`); return; }
   const r = isNew ? null : t.rows[index];
   A.editing = { table, index, orig: r ? toCSVLine(r) : null };
   if (table === "history") {
@@ -359,7 +365,8 @@ function closeEditor() {
   const sel = A.returnTo;
   requestAnimationFrame(() => {
     const b = sel && document.querySelector(sel);
-    if (b) b.focus({ preventScroll: true }); else if (A.root) { A.root.tabIndex = -1; A.root.focus({ preventScroll: true }); }
+    if (b) { b.focus({ preventScroll: true }); b.scrollIntoView({ block: "nearest" }); }
+    else if (A.root) { A.root.tabIndex = -1; A.root.focus({ preventScroll: true }); }
   });
 }
 function renderFoot() {
@@ -427,13 +434,18 @@ function applyEdit() {
   const { table, index, orig } = A.editing;
   const isNew = index === null;
   if (!T[table].doOp({ type: isNew ? "add" : "edit", orig, cells })) { closeEditor(); toast("変わったところがないので、そのままにしました"); return; }
-  closeEditor();
   show(); render();
+  // 戻り先：直した（足した）行の「直す」ボタン（日付を直して行が動いても、その行を探す）
+  const t = T[table], idx = t.rows.findIndex((r) => toCSVLine(r) === toCSVLine(cells));
+  const line = idx >= 0 ? parseCSV(t.text()).lines[idx + 1] : 0;
+  if (line) A.returnTo = `[data-${table === "history" ? "hedit" : "sedit"}="${line}"]`;
+  closeEditor();
   toast(`${T[table].label}を${isNew ? "追加" : "直"}しました（まだ保存していません。年表の上の「GitHub に保存」で保存します）`);
 }
 function removeRow() {
   const { table, orig } = A.editing;
   T[table].doOp({ type: "delete", orig, cells: null });
+  A.returnTo = null; // 消した行のボタンはもうないので、年表の管理の欄へ戻る
   closeEditor();
   show(); render();
   toast(`${T[table].label}を削除しました（まだ保存していません）`);
