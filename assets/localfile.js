@@ -2,6 +2,6 @@
 // パソコンで articles.html などを直接開いたときの案内です（ブラウザの制限で、このときは記事を表示できません）。
 // ※ module ではない、ふつうのスクリプトとして読み込みます（module は、ファイルを直接開いたときに動かないため）。
 if (location.protocol === "file:") {
-  const loading = document.getElementById("loading") || document.getElementById("encounterLoading") || document.getElementById("shelfLoading") || document.getElementById("sitesLoading"); // 記事一覧・玄関・棚・特設サイト
+  const loading = document.getElementById("loading") || document.getElementById("encounterLoading") || document.getElementById("shelfLoading"); // 記事一覧・玄関・棚
   if (loading) loading.textContent = "このファイルをパソコンで直接開いても、記事は表示されません。公開したサイトの URL で開くか、運用マニュアルの「付録D」の方法で確かめてください。";
 }
