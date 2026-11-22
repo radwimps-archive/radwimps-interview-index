@@ -6,7 +6,7 @@
 //   どの出来事がどの公演か：data/setlists.csv の公演のうち、出来事の日付（期間）に入るもの。期間の中に別のライブ（フェスなど）があるときは、いちばん公演数の多いツアーだけ。
 
 import "./analytics.js";
-import { parseHistory, parseSetlists, parseSites, attachSites, siteKey, historySearchText, HISTORY_CATEGORIES } from "./data.js";
+import { parseHistory, parseSetlists, parseSites, attachSites, siteKey, historySearchText, matchHistory, HISTORY_CATEGORIES } from "./data.js";
 import { attendButton, attendCount, assignKeys, sync as syncAttend, setupAttendClicks } from "./attended.js";
 import { h as el, setupMenu, isAdminDevice, watchScrollFade, watchStuck } from "./ui.js";
 import config from "./config.js";
@@ -71,8 +71,10 @@ function attendLine(e) {
   return el("details", { class: "att-shows" }, el("summary", {}, "行った公演を選ぶ", attendCount(shows)), chips);
 }
 
-function renderTabs() {
+// center：選んでいるタブが見えるところまで、タブの帯を横に動かす（タブを選んだときだけ。検索のたびには動かさない）
+function renderTabs({ center = true } = {}) {
   const tabs = $("#tabs");
+  const keep = tabs.scrollLeft; // 作り直す前の横の位置
   tabs.replaceChildren();
   tabs.className = `hist-tabs wrap cat-${current}`; // 下の細い線の色は、選んでいるカテゴリの色
   const all = [{ name: "すべて", slug: "all", short: "すべて" }, ...CATS, MV_TAB];
@@ -85,18 +87,20 @@ function renderTabs() {
   }
   // 入りきらないときは、選んでいるタブが見えるところまで横にスクロールする
   const on = tabs.querySelector('[aria-selected="true"]');
-  if (on) tabs.scrollTo({ left: on.offsetLeft - (tabs.clientWidth - on.offsetWidth) / 2, behavior: "auto" });
+  if (!center) tabs.scrollLeft = keep;
+  else if (on) tabs.scrollTo({ left: on.offsetLeft - (tabs.clientWidth - on.offsetWidth) / 2, behavior: "auto" });
 }
 
 // 検索窓の言葉に合うか。探す文字は data.js の historySearchText（出来事・補足・年月日・カテゴリ・動画の名前・特設サイト）。
 //   全角半角・ひらがなとカタカナの違いは気にしない。英語の名前はひらがなでも見つかる（例：「ふぉーえばー」→ FOREVER IN THE DAZE TOUR）。
 //   空白で区切ると、すべての言葉に合うものだけ（例：「ツアー 2016」）
-const texts = new WeakMap(); // 出来事ごとに一度だけ作る（出来事を作り直したときは、新しく作られる）
+//   「4月」「4月5日」の形の言葉は、月日でぴったり比べる（data.js の matchHistory。「1月」が「11月」に合わないように）
+const texts = new WeakMap(); // 探す文字は、出来事ごとに一度だけ作る（出来事を作り直したときは、新しく作られる）
 function searchText(e) {
   if (!texts.has(e)) texts.set(e, historySearchText(e));
   return texts.get(e);
 }
-const hit = (e) => !query.trim() || looseMatchAll(searchText(e), query);
+const hit = (e) => !query.trim() || matchHistory(e, query, looseMatchAll, searchText);
 const inTab = (slug) => (slug === "all" ? events : slug === "mv" ? mvSongs() : events.filter((e) => e.cats.some((c) => c.slug === slug)));
 
 function renderTimeline() {
@@ -398,10 +402,11 @@ function runSearch() {
   if (query.trim()) u.searchParams.set("q", query.trim()); else u.searchParams.delete("q");
   try { history.replaceState(null, "", u.pathname + u.search + u.hash); } catch { /* 変えられない環境 */ }
   if (!ready) return;
-  renderTabs();
-  // 合う出来事が変わらないときは、作り直さない（開いている「CD を探す」や、再生中の動画を閉じないように）
+  renderTabs({ center: false });
+  // 合う出来事が変わらないときは、作り直さない（開いている「CD を探す」や、再生中の動画を閉じないように）。
+  // 0件のときは、見つからないときの文に今の言葉を出すため、いつも作り直す
   const list = inTab(current).filter(hit);
-  if (shown && list.length === shown.length && list.every((e, i) => e === shown[i])) return;
+  if (shown && list.length && list.length === shown.length && list.every((e, i) => e === shown[i])) return;
   renderTimeline();
 }
 

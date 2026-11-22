@@ -565,18 +565,44 @@ export function attachSites(events, sites) {
   return out;
 }
 
-// 「RADWIMPSの歩み」の検索窓で探す文字（出来事・補足・年月日・カテゴリ・動画のラベル・特設サイト）。
+// 「RADWIMPSの歩み」の検索窓で探す文字（出来事・補足・年・カテゴリ・動画のラベル・特設サイト）。
 //   項目のあいだは「|」で区切る（検索では空白が消えるので、見出しの終わりと補足の始まりがつながって合わないように）
-//   日付は「2016年」「4月」「4月5日」「04.05」のどれでも合うように、いくつかの形で入れる
 //   MV のタブの項目（mv: true）は、動画のボタンの文言（「MV を見る」など）を入れない（「見る」で全部が合わないように）
+//   月日（「4月」「4月5日」）は、ここには入れず matchHistory で別に比べる（「1月」が「11月」に合わないように）
 export function historySearchText(e) {
-  const pad = (n) => String(n).padStart(2, "0");
-  const day = (y, m, d) => (m ? [`${y}年${m}月`, `${m}月`, ...(d ? [`${m}月${d}日`, `${pad(m)}.${pad(d)}`] : [])] : []);
   const sites = e.sites || [];
-  return [`${e.y}年`, ...day(e.y, e.m, e.d), ...(e.ey ? [`${e.ey}年`, ...day(e.ey, e.em, e.ed)] : []),
+  return [`${e.y}年`, ...(e.ey ? [`${e.ey}年`] : []),
     e.title, e.note, ...(e.cats || []).map((c) => c.name),
     ...(e.mv ? [] : (e.videos || []).map((v) => v.label)),
     ...sites.map((s) => s.name), ...(sites.length ? ["特設サイト"] : [])].filter(Boolean).join("|");
+}
+// 出来事の月日の言葉（「4月」「4月5日」「2016年4月」「2016年4月5日」。終わりの日付も）
+function historyDateWords(e) {
+  const out = new Set();
+  const add = (y, m, d) => {
+    if (!m) return;
+    out.add(`${m}月`); out.add(`${y}年${m}月`);
+    if (d) { out.add(`${m}月${d}日`); out.add(`${y}年${m}月${d}日`); }
+  };
+  add(e.y, e.m, e.d);
+  if (e.ey) add(e.ey, e.em, e.ed);
+  return out;
+}
+const DATE_WORD = /^(?:(\d{4})年)?(\d{1,2})月(?:(\d{1,2})日)?$/;
+// 出来事が検索の言葉に合うか。空白で区切った言葉のうち、「4月」「4月5日」「2016年4月」の形のものは月日で（ぴったり）比べ、
+// それ以外は historySearchText にゆるく比べる（match には search.js の looseMatchAll を渡す。textOf で探す文字の作り方を変えられる）
+export function matchHistory(e, query, match, textOf = historySearchText) {
+  const parts = String(query ?? "").normalize("NFKC").split(/\s+/).filter(Boolean);
+  if (!parts.length) return true;
+  const rest = [];
+  let dates = null;
+  for (const p of parts) {
+    const m = p.match(DATE_WORD);
+    if (!m) { rest.push(p); continue; }
+    const word = `${m[1] ? `${m[1]}年` : ""}${Number(m[2])}月${m[3] ? `${Number(m[3])}日` : ""}`;
+    if (!(dates ||= historyDateWords(e)).has(word)) return false;
+  }
+  return !rest.length || match(textOf(e), rest.join(" "));
 }
 
 /* ---------- 楽曲一覧（songs.csv） ---------- */
