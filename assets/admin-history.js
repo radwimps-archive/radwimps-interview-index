@@ -316,13 +316,18 @@ function buildSheet() {
 
 /* ---------- 関連リンク（記事など） ---------- */
 // 出来事の下に並ぶリンク。記事一覧の記事を探して「つなぐ」か、ほかのページのラベルと URL を書いて「足す」。つないだものは「外す」で外せる
-let articleList = null; // 記事から選ぶときの、公開している記事（新しい順）。はじめて使うときに読む
+let articleList = null; // 記事から選ぶときの、公開している記事（新しい順）。はじめて使うときに読む（読めなかったときは null のまま）
+let articleAll = null;
+let articleFailed = false; // 記事データを読めなかった（もう一度言葉を入れると読み直す）  // 状態で絞る前のすべての記事（つないだ記事が「非表示」などのとき、そう知らせるため）
 const artText = new WeakMap();
 const words = (v) => (Array.isArray(v) ? v.join(" ") : String(v ?? ""));
 async function ensureArticles() {
   if (!articleList) {
-    const items = (await (A.opts.loadArticles ? A.opts.loadArticles() : [])) || [];
-    articleList = [...items].sort((a, b) => String(b.date || "").localeCompare(String(a.date || "")));
+    const items = A.opts.loadArticles ? await A.opts.loadArticles() : null;
+    if (items) {
+      articleAll = items;
+      articleList = items.filter((it) => it.state === "公開" && it.url).sort((a, b) => String(b.date || "").localeCompare(String(a.date || "")));
+    }
   }
   return articleList;
 }
@@ -343,7 +348,11 @@ function buildLinkBox(ev) {
       h("div", { class: "hadm-urlrow" }, ev.urlLabel, ev.urlUrl, add),
       h("small", { text: `ラベルは出来事の下に出る文字です（例：公式ニュース、ライブレポート。${HISTORY_LINK_LABEL_MAX}文字まで）。https:// で始まる URL だけ使えます。` })));
   let timer = 0;
-  ev.artQ.addEventListener("input", () => { clearTimeout(timer); timer = setTimeout(() => ensureArticles().then(renderHits), 150); });
+  ev.artQ.addEventListener("input", () => {
+    clearTimeout(timer);
+    renderHits(); // はじめてのときは「記事を読み込んでいます…」を先に出す
+    timer = setTimeout(() => { articleFailed = false; ensureArticles().then((list) => { articleFailed = !list; renderHits(); }); }, 150);
+  });
   box.addEventListener("click", (e) => {
     const rm = e.target.closest("[data-lrm]"), ad = e.target.closest("[data-ladd]"), u = e.target.closest("[data-lurl]");
     if (rm) {
@@ -361,8 +370,10 @@ function buildLinkBox(ev) {
     } else if (u) {
       const label = oneLine(ev.urlLabel.value).replace(/\|/g, " ").trim(), url = ev.urlUrl.value.trim();
       if (!label) { toast("ラベル（出来事の下に出る文字）を書いてください"); ev.urlLabel.focus(); return; }
-      if (!/^https:\/\/[^\s"<>|]+$/.test(url)) { toast("URL は https:// で始まるものを書いてください"); ev.urlUrl.focus(); return; }
-      if (!ev.links.some((l) => l.type === "url" && l.url === url)) ev.links.push({ type: "url", label, url });
+      if (!/^https:\/\//.test(url)) { toast("URL は https:// で始まるものを書いてください"); ev.urlUrl.focus(); return; }
+      if (!/^https:\/\/[^\s"<>|]+$/.test(url)) { toast("URL に、空白や「|」「\"」「<」「>」は使えません。URL を確かめてください"); ev.urlUrl.focus(); return; }
+      if (ev.links.some((l) => l.type === "url" && l.url === url)) { toast("この URL は、もうつないであります（ラベルを変えるときは、外してから足し直してください）"); ev.urlUrl.focus(); return; }
+      ev.links.push({ type: "url", label, url });
       ev.urlLabel.value = ""; ev.urlUrl.value = "";
       renderLinks(); validate();
       ev.urlLabel.focus();
@@ -375,8 +386,9 @@ function buildLinkBox(ev) {
 function linkText(l) {
   if (l.type === "url") return `${l.label}（${l.url}）`;
   if (l.type !== "article") return `書き方の正しくないリンク：${l.text}`;
-  const it = articleList && articleList.find((x) => x.id === l.id);
-  return it ? `記事：${it.title}（${it.media}）` : `記事：${l.id}（${articleList ? "記事一覧に見つかりません" : "読み込んでいます…"}）`;
+  const it = articleAll && articleAll.find((x) => x.id === l.id);
+  if (it) return `記事：${it.title}（${it.media}）${it.state === "公開" ? "" : `【${it.state}なので年表には出ません】`}`;
+  return `記事：${l.id}（${articleAll ? "記事一覧に見つかりません" : articleFailed ? "記事を読み込めませんでした" : "読み込んでいます…"}）`;
 }
 function renderLinks() {
   const ev = F.ev;
@@ -388,8 +400,7 @@ function renderLinks() {
 function renderHits() {
   const ev = F.ev, q = nf(ev.artQ.value).toLowerCase();
   if (!q) { ev.artHits.replaceChildren(); return; }
-  if (!articleList) { ev.artHits.replaceChildren(h("li", { class: "hadm-empty", text: "記事を読み込んでいます…" })); return; }
-  if (!articleList.length) { ev.artHits.replaceChildren(h("li", { class: "hadm-empty", text: "記事の一覧を読み込めませんでした。ページを読み込み直してください。" })); return; }
+  if (!articleList) { ev.artHits.replaceChildren(h("li", { class: "hadm-empty", text: articleFailed ? "記事の一覧を読み込めませんでした。言葉を入れ直すと、もう一度読み込みます。" : "記事を読み込んでいます…" })); return; }
   const ws = q.split(/\s+/).filter(Boolean);
   const have = new Set(ev.links.filter((l) => l.type === "article").map((l) => l.id));
   const textOf = (it) => {
@@ -435,7 +446,7 @@ function openEditor(table, index) {
     renderLinks(); renderHits();
     // 古い年表の CSV（「関連リンク」の列がない）では、足しても保存されないので、欄ごと出さない
     ev.linkBox.hidden = !t.header.includes("関連リンク");
-    if (ev.links.some((l) => l.type === "article")) ensureArticles().then(() => { if (A.editing && A.editing.table === "history") { renderLinks(); validate(); } });
+    if (ev.links.some((l) => l.type === "article")) ensureArticles().then((list) => { articleFailed = !list; if (A.editing && A.editing.table === "history") { renderLinks(); validate(); } });
     F.form.replaceChildren(ev.box, F.issues);
     F.title.textContent = isNew ? "出来事を追加" : "出来事を直す";
   } else {
@@ -524,7 +535,7 @@ function validate() {
   if (table === "history") {
     // 記事データを読んであれば、つないだ記事が記事一覧にあるかも確かめる
     const ev = res.events.find((x) => x.line === line);
-    if (ev && articleList) warnings.push(...checkHistoryLinks([ev], articleList).map((x) => x.msg));
+    if (ev && articleAll) warnings.push(...checkHistoryLinks([ev], articleAll).map((x) => x.msg));
     // URL を書いたまま「足す」を押していないと、そのリンクは残らないので、先に知らせる
     if (F.ev.urlUrl.value.trim() || F.ev.urlLabel.value.trim()) errors.push("「ほかのページの URL を足す」に書いた内容が、まだ足されていません。「足す」を押すか、欄を空にしてください");
   }

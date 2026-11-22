@@ -83,8 +83,16 @@ export class Table {
   //   ・lost：直すはずの行が、別の場所で先に直されていた数（直した内容は追加の行として残す。年表で見比べて、いらないほうを消してもらう）
   //   ・gone：消すはずの行が見つからなかった数（別の場所でも消していたか、別の場所で直されていた。消す変更は捨てるので、年表で確かめてもらう）
   reload(text) {
-    const ops = this.ops;
+    const oldHeader = this.header.slice();
+    let ops = this.ops;
     this.load(text);
+    // 最新の CSV で、いちばん右に列が増えていたとき（例：年表に「関連リンク」の列ができた）は、変更の行もその列の数にそろえる
+    // （そろえないと、同じ行なのに末尾の「,」の数がちがって見つからず、直した行が2行になったり、消す変更が捨てられたりする）
+    if (this.header.length > oldHeader.length && oldHeader.every((h, i) => this.header[i] === h)) {
+      const pad = (cells) => [...cells, ...Array(this.header.length - cells.length).fill("")];
+      const padLine = (line) => (line == null ? line : toCSVLine(pad(parseCSV(line).rows[0] || [])));
+      ops = ops.map((op) => ({ ...op, orig: padLine(op.orig), cells: op.cells ? pad(op.cells) : null }));
+    }
     let lost = 0, gone = 0;
     // 「もうあるか」は、読み込んだ時点の最新の CSV で見る（自分の変更を当てたあとの行と取り違えないように）。
     // 同じ内容の行は数で数え、当て済みとみなすたびに1つ使う（同じ行をわざと2回足したときも、2つ目が消えないように）

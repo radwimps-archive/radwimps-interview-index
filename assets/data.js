@@ -596,7 +596,7 @@ export function attachSites(events, sites) {
     if (e) { e.sites.push(s); continue; }
     const cat = HISTORY_CATEGORIES.find((c) => c.name === s.kind.history) || HISTORY_DEFAULT_CATEGORY;
     out.push({ line: 0, i: 100000 + extra++, y: s.y, m: s.m, d: s.d, ey: 0, em: 0, ed: 0, cats: [cat],
-      title: `「${s.name}」の特設サイト`, note: "", site: "", tower: "", videos: [], sites: [s], fromSites: true });
+      title: `「${s.name}」の特設サイト`, note: "", site: "", tower: "", videos: [], links: [], sites: [s], fromSites: true });
   }
   out.sort((a, b) => a.y - b.y || a.m - b.m || a.d - b.d || a.i - b.i);
   return out;

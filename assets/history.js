@@ -30,6 +30,7 @@ let shown = null;  // いま年表に並べている出来事（検索で中身�
 let sourceTexts = { history: "", sites: "" }; // ページを開いたときに読んだ CSV（年表の管理の「保存せずに試す」で使う）
 let adminApi = null; // 年表の管理（管理者モードの端末だけ。assets/admin-history.js）
 let articleById = new Map(); // 記事データ（data/articles.csv）の公開している記事。関連リンクの「記事:id」から、タイトルと媒体を出すため
+const itemEvent = new WeakMap(); // 年表の行（li）→ その出来事（記事データを読み終えたとき、関連リンクの行だけを足すため）
 let articlesLoading = null;
 
 const pad = (n) => String(n).padStart(2, "0");
@@ -126,7 +127,7 @@ function renderTimeline() {
       el("h2", { id: `yh${y}`, class: "hist-year-head" }, el("span", { text: String(y) }), el("small", { text: `${items.length} 件` })));
     const ol = el("ol", { class: "hist-list" });
     for (const e of items) {
-      ol.append(el("li", { class: `hist-item cat-${dot(e).slug}` },
+      const li = el("li", { class: `hist-item cat-${dot(e).slug}` },
         el("p", { class: "hist-meta" },
           e.m ? el("time", { text: dateLabel(e) }) : null,
           ...(e.cats || [e.cat]).map((c) => el("span", { class: `hist-cat cat-${c.slug}`, text: c.name }))),
@@ -136,7 +137,9 @@ function renderTimeline() {
         videoLine(e),
         siteLine(e),
         linkLine(e),
-        editLine(e)));
+        editLine(e));
+      itemEvent.set(li, e);
+      ol.append(li);
     }
     sec.append(ol);
     box.append(sec);
@@ -271,8 +274,9 @@ function linkLine(e) {
     if (l.type === "url") items.push(el("a", { href: l.url, target: "_blank", rel: "noopener noreferrer", "aria-label": `${l.label}（新しいタブで開く）` }, `${l.label} ↗`));
     else {
       const it = articleById.get(l.id);
-      if (it) items.push(el("a", { href: it.url, target: "_blank", rel: "noopener noreferrer", "aria-label": `記事「${it.title}」（${it.media}）を新しいタブで開く` },
-        el("span", { class: "hist-link-kind", text: it.format === "video" ? "動画" : it.format === "radio" ? "ラジオ" : "記事" }), `${it.title} ↗`));
+      const kind = it && (it.format === "video" ? "動画" : it.format === "radio" ? "ラジオ" : "記事");
+      if (it) items.push(el("a", { href: it.url, target: "_blank", rel: "noopener noreferrer", "aria-label": `${kind}「${it.title}」（${it.media}）を新しいタブで開く` },
+        el("span", { class: "hist-link-kind", text: kind }), `${it.title} ↗`));
     }
   }
   if (!items.length) return null;
@@ -281,16 +285,28 @@ function linkLine(e) {
   return p;
 }
 // 記事データを読む（関連リンクに記事があるときと、年表の管理で記事を選ぶときだけ）。読めなくても、年表はそのまま見られる
+//   戻り値：すべての記事（状態で絞る前。年表の管理で「非表示なので出ません」と知らせるため）。読めなかったときは null（次に呼んだとき、読み直す）
 function loadArticles() {
   if (!articlesLoading) articlesLoading = fetch("data/articles.csv", { cache: "no-cache" })
-    .then((r) => (r.ok ? r.text() : ""))
+    .then((r) => { if (!r.ok) throw new Error(); return r.text(); })
     .then((t) => {
-      const items = t ? parseArticles(t).items.filter((it) => it.state === "公開" && it.url) : [];
-      articleById = new Map(items.map((it) => [it.id, it]));
+      const items = parseArticles(t).items;
+      articleById = new Map(items.filter((it) => it.state === "公開" && it.url).map((it) => [it.id, it]));
       return items;
     })
-    .catch(() => []);
+    .catch(() => { articlesLoading = null; return null; });
   return articlesLoading;
+}
+// 記事データを読み終えたら、関連リンクの行だけを足す（年表を作り直すと、開いている動画や「CD を探す」が閉じてしまうため）
+function addLinkLines() {
+  for (const li of document.querySelectorAll("#timeline .hist-item")) {
+    const e = itemEvent.get(li);
+    if (!e || !e.links?.some((l) => l.type === "article")) continue;
+    const line = linkLine(e), old = li.querySelector(".hist-links");
+    // ほかのページのリンクだけ先に出ている行は、記事を入れた行に差し替える
+    if (old) { if (line) old.replaceWith(line); }
+    else if (line) li.insertBefore(line, li.querySelector(".hist-edits, .hist-player"));
+  }
 }
 
 // 年表の管理（管理者モードの端末だけ）：出来事の下の「直す」。特設サイトがつながっていれば、その特設サイトの「直す」も
@@ -548,9 +564,11 @@ function setupAdmin() {
     setCat(location.hash.slice(1));
     setupAdmin();
     // 関連リンクに記事があれば、記事データを読んでから、もう一度並べる（タイトルと媒体を出すため）
-    if (events.some((e) => e.links.some((l) => l.type === "article"))) loadArticles().then(() => { shown = null; renderTimeline(); });
-  } catch {
-    $("#loading").textContent = "年表を読み込めませんでした。時間をおいて、もう一度開いてください。";
+    if (events.some((e) => e.links?.some((l) => l.type === "article"))) loadArticles().then(addLinkLines);
+  } catch (err) {
+    console.error(err);
+    const box = $("#loading") || $("#timeline");
+    if (box && !events.length) box.textContent = "年表を読み込めませんでした。時間をおいて、もう一度開いてください。";
   }
 })();
 addEventListener("hashchange", () => { if (ready && VIEWS.includes(location.hash.slice(1))) setCat(location.hash.slice(1)); });
