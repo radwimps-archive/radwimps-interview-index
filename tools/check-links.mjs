@@ -23,7 +23,8 @@
 //   状態が「リンク切れ」の記事もチェックし、開けるようになっていればお知らせします。
 //
 // 特設サイト（data/sites.csv。「RADWIMPSの歩み」の年表に出すもの）も確かめます（2026-11-22 から）
-//   ・公開中のサイト：開けない・別のページになっていたら「公開が終わった可能性がある特設サイト」としてお知らせ
+//   ・公開中のサイト：開けなければ「公開が終わった可能性がある特設サイト」としてお知らせ。
+//     開けるのにサイトの名前がページに見当たらないときは「要確認」の欄に出すだけ（海外から開くと英語になるサイトなどがあるため）
 //   ・「公開終了」にしたサイト：保存版URL（Internet Archive）が開けなければお知らせ
 //   ・状態が「非表示」のサイトと、メモ列に「リンク確認不要」と書いたサイトは確かめない
 //   ・特設サイトのファイルの場所は --sites で変えられます（正式版がまだ main にない間は、
@@ -222,14 +223,17 @@ export function parseSiteRows(text) {
   return out;
 }
 
-// 特設サイトの言葉：サイトの名前（とその一部）・RADWIMPS・野田洋次郎。映画の公式サイトは RADWIMPS の文字がないこともあるので、名前を先に
+// 特設サイトの言葉：サイトの名前と、名前の中の固有の言葉（ユーリンチー・Jubilee・胎盤 など）。
+// RADWIMPS・野田洋次郎は入れない（RADWIMPS 自身のサイトでは、どのページにもその文字があり、差し替わりに気づけないため）。
+// ありふれた英単語（official・tour など）も入れない（どのサイトにもあり、手がかりにならないため）
+const SITE_GENERIC = new Set(["official", "tour", "live", "liveTour", "anniversary", "special", "concert", "club", "fan", "film", "documentary",
+  "back", "house", "dear", "grand", "prix", "forever", "the", "radwimps", "radwimpsの", "movie", "site", "web"].map((w) => norm(w)));
 export function siteTerms(s) {
   const parts = String(s.title || "").split(/[\s\-‐–—~〜・/／「」『』()（）"“”]+/);
-  const words = [s.title, ...parts, "RADWIMPS", "ラッドウィンプス", "野田洋次郎"];
   const seen = new Set(), out = [];
-  for (const show of words) {
+  for (const show of [s.title, ...parts]) {
     const key = norm(show);
-    if (!key || seen.has(key) || !usable(key)) continue;
+    if (!key || seen.has(key) || SITE_GENERIC.has(key) || !usable(key)) continue;
     seen.add(key);
     out.push({ show, key });
   }
@@ -298,7 +302,7 @@ export async function checkUrl(url, opts = {}) {
     // ページは開くが、記事の言葉が見当たらない（URL はそのままで、別のページに差し替わっている）
     const c = contentMatch(html, o.expect, { cut });
     const shown = (title ? `ページの題名は「${title.slice(0, 50)}」` : "ページの題名はありません") + (current !== url ? `（${current} に転送されます）` : "");
-    if (c.verdict === "missing") return { level: "mismatch", reason: `記事の言葉（${o.expect.slice(0, 3).map((t) => t.show).join("・")} など）がページに見当たりません。${shown}`, title };
+    if (c.verdict === "missing") return { level: "mismatch", reason: `${o.site ? "サイトの名前" : "記事の言葉"}（${o.expect.slice(0, 3).map((t) => t.show).join("・")} など）がページに見当たりません。${shown}`, title };
     if (c.verdict === "unknown") return warn(`ページの文字が少なく、中身が記事と合っているか確かめられませんでした。${shown}`);
     return { level: "ok", reason: "", title, movedTo: current !== url ? current : "" };
   }
@@ -317,14 +321,14 @@ export async function checkAll(items, opts = {}, onDone = () => {}) {
     let host = "";
     try { host = new URL(url).hostname; } catch { /* 何もしない */ }
     const now = Date.now(), at = Math.max(now, nextSlot.get(host) || 0);
-    nextSlot.set(host, at + o.hostGapMs);
+    nextSlot.set(host, at + (host === "web.archive.org" ? Math.max(o.hostGapMs, 5000) : o.hostGapMs)); // Internet Archive は続けて問い合わせると断るので、間を長めに
     if (at > now) await sleep(at - now);
   }
   async function worker() {
     while (next < items.length) {
       const i = next++;
       await polite(items[i].url);
-      const oi = { ...o, expect: items[i].isSite ? (items[i].closed ? [] : siteTerms(items[i])) : articleTerms(items[i]) }; // 保存版は中身を見ない（Internet Archive の画面のため）
+      const oi = { ...o, site: !!items[i].isSite, expect: items[i].isSite ? (items[i].closed ? [] : siteTerms(items[i])) : articleTerms(items[i]) }; // 保存版は中身を見ない（Internet Archive の画面のため）
       let r = await checkUrl(items[i].url, oi);
       if (r.level === "warn" && r.retry) {
         await sleep(o.retryDelayMs);
@@ -352,8 +356,8 @@ const cell = (s) => String(s ?? "").replace(/\\/g, "\\\\").replace(/\|/g, "\\|")
 const linkText = (s) => cell(s).replace(/\[/g, "\\[").replace(/\]/g, "\\]");
 const short = (s, n) => (s.length > n ? s.slice(0, n) + "…" : s);
 
-function table(rows) {
-  const out = ["| 行 | 掲載日 | 媒体 | タイトル | 判定の理由 |", "|---:|---|---|---|---|"];
+function table(rows, head = ["掲載日", "媒体", "タイトル"]) {
+  const out = [`| 行 | ${head.join(" | ")} | 判定の理由 |`, "|---:|---|---|---|---|"];
   for (const { it, r } of rows) {
     out.push(`| ${it.line} | ${it.date || "日付不明"} | ${cell(it.media)} | [${linkText(short(it.title, 60))}](${it.url}) | ${cell(r.reason)} |`);
   }
@@ -372,9 +376,11 @@ export function buildReport(allRows, checkedOn) {
   const md = [`# リンクの確認結果（${checkedOn}）`, "", `公開中の記事 ${nPublic} 件と、「リンク切れ」にしている記事 ${nDead} 件を確かめました。`
     + (sites.length ? `特設サイト（data/sites.csv）${sites.length} 件も確かめました。` : ""), ""];
   // 特設サイト
-  const siteGone = sites.filter(({ it, r }) => !it.closed && (r.level === "dead" || r.level === "mismatch"));
+  // 特設サイトは、開けないときだけ「対応が必要」に。名前が見当たらないだけのときは「要確認」に回す
+  // （海外から開くと英語のページになるサイト〔Netflix など〕や、画面をプログラムで作るサイトで、まちがったお知らせが毎週出ないように）
+  const siteGone = sites.filter(({ it, r }) => !it.closed && r.level === "dead");
   const archiveGone = sites.filter(({ it, r }) => it.closed && r.level === "dead");
-  const siteWarn = sites.filter(({ r }) => r.level === "warn");
+  const siteWarn = sites.filter(({ it, r }) => r.level === "warn" || (!it.closed && r.level === "mismatch"));
 
   if (deadRows.length) {
     md.push(`## ✗ リンク切れの可能性が高い記事（${deadRows.length} 件）`, "", table(deadRows), "",
@@ -400,7 +406,7 @@ export function buildReport(allRows, checkedOn) {
   }
   if (siteGone.length) {
     md.push(`## ✗ 公開が終わった可能性がある特設サイト（${siteGone.length} 件）`, "",
-      "「RADWIMPSの歩み」の年表に出している特設サイトです。行の番号は `data/sites.csv` の行です。", "", table(siteGone), "",
+      "「RADWIMPSの歩み」の年表に出している特設サイトです。行の番号は `data/sites.csv` の行です。", "", table(siteGone, ["日付", "種類", "名前"]), "",
       "**対応のしかた**", "",
       "1. 名前のリンクを開いて、本当に見られないか確かめます。",
       "2. 見られなければ、その行の「公開終了」に `終了` と書きます。年表のリンクが保存版に替わります。",
@@ -411,16 +417,16 @@ export function buildReport(allRows, checkedOn) {
   if (archiveGone.length) {
     md.push(`## ✗ 保存版が開けない特設サイト（${archiveGone.length} 件）`, "",
       "「公開終了」にした特設サイトの保存版URL（Internet Archive）が開けません。行の番号は `data/sites.csv` の行です。別の日の保存版を探して、「保存版URL」を書き換えてください。", "",
-      table(archiveGone), "");
+      table(archiveGone, ["日付", "種類", "名前"]), "");
   }
-  if (!deadRows.length && !mismatchRows.length && !revived.length && !siteGone.length && !archiveGone.length) md.push("対応が必要な記事はありませんでした。", "");
+  if (!deadRows.length && !mismatchRows.length && !revived.length && !siteGone.length && !archiveGone.length) md.push(sites.length ? "対応が必要な記事・特設サイトはありませんでした。" : "対応が必要な記事はありませんでした。", "");
   if (warnRows.length) {
     md.push(`## △ 自動では確かめられなかった記事（${warnRows.length} 件）`, "",
       "自動チェックを断るサイトが多く、たいていは問題ありません。気になるものだけ開いて確かめてください。この欄だけのときは、お知らせ（Issue）は作られません。", "",
       table(warnRows), "");
   }
   if (siteWarn.length) {
-    md.push(`## △ 自動では確かめられなかった特設サイト（${siteWarn.length} 件）`, "", "気になるものだけ開いて確かめてください。行の番号は `data/sites.csv` の行です。", "", table(siteWarn), "");
+    md.push(`## △ 自動では確かめられなかった特設サイト（${siteWarn.length} 件）`, "", "気になるものだけ開いて確かめてください（名前が見当たらないだけのものも、ここに出ます）。行の番号は `data/sites.csv` の行です。", "", table(siteWarn, ["日付", "種類", "名前"]), "");
   }
   md.push("---", "このお知らせは `tools/check-links.mjs` が自動で作りました。直し終わったら、次のチェックで問題がなくなると自動で閉じます（手で閉じてもかまいません）。");
   return { markdown: md.join("\n"), problems: deadRows.length + mismatchRows.length + revived.length + siteGone.length + archiveGone.length, warnings: warnRows.length + siteWarn.length };
