@@ -591,10 +591,15 @@ function historyDateWords(e) {
   }
   return out;
 }
-// 検索の言葉の中の月日（「4月」「4月5日」「2016年4月」）。前が数字のときは月日と見なさない（「11月」の中の「1月」）
-const DATE_IN = /(?<!\d)(?:(\d{4})年)?(\d{1,2})月(?:(\d{1,2})日)?/g;
+// 検索の言葉の中の月日（「4月」「4月5日」「2016年4月」と、年表の画面に出る形「11.23」「2021.11.23」）。
+//   前が数字のときは月日と見なさない（「11月」の中の「1月」）
+const DATE_IN = /(?<!\d)(?:(\d{4})年)?(\d{1,2})月(?:(\d{1,2})日)?|(?<![\d.])(?:(\d{4})\.)?(\d{1,2})\.(\d{1,2})(?![\d.])/g;
+// 抜き出した月日を [年, 月, 日] にそろえる（「11.23」→ [undefined, "11", "23"]）
+const datePartsOf = (m) => (m[2] ? [m[1], m[2], m[3]] : [m[4], m[5], m[6]]);
+// ありうる月日か（「2.0」「13月」などは月日と見なさず、ふつうの言葉として探す）
+const isDate = ([, m, d]) => Number(m) >= 1 && Number(m) <= 12 && (d === undefined || (Number(d) >= 1 && Number(d) <= 31));
 const esc = (n) => `0*${Number(n)}`;
-// 出来事が検索の言葉に合うか。空白で区切った言葉の中の月日（「4月」「4月5日」「2016年4月」。「ツアー4月」のように続けて入れても）は、
+// 出来事が検索の言葉に合うか。空白で区切った言葉の中の月日（「4月」「4月5日」「2016年4月」「11.23」。「ツアー4月」のように続けて入れても）は、
 //   出来事の日付（期間のときは途中の月も）か、出来事の文・補足の中に書いた日付とぴったり比べる（「1月」が「11月」に合わないように）。
 //   それ以外の言葉は historySearchText にゆるく比べる（match には search.js の looseMatchAll を渡す。textOf で探す文字の作り方を変えられる）
 export function matchHistory(e, query, match, textOf = historySearchText) {
@@ -603,14 +608,16 @@ export function matchHistory(e, query, match, textOf = historySearchText) {
   const rest = [];
   let dates = null, body = null;
   for (const p of parts) {
-    for (const m of p.matchAll(DATE_IN)) {
+    for (const found of p.matchAll(DATE_IN)) {
+      const m = [found[0], ...datePartsOf(found)];
+      if (!isDate(datePartsOf(found))) continue;
       const word = `${m[1] ? `${m[1]}年` : ""}${Number(m[2])}月${m[3] ? `${Number(m[3])}日` : ""}`;
       if ((dates ||= historyDateWords(e)).has(word)) continue;
       // 出来事の文・補足に書いた日付（例：補足「1月27日に先行配信」）。数字の前後が別の数字に続かないときだけ
       const re = new RegExp(`(?<!\\d)${m[1] ? `${m[1]}年` : ""}${esc(m[2])}月${m[3] ? `${esc(m[3])}日` : ""}`);
       if (!re.test(body ??= `${e.title || ""}|${e.note || ""}`.normalize("NFKC"))) return false;
     }
-    const left = p.replace(DATE_IN, " ").trim();
+    const left = p.replace(DATE_IN, (...g) => (isDate(datePartsOf(g)) ? " " : g[0])).trim();
     if (left) rest.push(...left.split(/\s+/));
   }
   return !rest.length || match(textOf(e), rest.join(" "));

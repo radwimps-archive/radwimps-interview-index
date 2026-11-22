@@ -93,3 +93,12 @@ test("今の data/history.csv：補足の日付で見つかる（1月27日・10�
   assert.ok(find(all, "1月27日").length >= 1);
   assert.ok(find(all, "10月7日").length >= 1);
 });
+
+test("年表の画面に出る日付の形（04.05・2016.04.05）でも見つかる", () => {
+  assert.deepEqual(find(events, "04.05"), [events[0].title]);
+  assert.deepEqual(find(events, "2016.4.5"), [events[0].title]);
+  assert.deepEqual(find(events, "4.15"), []);
+  assert.deepEqual(find(events, "13月"), []); // ありえない月日は、ふつうの言葉として探す（合う文字がないので0件）
+  const { events: ev } = parseHistory(HEAD + "2020,1,1,,,,リリース,「Ver 2.0」リリース,,,,\n");
+  assert.equal(find(ev, "2.0").length, 1);
+});
