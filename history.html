@@ -67,6 +67,15 @@
     <div class="hist-tabs wrap" role="tablist" aria-label="カテゴリ" id="tabs"></div>
   </div>
 
+  <!-- 検索窓：どのタブでも使えます（RAD LIVE SET LIST の検索窓と同じ見た目・同じゆるい一致。入れた言葉は、タブを切り替えても残ります） -->
+  <div class="sl-search wrap">
+    <label class="sl-search-box">
+      <span class="sl-search-icon" aria-hidden="true"></span>
+      <span class="sl-visually-hidden">年表の出来事を検索</span>
+      <input id="histSearch" type="search" autocomplete="off" autocapitalize="off" enterkeyhint="search" placeholder="作品名・ライブ名・年で探す">
+    </label>
+  </div>
+
   <p class="hist-view wrap" id="view" aria-live="polite"></p>
   <section class="timeline wrap" id="timeline">
     <p class="hist-loading" id="loading">年表を読み込んでいます…</p>

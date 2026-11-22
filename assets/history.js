@@ -11,6 +11,7 @@ import { attendButton, attendCount, assignKeys, sync as syncAttend, setupAttendC
 import { h as el, setupMenu, isAdminDevice, watchScrollFade, watchStuck } from "./ui.js";
 import config from "./config.js";
 import { feedbackUrl, hasFeedback, setupBeta, KIND } from "./feedback.js";
+import { looseMatchAll } from "./search.js"; // ゆるい一致は「RAD LIVE SET LIST」の検索窓と同じもの
 
 const $ = (s) => document.querySelector(s);
 
@@ -23,6 +24,7 @@ const VIEWS = ["all", ...CATS.map((c) => c.slug), MV_TAB.slug];
 let events = [];
 let lives = [];   // セトリのデータ（data/setlists.csv）の公演。読めないときは空（印は出ません）
 let current = "all";
+let query = "";   // 検索窓の言葉。タブを切り替えても残す（どのタブも同じ年表の出来事なので）
 
 const pad = (n) => String(n).padStart(2, "0");
 function dateLabel(e) {
@@ -83,9 +85,21 @@ function renderTabs() {
   if (on) tabs.scrollTo({ left: on.offsetLeft - (tabs.clientWidth - on.offsetWidth) / 2, behavior: "auto" });
 }
 
+// 検索窓の言葉に合うか。出来事・補足・年・日付・カテゴリ・動画の名前・特設サイトの名前から探す。
+//   全角半角・ひらがなとカタカナの違いは気にしない。英語の名前はひらがなでも見つかる（例：「ふぉーえばー」→ FOREVER IN THE DAZE TOUR）。
+//   空白で区切ると、すべての言葉に合うものだけ（例：「ツアー 2016」）
+function searchText(e) {
+  if (e._s === undefined) e._s = [`${e.y}年`, dateLabel(e), e.title, e.note, ...(e.cats || [e.cat]).map((c) => c.name),
+    ...e.videos.map((v) => v.label), ...(e.sites || []).map((s) => s.name)].filter(Boolean).join(" ");
+  return e._s;
+}
+const hit = (e) => !query.trim() || looseMatchAll(searchText(e), query);
+
 function renderTimeline() {
+  closePlayer(); // 作り直すと動画の場所がなくなるので、先に閉じる
   const box = $("#timeline");
-  const list = current === "all" ? events : current === "mv" ? mvSongs() : events.filter((e) => e.cats.some((c) => c.slug === current));
+  const base = current === "all" ? events : current === "mv" ? mvSongs() : events.filter((e) => e.cats.some((c) => c.slug === current));
+  const list = base.filter(hit);
   // 今見ているカテゴリの名前と件数（スマホではタブに件数を出さないので、ここに出す）
   const view = current === "all" ? "すべての出来事" : current === "mv" ? "MV（ない曲は公式のライブ映像など）" : CATS.find((c) => c.slug === current).name;
   $("#view").replaceChildren(el("b", { text: view }), el("span", { text: `${list.length} 件` }));
@@ -112,7 +126,9 @@ function renderTimeline() {
     sec.append(ol);
     box.append(sec);
   }
-  if (!list.length) box.append(el("p", { class: "hist-loading", text: current === "mv" ? "MV はまだありません。" : "このカテゴリの出来事はまだありません。" }));
+  if (!list.length) box.append(el("p", { class: "hist-loading", text: query.trim() && base.length
+    ? `「${query.trim()}」に合う出来事は、見つかりませんでした。ひらがなや英語、作品名の一部でも探せます。`
+    : current === "mv" ? "MV はまだありません。" : "このカテゴリの出来事はまだありません。" }));
   renderEras(list);
   syncAttend(box);
 }
@@ -361,6 +377,15 @@ $("#eras").addEventListener("focusout", (e) => { if (e.target.matches("select"))
 // マウスやタップで開くときも「年を選ぶ」に戻す（同じ年をもう一度選んでも、その年へ飛べるように）
 $("#eras").addEventListener("pointerdown", (e) => { if (e.target.matches("select")) e.target.value = ""; });
 
+// 検索窓：入れ終わって 0.15 秒たったら、年表を作り直す（楽曲一覧・RAD LIVE SET LIST と同じ）。Enter でキーボードを閉じる
+const searchBox = $("#histSearch");
+let searchTimer = 0;
+searchBox.addEventListener("input", () => {
+  clearTimeout(searchTimer);
+  searchTimer = setTimeout(() => { query = searchBox.value.slice(0, 100); if (events.length) renderTimeline(); }, 150);
+});
+searchBox.addEventListener("keydown", (e) => { if (e.key === "Enter") searchBox.blur(); });
+
 // いちばん上へ戻るボタン
 const toTop = $("#toTop");
 addEventListener("scroll", () => { toTop.hidden = scrollY < 900; }, { passive: true });
@@ -402,6 +427,9 @@ if (isAdminDevice()) $("#adminLink").hidden = false;
     for (const e of events) e.shows = showsOf(e);
     if (events.length) $("#span").textContent = `${events[0].y} — ${events[events.length - 1].y}`;
     if (affiliateOn) $("#prNote").hidden = $("#prTop").hidden = false;
+    // URL の ?q= で、検索した状態で開ける（楽曲一覧と同じ。例：history.html?q=ツアー）
+    const q0 = new URLSearchParams(location.search).get("q");
+    if (q0) { query = q0.slice(0, 100); searchBox.value = query; }
     setCat(location.hash.slice(1));
   } catch {
     $("#loading").textContent = "年表を読み込めませんでした。時間をおいて、もう一度開いてください。";
