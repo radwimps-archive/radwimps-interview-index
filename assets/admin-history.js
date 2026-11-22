@@ -89,6 +89,18 @@ function startPractice() {
   show(); // 年表を、この表の中身で作り直す（「直す」の行番号を、表とそろえるため）
   render();
 }
+// 公開中のサイトの CSV で「保存せずに試す」に切り替える（GitHub の年表に「関連リンク」の列がまだないときに、関連リンクを試すため）
+function practiceFromPage() {
+  if (pending()) { toast("保存していない変更があるので切り替えられません。先に保存するか、「取り消す」を押してください"); return; }
+  const src = A.opts.sourceTexts();
+  if (!src.history) { toast("年表を読み込めていません。ページを読み込み直してください"); return; }
+  T.history.load(src.history);
+  if (src.sites) T.sites.load(src.sites);
+  A.mode = "practice"; A.error = "";
+  closeEditor();
+  show(); render();
+  toast("公開中のサイトの年表で、保存せずに試しています。出来事の「直す」から関連リンクを試せます");
+}
 async function save() {
   if (A.saving || A.mode !== "github" || !pending()) return;
   for (const t of Object.values(T)) {
@@ -339,14 +351,24 @@ function buildLinkBox(ev) {
   ev.urlLabel = h("input", { type: "text", autocomplete: "off", maxlength: String(HISTORY_LINK_LABEL_MAX), placeholder: "例：公式ニュース", "aria-label": "リンクのラベル（出来事の下に出る文字）" });
   ev.urlUrl = h("input", { type: "url", inputmode: "url", autocomplete: "off", spellcheck: "false", placeholder: "https://", "aria-label": "リンクの URL" });
   const add = h("button", { type: "button", class: "btn", "data-lurl": "", text: "足す" });
+  // 保存先の年表に「関連リンク」の列がないとき（正式版を main に入れる前）の説明と、試すためのボタン
+  const tryBtn = h("button", { type: "button", class: "btn", "data-ltry": "", text: "公開中のサイトの年表で、保存せずに試す" });
+  ev.linkMissing = h("div", { class: "hadm-linkmissing", hidden: "" },
+    h("p", { class: "msg", text: "いま読み込んでいる年表（GitHub の main から読んだもの）には、「関連リンク」の列がまだありません。正式版を main に入れると、ここで記事などをつないで保存できるようになります。" }),
+    h("p", { class: "msg", text: "いま試すときは、下のボタンで「保存せずに試す」に切り替えてください（GitHub には保存されません）。" }),
+    tryBtn);
+  ev.linkControls = h("div", { class: "hadm-linkbox" });
   const box = h("div", { class: "fgroup hadm-linkbox" },
     h("h3", { text: "関連リンク（記事など。出来事の下に並びます）" }),
+    ev.linkMissing, ev.linkControls);
+  ev.linkControls.append(
     ev.linkList,
     field("記事一覧の記事から選ぶ", ev.artQ, "タイトル・媒体・人の名前・日付（例：2016）で探せます。空白で区切ると、すべての言葉に合う記事だけ。「つなぐ」で足します。"),
     ev.artHits,
     h("div", { class: "admfield" }, h("span", { text: "ほかのページの URL を足す" }),
       h("div", { class: "hadm-urlrow" }, ev.urlLabel, ev.urlUrl, add),
       h("small", { text: `ラベルは出来事の下に出る文字です（例：公式ニュース、ライブレポート。${HISTORY_LINK_LABEL_MAX}文字まで）。https:// で始まる URL だけ使えます。` })));
+  tryBtn.addEventListener("click", practiceFromPage);
   let timer = 0;
   ev.artQ.addEventListener("input", () => {
     clearTimeout(timer);
@@ -444,8 +466,10 @@ function openEditor(table, index) {
     ev.links = [...lk.links, ...lk.bad.map((text) => ({ type: "raw", text }))];
     ev.artQ.value = ""; ev.urlLabel.value = ""; ev.urlUrl.value = "";
     renderLinks(); renderHits();
-    // 古い年表の CSV（「関連リンク」の列がない）では、足しても保存されないので、欄ごと出さない
-    ev.linkBox.hidden = !t.header.includes("関連リンク");
+    // 古い年表の CSV（「関連リンク」の列がない）では、足しても保存されないので、操作の欄の代わりに理由と「試す」ボタンを出す
+    const hasCol = t.header.includes("関連リンク");
+    ev.linkControls.hidden = !hasCol;
+    ev.linkMissing.hidden = hasCol;
     if (ev.links.some((l) => l.type === "article")) ensureArticles().then((list) => { articleFailed = !list; if (A.editing && A.editing.table === "history") { renderLinks(); validate(); } });
     F.form.replaceChildren(ev.box, F.issues);
     F.title.textContent = isNew ? "出来事を追加" : "出来事を直す";
