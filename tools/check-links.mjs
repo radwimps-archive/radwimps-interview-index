@@ -21,10 +21,17 @@
 //   ・状態が「非表示」の記事
 //   ・メモ列に「リンク確認不要」と書いた記事（毎回まちがって引っかかる記事に使います）
 //   状態が「リンク切れ」の記事もチェックし、開けるようになっていればお知らせします。
+//
+// 特設サイト（data/sites.csv。「RADWIMPSの歩み」の年表に出すもの）も確かめます（2026-11-22 から）
+//   ・公開中のサイト：開けない・別のページになっていたら「公開が終わった可能性がある特設サイト」としてお知らせ
+//   ・「公開終了」にしたサイト：保存版URL（Internet Archive）が開けなければお知らせ
+//   ・状態が「非表示」のサイトと、メモ列に「リンク確認不要」と書いたサイトは確かめない
+//   ・特設サイトのファイルの場所は --sites で変えられます（正式版がまだ main にない間は、
+//     .github/workflows/check-links.yml が正式版のブランチ〔design/blue-theme〕から取り出して渡します）
 
-import { readFile, writeFile, appendFile } from "node:fs/promises";
+import { readFile, writeFile, appendFile, access } from "node:fs/promises";
 import { pathToFileURL } from "node:url";
-import { parseArticles, youtubeId, MEMBERS, CATEGORIES, KIND_ORDER } from "../assets/data.js";
+import { parseArticles, parseCSV, youtubeId, MEMBERS, CATEGORIES, KIND_ORDER } from "../assets/data.js";
 
 // 文字のそろえ方（全角半角・大文字小文字・ひらがなとカタカナの違いをなくし、記号や空白を取り除く）。
 // 記事一覧の検索と同じ考え方。正式版のブランチでは assets/text.js にまとめてあるので、main に入ったらそちらを使う
@@ -191,6 +198,44 @@ export function contentMatch(html, terms, { cut = false } = {}) {
   return { verdict: text.length >= MIN_TEXT && !cut ? "missing" : "unknown" };
 }
 
+/* ---------- 特設サイト（data/sites.csv） ---------- */
+
+// 特設サイトの行を読む（チェックに要る列だけ。書式のくわしいチェックは tools/validate.mjs がする）
+// 返すもの：[{ line, state, date, media: 種類, title: 名前, url: 確かめる URL, site: 本来の URL, closed, archive, note, isSite: true }]
+export function parseSiteRows(text) {
+  const { rows, lines } = parseCSV(text);
+  const head = (rows[0] || []).map((h) => h.trim());
+  const col = (name) => head.indexOf(name);
+  const out = [];
+  for (let i = 1; i < rows.length; i++) {
+    const r = rows[i], get = (name) => (col(name) >= 0 ? String(r[col(name)] ?? "").trim() : "");
+    if (r.every((c) => !String(c).trim())) continue;
+    const state = get("状態") || "公開";
+    const closed = get("公開終了") === "終了";
+    const site = get("URL"), archive = get("保存版URL");
+    const date = [get("年"), get("月"), get("日")].filter(Boolean).map((x, k) => (k ? x.padStart(2, "0") : x)).join("-");
+    // 公開終了のサイトは、保存版を確かめる（保存版がなければ確かめるものがない）
+    const url = closed ? archive : site;
+    if (!url) continue;
+    out.push({ line: lines[i], state, date, media: get("種類"), title: get("名前"), url, site, closed, archive, note: get("メモ"), isSite: true });
+  }
+  return out;
+}
+
+// 特設サイトの言葉：サイトの名前（とその一部）・RADWIMPS・野田洋次郎。映画の公式サイトは RADWIMPS の文字がないこともあるので、名前を先に
+export function siteTerms(s) {
+  const parts = String(s.title || "").split(/[\s\-‐–—~〜・/／「」『』()（）"“”]+/);
+  const words = [s.title, ...parts, "RADWIMPS", "ラッドウィンプス", "野田洋次郎"];
+  const seen = new Set(), out = [];
+  for (const show of words) {
+    const key = norm(show);
+    if (!key || seen.has(key) || !usable(key)) continue;
+    seen.add(key);
+    out.push({ show, key });
+  }
+  return out;
+}
+
 /* ---------- 1件を確かめる ---------- */
 
 async function checkYouTube(id, o) {
@@ -279,7 +324,7 @@ export async function checkAll(items, opts = {}, onDone = () => {}) {
     while (next < items.length) {
       const i = next++;
       await polite(items[i].url);
-      const oi = { ...o, expect: articleTerms(items[i]) };
+      const oi = { ...o, expect: items[i].isSite ? (items[i].closed ? [] : siteTerms(items[i])) : articleTerms(items[i]) }; // 保存版は中身を見ない（Internet Archive の画面のため）
       let r = await checkUrl(items[i].url, oi);
       if (r.level === "warn" && r.retry) {
         await sleep(o.retryDelayMs);
@@ -315,14 +360,21 @@ function table(rows) {
   return out.join("\n");
 }
 
-export function buildReport(rows, checkedOn) {
+export function buildReport(allRows, checkedOn) {
+  const rows = allRows.filter(({ it }) => !it.isSite);
+  const sites = allRows.filter(({ it }) => it.isSite && it.state !== "非表示");
   const deadRows = rows.filter(({ it, r }) => it.state === "公開" && r.level === "dead");
   const revived = rows.filter(({ it, r }) => it.state === "リンク切れ" && r.level === "ok");
   const mismatchRows = rows.filter(({ it, r }) => it.state === "公開" && r.level === "mismatch");
   const warnRows = rows.filter(({ it, r }) => it.state === "公開" && r.level === "warn");
   const nPublic = rows.filter(({ it }) => it.state === "公開").length;
   const nDead = rows.length - nPublic;
-  const md = [`# リンクの確認結果（${checkedOn}）`, "", `公開中の記事 ${nPublic} 件と、「リンク切れ」にしている記事 ${nDead} 件を確かめました。`, ""];
+  const md = [`# リンクの確認結果（${checkedOn}）`, "", `公開中の記事 ${nPublic} 件と、「リンク切れ」にしている記事 ${nDead} 件を確かめました。`
+    + (sites.length ? `特設サイト（data/sites.csv）${sites.length} 件も確かめました。` : ""), ""];
+  // 特設サイト
+  const siteGone = sites.filter(({ it, r }) => !it.closed && (r.level === "dead" || r.level === "mismatch"));
+  const archiveGone = sites.filter(({ it, r }) => it.closed && r.level === "dead");
+  const siteWarn = sites.filter(({ r }) => r.level === "warn");
 
   if (deadRows.length) {
     md.push(`## ✗ リンク切れの可能性が高い記事（${deadRows.length} 件）`, "", table(deadRows), "",
@@ -346,14 +398,32 @@ export function buildReport(rows, checkedOn) {
   if (revived.length) {
     md.push(`## ↺ 開けるようになった記事（${revived.length} 件）`, "", "「リンク切れ」にしている記事のうち、今は開ける記事です。中身を確かめて、問題なければ状態を `公開` に戻してください。", "", table(revived), "");
   }
-  if (!deadRows.length && !mismatchRows.length && !revived.length) md.push("対応が必要な記事はありませんでした。", "");
+  if (siteGone.length) {
+    md.push(`## ✗ 公開が終わった可能性がある特設サイト（${siteGone.length} 件）`, "",
+      "「RADWIMPSの歩み」の年表に出している特設サイトです。行の番号は `data/sites.csv` の行です。", "", table(siteGone), "",
+      "**対応のしかた**", "",
+      "1. 名前のリンクを開いて、本当に見られないか確かめます。",
+      "2. 見られなければ、その行の「公開終了」に `終了` と書きます。年表のリンクが保存版に替わります。",
+      "3. 「保存版URL」が空なら、Internet Archive（https://web.archive.org/）でそのサイトを探し、保存された日のページの URL を書きます（マニュアル 7-6）。",
+      "4. 問題なく見られたら、そのままで大丈夫です。毎回まちがって引っかかるサイトは、メモ列に `リンク確認不要` と書くとチェックから外れます。",
+      "");
+  }
+  if (archiveGone.length) {
+    md.push(`## ✗ 保存版が開けない特設サイト（${archiveGone.length} 件）`, "",
+      "「公開終了」にした特設サイトの保存版URL（Internet Archive）が開けません。行の番号は `data/sites.csv` の行です。別の日の保存版を探して、「保存版URL」を書き換えてください。", "",
+      table(archiveGone), "");
+  }
+  if (!deadRows.length && !mismatchRows.length && !revived.length && !siteGone.length && !archiveGone.length) md.push("対応が必要な記事はありませんでした。", "");
   if (warnRows.length) {
     md.push(`## △ 自動では確かめられなかった記事（${warnRows.length} 件）`, "",
       "自動チェックを断るサイトが多く、たいていは問題ありません。気になるものだけ開いて確かめてください。この欄だけのときは、お知らせ（Issue）は作られません。", "",
       table(warnRows), "");
   }
+  if (siteWarn.length) {
+    md.push(`## △ 自動では確かめられなかった特設サイト（${siteWarn.length} 件）`, "", "気になるものだけ開いて確かめてください。行の番号は `data/sites.csv` の行です。", "", table(siteWarn), "");
+  }
   md.push("---", "このお知らせは `tools/check-links.mjs` が自動で作りました。直し終わったら、次のチェックで問題がなくなると自動で閉じます（手で閉じてもかまいません）。");
-  return { markdown: md.join("\n"), problems: deadRows.length + mismatchRows.length + revived.length, warnings: warnRows.length };
+  return { markdown: md.join("\n"), problems: deadRows.length + mismatchRows.length + revived.length + siteGone.length + archiveGone.length, warnings: warnRows.length + siteWarn.length };
 }
 
 /* ---------- 実行 ---------- */
@@ -364,11 +434,17 @@ async function main() {
   const parsed = parseArticles(await readFile("data/articles.csv", "utf8"));
   if (parsed.errors.length) console.log(`△ 書式に問題がある行が ${parsed.errors.length} 件あり、その行は確かめていません（node tools/validate.mjs で確認できます）\n`);
   const targets = parsed.items.filter((it) => it.state !== "非表示" && !it.note.includes("リンク確認不要"));
-  console.log(`${targets.length} 件のリンクを確かめます…\n`);
+  // 特設サイト（ファイルがあるときだけ）
+  const sitesPath = args.includes("--sites") ? args[args.indexOf("--sites") + 1] : "data/sites.csv";
+  const hasSites = await access(sitesPath).then(() => true, () => false);
+  const siteTargets = hasSites ? parseSiteRows(await readFile(sitesPath, "utf8")).filter((s) => s.state !== "非表示" && !s.note.includes("リンク確認不要")) : [];
+  if (!hasSites) console.log(`（特設サイトのファイル ${sitesPath} がないので、特設サイトは確かめません）`);
+  targets.push(...siteTargets);
+  console.log(`${targets.length} 件のリンクを確かめます（うち特設サイト ${siteTargets.length} 件）…\n`);
 
   const mark = { ok: "✓", dead: "✗", mismatch: "？", warn: "△" };
   const results = await checkAll(targets, {}, (it, r) => {
-    console.log(`${mark[r.level]} ${String(it.line).padStart(3)}行目  ${it.media}｜${short(it.title, 40)}${r.reason ? "  — " + r.reason : ""}`);
+    console.log(`${mark[r.level]} ${it.isSite ? "特設 " : ""}${String(it.line).padStart(3)}行目  ${it.media}｜${short(it.title, 40)}${r.reason ? "  — " + r.reason : ""}`);
   });
 
   const today = new Intl.DateTimeFormat("ja-JP", { timeZone: "Asia/Tokyo", year: "numeric", month: "long", day: "numeric" }).format(new Date());
