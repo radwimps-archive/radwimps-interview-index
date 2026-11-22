@@ -636,10 +636,13 @@ export const SONG_KINDS = ["アルバム", "シングル", "配信", "サウン�
 export const LYRIC_HOSTS = ["petitlyrics.com", "www.petitlyrics.com", "www.uta-net.com", "uta-net.com", "utaten.com", "www.utaten.com", "j-lyric.net", "music.apple.com", "open.spotify.com", "radwimps.jp"];
 // 「メモ」に書ける長さ。歌詞の本文を書き写してしまわないように、短い一言だけにします。
 export const SONG_NOTE_MAX = 120;
+// 「名義」の列に書ける名前。空欄（または RADWIMPS）は RADWIMPS の曲。illion は野田洋次郎のソロプロジェクトの曲
+// （RADWIMPS 以外の名義の曲は、楽曲一覧には出すが、SET LIST のランキング・ライブ未演奏には入れない）
+export const SONG_ARTISTS = ["RADWIMPS", "illion"];
 
 const SONG_COLUMNS = {
   "曲名": "title", "読み": "yomi", "初めて出た作品": "work", "種類": "kind", "年": "y", "月": "m", "日": "d",
-  "アルバム": "album", "タイアップ": "tieup", "歌詞URL": "lyrics", "メモ": "note"
+  "アルバム": "album", "タイアップ": "tieup", "歌詞URL": "lyrics", "メモ": "note", "名義": "artist"
 };
 const SONG_REQUIRED = ["曲名", "年"];
 
@@ -665,7 +668,10 @@ export function parseSongs(text) {
     const date = get("y") ? readDate(get("y"), get("m"), get("d"), line, err) : "";
     const kind = nfkc(get("kind"));
     if (kind && !SONG_KINDS.includes(kind)) err(line, `種類「${kind}」は使えません。${SONG_KINDS.join("・")} のどれかを書いてください`);
-    const key = nfkc(title).toLowerCase();
+    const artistRaw = nfkc(get("artist"));
+    const artist = SONG_ARTISTS.find((a) => a.toLowerCase() === artistRaw.toLowerCase()) ?? artistRaw;
+    if (artist && !SONG_ARTISTS.includes(artist)) err(line, `名義「${artist}」は使えません。RADWIMPS の曲は空欄、ほかは ${SONG_ARTISTS.slice(1).join("・")} のどれかを書いてください`);
+    const key = `${artist === "RADWIMPS" ? "" : artist}|${nfkc(title).toLowerCase()}`;
     if (title && seen.has(key)) warn(line, `曲名「${title}」は ${seen.get(key)} 行目にもあります`);
     else if (title) seen.set(key, line);
     let lyrics = get("lyrics");
@@ -683,7 +689,7 @@ export function parseSongs(text) {
     if (errors.length > before) continue;
     const [y, m, d] = date.split("-").map((v) => (v ? +v : 0));
     songs.push({ line, i: songs.length, title, yomi, work: get("work"), kind: kind || "アルバム", y, m, d,
-      album: get("album"), tieup: get("tieup"), lyrics, note });
+      album: get("album"), tieup: get("tieup"), lyrics, note, artist: artist === "RADWIMPS" ? "" : artist });
   }
   songs.sort((a, b) => a.y - b.y || a.m - b.m || a.d - b.d || a.i - b.i);
   return { songs, errors, warnings };

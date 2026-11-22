@@ -450,6 +450,8 @@ main > .hist-note { color: var(--on-blue-2); }
 @media (min-width: 701px) { .song-row .hist-year-head span { font-size: 44px; } }
 /* 作品名の隣の種類の札・小さな説明・お店のリンクは、12px 以上に */
 .song-kind { padding: 2px 8px; border: 1px solid rgba(255, 255, 255, .45); font-size: 12px; }
+/* illion（野田洋次郎のソロプロジェクト）の曲の札は、点線の枠にして RADWIMPS の曲と見分けられるように */
+.song-artist { border-style: dashed; }
 .song-label { font-size: 12px; }
 .song-shop { font-size: 12px; }
 .song-shop .pr { font-size: 12px; }
