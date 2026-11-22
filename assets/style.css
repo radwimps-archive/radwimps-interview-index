@@ -723,6 +723,9 @@ button.title-link { padding: 0; border: 0; background: none; font: inherit; text
 .hadm-urlrow { display: flex; flex-wrap: wrap; gap: 6px; }
 .hadm-urlrow input { flex: 1 1 10em; min-width: 0; }
 .hadm-urlrow .btn { flex: none; }
+.hadm-linkmissing { display: grid; gap: 8px; justify-items: start; padding: 10px 12px; border-radius: 5px; background: var(--sunk); }
+.hadm-linkmissing .msg { font-size: 13px; line-height: 1.7; color: var(--ink); }
+.hadm-linkmissing .btn { white-space: normal; text-align: left; }
 .hist-edits { display: flex; flex-wrap: wrap; gap: 8px; margin: 8px 0 0; }
 .hist-edit { min-height: 44px; padding: 0 14px; border: 1px dashed currentColor; border-radius: 999px; background: transparent; color: var(--ink-2); font-size: 12px; cursor: pointer; }
 .hist-edit:hover { border-style: solid; }
