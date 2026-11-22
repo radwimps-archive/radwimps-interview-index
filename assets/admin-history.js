@@ -48,7 +48,7 @@ function confirmInline(btn, msg) {
 // GitHub 側が先に変わっていて、変更を重ねきれなかったときの知らせ
 function reloadNote(t, lost, gone) {
   return (lost ? `${t.label}のうち ${lost} 件は、別の場所（GitHub など）で同じ行が先に直されていました。こちらで直した内容は新しい行として残してあるので、見比べて、いらないほうを消してください。` : "")
-    + (gone ? `消すはずだった${t.label} ${gone} 件は、もうないか、別の場所で直されていました（消す変更は取りやめました）。` : "");
+    + (gone ? `消すはずだった${t.label} ${gone} 件は、もう消えていたか、別の場所で直されていました（前の保存で、もう消してあった可能性もあります。消す変更は取りやめました）。` : "");
 }
 // 直した内容を、ページの年表に映す
 const show = () => A.opts.rebuild(T.history.text(), T.sites.text());

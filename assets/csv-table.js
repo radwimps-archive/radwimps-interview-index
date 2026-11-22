@@ -86,15 +86,20 @@ export class Table {
     const ops = this.ops;
     this.load(text);
     let lost = 0, gone = 0;
-    const has = (line) => this.rows.some((r) => toCSVLine(r) === line);
+    // 「もうあるか」は、読み込んだ時点の最新の CSV で見る（自分の変更を当てたあとの行と取り違えないように）。
+    // 同じ内容の行は数で数え、当て済みとみなすたびに1つ使う（同じ行をわざと2回足したときも、2つ目が消えないように）
+    const fresh = new Map();
+    for (const r of this.rows) { const k = toCSVLine(r); fresh.set(k, (fresh.get(k) || 0) + 1); }
+    const has = (line) => (fresh.get(line) || 0) > 0;
+    const use = (line) => fresh.set(line, fresh.get(line) - 1);
     for (const op of ops) {
       if (op.type === "delete") {
         if (this.applyOp(this.rows, op)) this.ops.push(op); else gone++;
         continue;
       }
       const after = toCSVLine(op.cells);
-      if (op.type === "add" && has(after)) continue;
-      if (op.type === "edit" && !has(op.orig) && has(after)) continue;
+      if (op.type === "add" && has(after)) { use(after); continue; }
+      if (op.type === "edit" && !has(op.orig) && has(after)) { use(after); continue; }
       if (this.applyOp(this.rows, op)) { this.ops.push(op); continue; }
       lost++;
       this.ops.push({ ...op, type: "add", orig: null });

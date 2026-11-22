@@ -160,3 +160,18 @@ test("日付を直してからもとに戻すと、行の位置も読み込ん�
   assert.deepEqual(t.rows.map((r) => r[7]), ["A", "B"]);
   assert.equal(t.counts().total, 0);
 });
+
+test("同じ内容の行をわざと2回足しても、重ね直しで1つにまとめられない", () => {
+  const t = make(csv("2010,1,1,,,,リリース,A,,,,"));
+  t.doOp({ type: "add", orig: null, cells: row(2011, 1, 1, "B") });
+  t.doOp({ type: "add", orig: null, cells: row(2011, 1, 1, "B") });
+  assert.deepEqual(t.reload(csv("2010,1,1,,,,リリース,A,,,,", "2020,1,1,,,,リリース,X,,,,")), { lost: 0, gone: 0 });
+  assert.equal(t.rows.filter((r) => r[7] === "B").length, 2);
+  // 1つ目だけ、もう保存されていた
+  const t2 = make(csv("2010,1,1,,,,リリース,A,,,,"));
+  t2.doOp({ type: "add", orig: null, cells: row(2011, 1, 1, "B") });
+  t2.doOp({ type: "add", orig: null, cells: row(2011, 1, 1, "B") });
+  t2.reload(csv("2010,1,1,,,,リリース,A,,,,", "2011,1,1,,,,リリース,B,,,,"));
+  assert.equal(t2.rows.filter((r) => r[7] === "B").length, 2);
+  assert.equal(t2.counts().add, 1);
+});
