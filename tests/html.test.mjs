@@ -10,7 +10,7 @@ import { execFileSync } from "node:child_process";
 import { join } from "node:path";
 import { tmpdir } from "node:os";
 
-const PAGES = ["index.html", "articles.html", "history.html", "songs.html", "shelf.html", "sites.html", "members.html", "setlist.html", "maker.html", "404.html"];
+const PAGES = ["index.html", "articles.html", "history.html", "songs.html", "shelf.html", "members.html", "setlist.html", "maker.html", "404.html"];
 const read = (f) => readFileSync(new URL(`../${f}`, import.meta.url), "utf8").replace(/<!--[\s\S]*?-->/g, "");
 
 for (const page of PAGES) {
