@@ -62,18 +62,17 @@
 
   <!-- ここから下は、淡い青の「紙」の面（.paper-sheet）にのせます -->
   <div class="paper-sheet">
-  <!-- カテゴリのタブ（スクロールしても上に残ります） -->
+  <!-- カテゴリのタブと検索窓（スクロールしても上に残ります） -->
   <div class="hist-tabs-bar">
     <div class="hist-tabs wrap" role="tablist" aria-label="カテゴリ" id="tabs"></div>
-  </div>
-
-  <!-- 検索窓：どのタブでも使えます（RAD LIVE SET LIST の検索窓と同じ見た目・同じゆるい一致。入れた言葉は、タブを切り替えても残ります） -->
-  <div class="sl-search wrap">
-    <label class="sl-search-box">
-      <span class="sl-search-icon" aria-hidden="true"></span>
-      <span class="sl-visually-hidden">年表の出来事を検索</span>
-      <input id="histSearch" type="search" maxlength="100" autocomplete="off" autocapitalize="off" enterkeyhint="search" placeholder="作品名・ライブ名・年で探す">
-    </label>
+    <!-- 検索窓（タブといっしょに、スクロールしても上に残ります）：どのタブでも使えます（RAD LIVE SET LIST の検索窓と同じ見た目・同じゆるい一致。入れた言葉は、タブを切り替えても残ります） -->
+    <div class="sl-search wrap">
+      <label class="sl-search-box">
+        <span class="sl-search-icon" aria-hidden="true"></span>
+        <span class="sl-visually-hidden">年表の出来事を検索</span>
+        <input id="histSearch" type="search" maxlength="100" autocomplete="off" autocapitalize="off" enterkeyhint="search" placeholder="作品名・ライブ名・年で探す">
+      </label>
+    </div>
   </div>
 
   <p class="hist-view wrap" id="view" aria-live="polite"></p>

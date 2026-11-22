@@ -1053,6 +1053,11 @@ button.title-link { padding: 0; border: 0; background: none; font: inherit; text
 
 /* 検索窓（RAD LIVE SET LIST のどのタブでも） */
 .sl-search { padding-block: 12px 0; }
+/* 検索窓は、タブの帯（.hist-tabs-bar）の中に入れて、タブといっしょに上に残す（RAD LIVE SET LIST・RADWIMPSの歩み）。
+   上に貼りついたら、楽曲一覧の検索窓と同じように、上下の余白を少しつめる */
+.hist-tabs-bar .sl-search { padding-block: 12px 10px; transition: padding .2s; }
+.hist-tabs-bar[data-stuck] .sl-search { padding-block: 8px; }
+@media (prefers-reduced-motion: reduce) { .hist-tabs-bar .sl-search { transition: none; } }
 .sl-search-box { position: relative; display: block; }
 .sl-visually-hidden { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
 .sl-search-icon { position: absolute; left: 14px; top: 50%; width: 18px; height: 18px; transform: translateY(-50%); background: var(--muted); pointer-events: none;
