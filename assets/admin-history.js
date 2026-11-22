@@ -11,6 +11,12 @@ import { parseCSV, toCSVLine, parseHistory, parseSites, parseHistoryLinks, forma
 import { Table } from "./csv-table.js"; // 読み込んだ CSV と、まだ保存していない変更
 import { h, downloadFile } from "./ui.js";
 import { STORE_TOKEN, STORE_REPO, lsGet, lsSet, repoName, GhError, GitHub } from "./github.js";
+import config from "./config.js";
+
+// 保存先のブランチ：正式版のプレビュー（github.io 以外のアドレス）では config.js の previewSaveBranch（正式版のブランチ）。
+// github.io のサイトや、previewSaveBranch が空欄のときは、リポジトリのいつものブランチ（main）
+const onPages = () => /\.github\.io$/i.test(location.hostname);
+const saveBranch = () => (onPages() ? "" : String(config.previewSaveBranch || "").trim());
 
 const nf = (s) => String(s ?? "").normalize("NFKC").trim();
 const oneLine = (s) => String(s ?? "").replace(/\s*\n\s*/g, " ").trim();
@@ -61,7 +67,7 @@ async function connect(token, repo) {
   render();
   try {
     A.gh = new GitHub(token, repo);
-    await A.gh.init();
+    await A.gh.init({ branch: saveBranch() });
     for (const t of Object.values(T)) {
       const { text, sha } = await A.gh.read(t.file, t.what);
       const { lost, gone } = t.ops.length ? t.reload(text) : (t.load(text), { lost: 0, gone: 0 });
@@ -129,7 +135,7 @@ async function save() {
       t.ops = [];
       done.push(t.label);
     }
-    toast("GitHub に保存しました。1〜2分でサイトに反映されます");
+    toast(A.gh.branch !== A.gh.defaultBranch ? `GitHub の正式版のブランチ（${A.gh.branch}）に保存しました。チェックが通ると、数分でこのプレビューに反映されます` : "GitHub に保存しました。1〜2分でサイトに反映されます");
   } catch (e) {
     if (e.keyProblem) {
       lsSet(STORE_TOKEN, "");
@@ -188,7 +194,8 @@ function render() {
     return root.replaceChildren(...kids);
   }
   const status = A.mode === "github"
-    ? h("p", { class: "hadm-msg" }, h("span", { class: "dot ok", "aria-hidden": "true" }), `GitHub につながっています（${A.gh.repo}・${A.gh.branch}）。下の年表は、GitHub の最新の内容です。`)
+    ? h("p", { class: "hadm-msg" }, h("span", { class: "dot ok", "aria-hidden": "true" }), `GitHub につながっています（${A.gh.repo}・${A.gh.branch}）。下の年表は、GitHub の最新の内容です。`,
+      A.gh.branch !== A.gh.defaultBranch ? `保存すると正式版のブランチ（${A.gh.branch}）に入り、チェックが通ると数分でこのプレビューに反映されます（ベータ版のサイトには入りません）。` : "")
     : h("p", { class: "hadm-msg" }, h("span", { class: "dot", "aria-hidden": "true" }), "保存せずに試しています（変更は GitHub に保存されません）。");
   const addEvent = h("button", { type: "button", class: "btn primary", text: "＋ 出来事を追加" });
   addEvent.addEventListener("click", () => openEditor("history", null));

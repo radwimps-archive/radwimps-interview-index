@@ -1,0 +1,52 @@
+# 正式版のプレビューを最新にする
+# 正式版のブランチ（design/blue-theme）に変更が保存（コミット）されるたびに動きます。
+#   ・プレビューの「歩み」の年表の管理から保存したとき（assets/config.js の previewSaveBranch）も、作業担当が push したときも同じです。
+#   1. プログラムのテストと、記事データ・年表の書式をチェック（エラーがあればここで止まり、プレビューは前の状態のまま）
+#   2. 問題がなければ、プレビューのブランチ（preview/official）にマージして push。Cloudflare がプレビューを作り直します（数分）
+# preview/official は「design/blue-theme ＋ wrangler.jsonc（Cloudflare の設定）」なので、ふつうはぶつかりません。
+# ぶつかったとき（preview/official を直接書き換えたときなど）は失敗するので、作業担当が手でマージします。
+# .github/workflows のファイルを変えたコミットは、GitHub の決まりでこの仕組みからは push できない（失敗する）ので、作業担当が手でマージします。
+# もう一度動かすとき：「Actions」タブで失敗した実行を開き「Re-run」。「Run workflow」のボタンは、このファイルが main に入るまで出ません。
+
+name: 正式版のプレビューを最新にする
+
+on:
+  push:
+    branches: [design/blue-theme]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: preview-sync
+  cancel-in-progress: false
+
+jobs:
+  sync:
+    if: github.ref == 'refs/heads/design/blue-theme'
+    runs-on: ubuntu-latest
+    steps:
+      - name: ファイルを取り出す
+        uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+
+      - name: Node.js を準備する
+        uses: actions/setup-node@v7
+        with:
+          node-version: lts/*
+
+      - name: プログラムのテストをする（tests フォルダ）
+        run: node --test
+
+      - name: 記事データと年表の書式をチェックする
+        run: node tools/validate.mjs
+
+      - name: プレビューのブランチにマージして push する
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898341+github-actions[bot]@users.noreply.github.com"
+          git checkout -B preview/official origin/preview/official
+          git merge --no-edit -m "Merge branch 'design/blue-theme' into preview/official（自動）" "$GITHUB_SHA"
+          git push origin preview/official

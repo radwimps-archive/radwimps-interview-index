@@ -35,7 +35,7 @@ export class GhError extends Error {}
 
 // GitHub とのやりとり。token・repo を渡して作り、init() でつなぐ
 export class GitHub {
-  constructor(token, repo) { this.token = token; this.repo = repo; this.branch = ""; this.committer = null; }
+  constructor(token, repo) { this.token = token; this.repo = repo; this.branch = ""; this.defaultBranch = ""; this.committer = null; }
 
   async req(path, init = {}) {
     try {
@@ -61,10 +61,18 @@ export class GitHub {
     return err(`GitHub でエラーが起きました（${res.status}${msg ? "：" + msg : ""}）。`);
   }
   // リポジトリの確認と、保存先のブランチ・保存したときの記録に出す名前を調べる
-  async init() {
+  //   branch：保存先のブランチ（省くと、リポジトリのいつものブランチ。年表の管理は、正式版のプレビューでだけ正式版のブランチを渡す）
+  async init({ branch = "" } = {}) {
     const res = await this.req(`/repos/${this.repo}`);
     if (!res.ok) throw await this.fail(res, "リポジトリ", false);
-    this.branch = (await res.json()).default_branch || "main";
+    this.defaultBranch = (await res.json()).default_branch || "main";
+    this.branch = this.defaultBranch;
+    if (branch && branch !== this.defaultBranch) {
+      const b = await this.req(`/repos/${this.repo}/branches/${encodeURIComponent(branch)}`);
+      if (b.status === 404) throw new GhError(`保存先のブランチ「${branch}」が GitHub にありません。assets/config.js の previewSaveBranch を確かめてください。`);
+      if (!b.ok) throw await this.fail(b, `ブランチ「${branch}」`, false);
+      this.branch = branch;
+    }
     // 保存したときの記録（コミット）に、個人のメールアドレスが出ないようにする：GitHub の「noreply」のアドレスを使う
     // （リポジトリは誰でも見られるので。取れないときは、GitHub の設定のままで保存します）
     this.committer = null;
