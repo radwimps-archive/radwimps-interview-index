@@ -27,7 +27,7 @@ let current = "all";
 let query = "";   // 検索窓の言葉。タブを切り替えても残す（どのタブも同じ年表の出来事なので）
 let ready = false; // 年表・特設サイト・セトリをすべて読み終えたら true（それまでは検索しても描かない）
 let shown = null;  // いま年表に並べている出来事（検索で中身が変わらないときは、作り直さないため）
-let texts = { history: "", sites: "" }; // 読み込んだ CSV の中身（年表の管理の「保存せずに試す」で使う）
+let sourceTexts = { history: "", sites: "" }; // ページを開いたときに読んだ CSV（年表の管理の「保存せずに試す」で使う）
 let adminApi = null; // 年表の管理（管理者モードの端末だけ。assets/admin-history.js）
 
 const pad = (n) => String(n).padStart(2, "0");
@@ -451,7 +451,6 @@ if (isAdminDevice()) $("#adminLink").hidden = false;
 
 // 年表の CSV（と特設サイトの CSV）から、出来事の一覧を作る。年表の管理で直したときも、ここから作り直す
 function build(historyText, sitesText) {
-  texts = { history: historyText, sites: sitesText };
   events = load(historyText);
   // 特設サイトを出来事につなぐ
   if (sitesText) events = attachSites(events, parseSites(sitesText).sites).map((e) => {
@@ -471,7 +470,7 @@ function setupAdmin() {
   import("./admin-history.js").then((m) => {
     adminApi = m.mountHistoryAdmin($("#histAdmin"), {
       repo: repoUrl(),
-      texts: () => texts,
+      sourceTexts: () => sourceTexts,
       // 直した内容で年表を作り直す（タブ・検索の言葉・スクロールの位置はそのまま）
       rebuild(historyText, sitesText) {
         build(historyText, sitesText);
@@ -502,6 +501,7 @@ function setupAdmin() {
       const sl = await fetch("data/setlists.csv", { cache: "no-cache" });
       if (sl.ok) { lives = parseSetlists(await sl.text()).lives; assignKeys(lives); }
     } catch { /* 印は出さない */ }
+    sourceTexts = { history: historyText, sites: sitesText };
     build(historyText, sitesText);
     if (affiliateOn) $("#prNote").hidden = $("#prTop").hidden = false;
     // URL の ?q= で、検索した状態で開ける（楽曲一覧と同じ。例：history.html?q=ツアー）

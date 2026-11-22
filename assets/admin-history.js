@@ -72,10 +72,16 @@ async function connect(token, repo) {
   render();
 }
 function startPractice() {
-  const { history, sites } = A.opts.texts();
-  if (!history) { toast("年表を読み込めていません。ページを読み込み直してください"); return; }
-  for (const [t, text] of [[T.history, history], [T.sites, sites]]) { if (t.ops.length) t.reload(text || ""); else t.load(text || ""); }
+  // GitHub から読み込んだあと（保存で合鍵の問題が出たときなど）は、その内容と変更をそのまま使う。
+  // まだ何も読み込んでいなければ、ページを開いたときに読んだ CSV（公開中のサイトのもの）から始める
+  if (!T.history.header.length) {
+    const { history, sites } = A.opts.sourceTexts();
+    if (!history) { toast("年表を読み込めていません。ページを読み込み直してください"); return; }
+    T.history.load(history);
+    T.sites.load(sites || "");
+  }
   A.mode = "practice"; A.error = "";
+  show(); // 年表を、この表の中身で作り直す（「直す」の行番号を、表とそろえるため）
   render();
 }
 async function save() {
@@ -97,7 +103,7 @@ async function save() {
         // 開いているあいだに GitHub 側で変わっていた：最新を読み込み、今回の変更を重ねてからもう一度保存する
         const { text, sha } = await A.gh.read(t.file, t.what);
         const lost = t.reload(text); t.sha = sha;
-        if (lost) throw new GhError(`${t.label}のうち ${lost} 件は、別の場所（GitHub など）で先に直されていました。直した内容は新しい行として残してあるので、年表で見比べて、いらないほうを消してから、もう一度保存してください`);
+        if (lost) throw new GhError(`${t.label}のうち ${lost} 件は、別の場所（GitHub など）で同じ行が先に直されていました。こちらで直した内容は新しい行として残してあるので、年表で見比べて、いらないほうを消してから、もう一度保存してください`);
         res = await A.gh.write(t.file, t.text(), t.sha, message);
       }
       if (!res.ok) throw await A.gh.fail(res, t.what);
@@ -298,7 +304,8 @@ function buildSheet() {
     else if (act === "hide") { for (const r of st.state.querySelectorAll("input")) r.checked = r.value === "非表示"; applyEdit(); }
     else if (act === "back") renderFoot();
   });
-  document.addEventListener("keydown", (e) => { if (e.key === "Escape" && !sheet.hidden) closeEditor(); });
+  // Esc で閉じる（日本語の変換中の Esc では閉じない）
+  document.addEventListener("keydown", (e) => { if (e.key === "Escape" && !sheet.hidden && !e.isComposing && e.keyCode !== 229) closeEditor(); });
 }
 
 const setDate = (p, y, m, d) => { F[p + "y"].value = nf(y); F[p + "m"].value = nf(m) ? String(+nf(m)) : ""; F[p + "d"].value = nf(d) ? String(+nf(d)) : ""; };
@@ -306,6 +313,10 @@ const getDate = (p) => [nf(F[p + "y"].value), F[p + "m"].value, F[p + "d"].value
 
 function openEditor(table, index) {
   if (index !== null && index < 0) { toast("この行が見つかりませんでした。ページを読み込み直してください"); return; }
+  // 閉じたあとに戻る場所（押したボタン。年表を作り直してもボタンを探し直せるよう、目印で覚える）
+  const from = document.activeElement;
+  A.returnTo = from && from.closest ? (from.matches("[data-hedit]") ? `[data-hedit="${from.dataset.hedit}"]`
+    : from.matches("[data-sedit]") ? `[data-sedit="${from.dataset.sedit}"]` : from.closest("#histAdmin") ? "#histAdmin button" : null) : null;
   const t = T[table], isNew = index === null;
   const r = isNew ? null : t.rows[index];
   A.editing = { table, index, orig: r ? toCSVLine(r) : null };
@@ -334,13 +345,22 @@ function openEditor(table, index) {
   renderFoot();
   sheet.hidden = false;
   document.documentElement.classList.add("locked");
+  // 小窓のうしろは、キーボードでも読み上げでも触れないようにする（フォーカスが小窓の外へ出ないように）
+  for (const x of document.body.children) if (x !== sheet && !x.classList.contains("toast")) x.inert = true;
   F.form.scrollTop = 0;
   sheet.querySelector('.sheet-head [data-act="cancel"]').focus({ preventScroll: true });
 }
 function closeEditor() {
   sheet.hidden = true;
   document.documentElement.classList.remove("locked");
+  for (const x of document.body.children) x.inert = false;
   A.editing = null;
+  // 押したボタンへ戻る（年表を作り直したあとでも探せるよう、少し待ってから）
+  const sel = A.returnTo;
+  requestAnimationFrame(() => {
+    const b = sel && document.querySelector(sel);
+    if (b) b.focus({ preventScroll: true }); else if (A.root) { A.root.tabIndex = -1; A.root.focus({ preventScroll: true }); }
+  });
 }
 function renderFoot() {
   const isNew = !A.editing || A.editing.index === null;
@@ -370,13 +390,13 @@ function formToCells() {
     const [y, m, d] = getDate("s"), [ey, em, ed] = getDate("e");
     const cats = [ev.cat.value, ...[...ev.more.querySelectorAll("input:checked")].map((x) => x.value).filter((n) => n !== ev.cat.value)];
     map = { "年": y, "月": m, "日": d, "終了年": ey, "終了月": em, "終了日": ed, "カテゴリ": cats.join("、"), "出来事": oneLine(ev.text.value),
-      "補足": oneLine(ev.note.value), "特設サイト": ev.site.value.trim(), "タワーレコード": ev.tower.value.trim(),
+      "補足": ev.note.value.trim(), "特設サイト": ev.site.value.trim(), "タワーレコード": ev.tower.value.trim(),
       "動画": ev.video.value.split("\n").map((x) => x.trim()).filter(Boolean).join(" | ") };
   } else {
     const st = F.st, sel = st.state.querySelector("input:checked");
     const [y, m, d] = getDate("t");
     map = { "状態": sel ? sel.value : "公開", "年": y, "月": m, "日": d, "名前": oneLine(st.name.value), "種類": st.kind.value, "URL": st.url.value.trim(),
-      "公開終了": st.closed.checked ? "終了" : "", "保存版URL": st.archive.value.trim(), "メモ": oneLine(st.note.value), "id": st.id.value.trim(), "ID": st.id.value.trim() };
+      "公開終了": st.closed.checked ? "終了" : "", "保存版URL": st.archive.value.trim(), "メモ": st.note.value.trim(), "id": st.id.value.trim(), "ID": st.id.value.trim() };
   }
   return t.header.map((col, i) => (col in map ? String(map[col] ?? "") : base ? base[i] ?? "" : ""));
 }
@@ -406,7 +426,7 @@ function applyEdit() {
   if (errors.length) return;
   const { table, index, orig } = A.editing;
   const isNew = index === null;
-  T[table].doOp({ type: isNew ? "add" : "edit", orig, cells });
+  if (!T[table].doOp({ type: isNew ? "add" : "edit", orig, cells })) { closeEditor(); toast("変わったところがないので、そのままにしました"); return; }
   closeEditor();
   show(); render();
   toast(`${T[table].label}を${isNew ? "追加" : "直"}しました（まだ保存していません。年表の上の「GitHub に保存」で保存します）`);

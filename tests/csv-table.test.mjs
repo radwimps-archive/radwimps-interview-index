@@ -86,3 +86,52 @@ test("取り消すと、読み込んだときの状態に戻る", () => {
   assert.equal(t.rows.length, 1);
   assert.equal(t.counts().total, 0);
 });
+
+test("前の保存が済んでいたのに返事が届かなかったとき：重ね直しても行は増えず、変更は当て済みになる", () => {
+  const t = make(csv("2010,1,1,,,,リリース,A,,,,"));
+  const a = t.rows[0], a2 = a.slice(); a2[8] = "直した";
+  t.doOp({ type: "edit", orig: toCSVLine(a), cells: a2 });
+  t.doOp({ type: "add", orig: null, cells: row(2011, 1, 1, "B") });
+  const already = t.text(); // GitHub 側には、もう保存されていた
+  assert.equal(t.reload(already), 0);
+  assert.equal(t.rows.length, 2);
+  assert.equal(t.counts().total, 0);
+});
+
+test("両方で同じ行を消していたときは、取りこぼしに数えない", () => {
+  const t = make(csv("2010,1,1,,,,リリース,A,,,,", "2011,1,1,,,,リリース,B,,,,"));
+  t.doOp({ type: "delete", orig: toCSVLine(t.rows[0]), cells: null });
+  assert.equal(t.reload(csv("2011,1,1,,,,リリース,B,,,,")), 0);
+  assert.equal(t.counts().total, 0);
+  assert.deepEqual(t.rows.map((r) => r[7]), ["B"]);
+});
+
+test("中身の変わらない「直す」は記録しない。直してもとに戻したら、変更はなくなる", () => {
+  const t = make(csv("2010,1,1,,,,リリース,A,,,,"));
+  const a = t.rows[0];
+  assert.equal(t.doOp({ type: "edit", orig: toCSVLine(a), cells: a.slice() }), false);
+  const a2 = a.slice(); a2[8] = "x";
+  t.doOp({ type: "edit", orig: toCSVLine(a), cells: a2 });
+  t.doOp({ type: "edit", orig: toCSVLine(a2), cells: a.slice() });
+  assert.equal(t.counts().total, 0);
+});
+
+test("日付を直すと、CSV の中でも日付の順の位置へ動く", () => {
+  const t = make(csv("2010,1,1,,,,リリース,A,,,,", "2011,1,1,,,,リリース,B,,,,", "2012,1,1,,,,リリース,C,,,,"));
+  const a = t.rows[0], a2 = a.slice(); a2[0] = "2011"; a2[1] = "6";
+  t.doOp({ type: "edit", orig: toCSVLine(a), cells: a2 });
+  assert.deepEqual(t.rows.map((r) => r[7]), ["B", "A", "C"]);
+});
+
+test("空行や引用符の中の改行がある CSV でも、書き出し直した中身の行番号と、行がそろう（「保存せずに試す」は、この中身で年表を作り直す）", () => {
+  const t = make(csv("2010,1,1,,,,リリース,A,,,,", "", "2011,1,1,,,,リリース,B,\"2行の\n補足\",,,", "", "2012,1,1,,,,リリース,C,,,,"));
+  for (const e of parseHistory(t.text()).events) assert.equal(t.rows[t.indexOfLine(e.line)][7], e.title);
+});
+
+test("同じ内容の行が2つあるとき、どちらを直しても、1つだけが直る（行の数は変わらない）", () => {
+  const t = make(csv("2010,1,1,,,,リリース,A,,,,", "2010,1,1,,,,リリース,A,,,,"));
+  const a2 = t.rows[1].slice(); a2[8] = "直した";
+  t.doOp({ type: "edit", orig: toCSVLine(t.rows[1]), cells: a2 });
+  assert.equal(t.rows.length, 2);
+  assert.equal(t.rows.filter((r) => r[8] === "直した").length, 1);
+});

@@ -48,20 +48,22 @@ export class GitHub {
     }
   }
   // うまくいかなかったときの GhError。keyProblem：合鍵そのものの問題（登録し直してもらう）
-  async fail(res, what) {
+  // writing：書き込みのときか（403 の知らせの言い方を変える）
+  async fail(res, what, writing = true) {
     let msg = "";
     try { msg = (await res.json()).message || ""; } catch { /* 本文なし */ }
     const err = (m, keyProblem = false) => Object.assign(new GhError(m), { keyProblem });
     if (res.status === 401) return err("合鍵（アクセストークン）が正しくないか、期限が切れています。新しい合鍵を作って、登録し直してください。", true);
     if (res.status === 403 && /rate limit/i.test(msg)) return err("GitHub の利用回数の上限に達しました。しばらく待ってから、もう一度試してください。");
-    if (res.status === 403) return err("この合鍵には、データを書き換える許可がありません。「Contents」を「Read and write」にした合鍵を作って、登録し直してください。", true);
+    if (res.status === 403) return err(writing ? "この合鍵には、データを書き換える許可がありません。「Contents」を「Read and write」にした合鍵を作って、登録し直してください。"
+      : `この合鍵では、${what}を読めません。合鍵を作るときに選んだリポジトリと、「Contents」の許可を確かめて、登録し直してください。`, true);
     if (res.status === 404) return err(`${what}が見つかりません。リポジトリ名（${this.repo}）と、合鍵を作るときに選んだリポジトリが合っているか確かめてください。`);
     return err(`GitHub でエラーが起きました（${res.status}${msg ? "：" + msg : ""}）。`);
   }
   // リポジトリの確認と、保存先のブランチ・保存したときの記録に出す名前を調べる
   async init() {
     const res = await this.req(`/repos/${this.repo}`);
-    if (!res.ok) throw await this.fail(res, "リポジトリ");
+    if (!res.ok) throw await this.fail(res, "リポジトリ", false);
     this.branch = (await res.json()).default_branch || "main";
     // 保存したときの記録（コミット）に、個人のメールアドレスが出ないようにする：GitHub の「noreply」のアドレスを使う
     // （リポジトリは誰でも見られるので。取れないときは、GitHub の設定のままで保存します）
@@ -78,12 +80,12 @@ export class GitHub {
   async read(file, what) {
     const path = `/repos/${this.repo}/contents/${file}?ref=${encodeURIComponent(this.branch)}`;
     const res = await this.req(path);
-    if (!res.ok) throw await this.fail(res, what);
+    if (!res.ok) throw await this.fail(res, what, false);
     const j = await res.json();
     let text = j.content ? decodeBase64Utf8(j.content) : "";
     if (!j.content) { // 1MB を超えるファイルは、別の形で受け取る
       const raw = await this.req(path, { headers: { Accept: "application/vnd.github.raw+json" } });
-      if (!raw.ok) throw await this.fail(raw, what);
+      if (!raw.ok) throw await this.fail(raw, what, false);
       text = await raw.text();
     }
     return { text, sha: j.sha };

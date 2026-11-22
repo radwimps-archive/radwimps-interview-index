@@ -479,7 +479,7 @@ function setupSheet() {
     else if (act === "remove") removeRow();
     else if (act === "back") renderFoot();
   });
-  document.addEventListener("keydown", (e) => { if (e.key === "Escape" && !$s("#editSheet").hidden) closeEditor(); });
+  document.addEventListener("keydown", (e) => { if (e.key === "Escape" && !$s("#editSheet").hidden && !e.isComposing && e.keyCode !== 229) closeEditor(); }); // 日本語の変換中の Esc では閉じない
 }
 
 function setState(s) { for (const r of F.state.querySelectorAll("input")) r.checked = r.value === s; }

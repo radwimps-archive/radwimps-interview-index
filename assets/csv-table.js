@@ -33,30 +33,41 @@ export class Table {
     return r >= 1 ? r - 1 : -1;
   }
   // 日付の順の位置に入れる（年表は古い順、特設サイトは新しい順。同じ日付なら、同じ日付の最後に）
+  dateKey(r) { return [nf(this.cell(r, "年")) || "0000", (nf(this.cell(r, "月")) || "0").padStart(2, "0"), (nf(this.cell(r, "日")) || "0").padStart(2, "0")].join("-"); }
   insertSorted(rows, cells) {
-    const key = (r) => [nf(this.cell(r, "年")) || "0000", (nf(this.cell(r, "月")) || "0").padStart(2, "0"), (nf(this.cell(r, "日")) || "0").padStart(2, "0")].join("-");
-    const k = key(cells);
-    const i = rows.findIndex((r) => (this.newestFirst ? key(r) < k : key(r) > k));
+    const k = this.dateKey(cells);
+    const i = rows.findIndex((r) => (this.newestFirst ? this.dateKey(r) < k : this.dateKey(r) > k));
     rows.splice(i < 0 ? rows.length : i, 0, cells);
   }
-  // 戻り値：直す・消すはずの行が見つからなかったら false（GitHub 側で、同じ行が先に直されていた）
+  // 変更を rows に当てる。戻り値：当てられたら true。直す・消すはずの行が見つからなければ false（GitHub 側で、同じ行が先に直されていた）
   applyOp(rows, op) {
     const i = op.orig == null ? -1 : rows.findIndex((r) => toCSVLine(r) === op.orig);
     if (op.type === "delete") { if (i >= 0) rows.splice(i, 1); return i >= 0; }
-    if (i >= 0) rows[i] = op.cells.slice();
-    else this.insertSorted(rows, op.cells.slice()); // 追加（直した行が GitHub 側で直されていたときも、消えないように追加として残す）
-    return op.orig == null || i >= 0;
+    if (op.type === "edit" && i >= 0) {
+      // 日付を直したときは、CSV の中でも日付の順の位置へ動かす
+      if (this.dateKey(rows[i]) !== this.dateKey(op.cells)) { rows.splice(i, 1); this.insertSorted(rows, op.cells.slice()); }
+      else rows[i] = op.cells.slice();
+      return true;
+    }
+    this.insertSorted(rows, op.cells.slice()); // 追加（直した行が GitHub 側で直されていたときも、消えないように追加として残す）
+    return op.type === "add";
   }
-  // 変更を記録する。同じ行を何度も直したときは、1つの変更にまとめる
+  // 変更を記録する。戻り値：記録したら true（中身が変わらない「直す」は記録しない）。
+  // 同じ行を何度も直したときは、1つの変更にまとめる（直してもとに戻したら、変更はなくなる）
   doOp(op) {
+    if (op.type === "edit" && toCSVLine(op.cells) === op.orig) return false;
     const prev = op.orig == null ? null : this.ops.find((p) => p.cells && toCSVLine(p.cells) === op.orig);
     if (prev) {
       if (op.type === "delete") {
         if (prev.type === "add") this.ops.splice(this.ops.indexOf(prev), 1);
         else { prev.type = "delete"; prev.cells = null; }
-      } else prev.cells = op.cells.slice();
+      } else {
+        prev.cells = op.cells.slice();
+        if (prev.type === "edit" && toCSVLine(prev.cells) === prev.orig) this.ops.splice(this.ops.indexOf(prev), 1);
+      }
     } else this.ops.push({ ...op, cells: op.cells ? op.cells.slice() : null });
     this.applyOp(this.rows, op);
+    return true;
   }
   counts() {
     const c = { add: 0, edit: 0, delete: 0 };
@@ -65,14 +76,20 @@ export class Table {
   }
   reset() { this.rows = this.base.map((r) => r.slice()); this.ops = []; }
   // 最新の CSV を読み込み直して、まだ保存していない変更を重ねる。戻り値：重ねられなかった変更の数
-  //   （GitHub 側で同じ行が先に直されていたとき。直した内容は追加の行として残るので、年表で見比べて、いらないほうを消してもらう）
+  //   ・最新の CSV に、変更したあとの行がもうあるとき（前の保存が、返事が届かなかっただけで済んでいたなど）は、当て済みとして捨てる
+  //   ・消すはずの行がもうないとき（別の場所でも消していた）も、当て済みとして捨てる
+  //   ・直すはずの行が、別の場所で先に直されていたときは、直した内容を追加の行として残し、数に入れる（年表で見比べて、いらないほうを消してもらう）
   reload(text) {
     const ops = this.ops;
     this.load(text);
     let lost = 0;
+    const has = (cells) => this.rows.some((r) => toCSVLine(r) === toCSVLine(cells));
     for (const op of ops) {
-      if (!this.applyOp(this.rows, op)) { lost++; if (op.type === "edit") { this.ops.push({ ...op, type: "add", orig: null }); } continue; }
-      this.ops.push(op);
+      if (op.type !== "delete" && has(op.cells)) continue;
+      if (this.applyOp(this.rows, op)) { this.ops.push(op); continue; }
+      if (op.type === "delete") continue;
+      lost++;
+      this.ops.push({ ...op, type: "add", orig: null });
     }
     return lost;
   }
