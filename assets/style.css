@@ -692,6 +692,9 @@ button.title-link { padding: 0; border: 0; background: none; font: inherit; text
 .hist-sites a { display: inline-flex; align-items: center; min-height: 44px; color: var(--ink-2); text-decoration: underline; text-underline-offset: 3px; }
 .hist-sites a:hover { color: var(--ink); }
 .hist-sites .sep { margin: 0 8px; }
+/* 関連リンク（記事など）：「記事」「動画」の小さな札をつける（札には下線を引かない） */
+.hist-links a { gap: 6px; }
+.hist-link-kind { flex: none; display: inline-block; padding: 0 6px; white-space: nowrap; border: 1px solid currentColor; border-radius: 3px; font-size: 12px; line-height: 1.5; text-decoration: none; }
 /* 年表の管理（管理者モードの端末だけ。assets/admin-history.js） */
 .hist-admin { padding-top: 16px; }
 .hadm-card { display: grid; gap: 12px; padding: 16px; border-radius: 6px; background: var(--card); color: var(--ink); }
@@ -708,6 +711,18 @@ button.title-link { padding: 0; border: 0; background: none; font: inherit; text
 .hadm-pending.on span { font-size: 12px; color: var(--ink-2); }
 .hadm-fields { display: grid; gap: 20px; }
 .hadm-closed { justify-self: start; min-height: 44px; }
+/* 関連リンクの欄：つないでいるリンクの一覧（右に「外す」）・見つかった記事（右に「つなぐ」）・URL を足す行 */
+.hadm-linkbox { display: grid; gap: 12px; }
+.hadm-links, .hadm-hits { display: grid; gap: 6px; margin: 0; padding: 0; list-style: none; }
+.hadm-links li, .hadm-hits li { display: flex; align-items: center; gap: 10px; min-width: 0; padding: 6px 10px; border-radius: 5px; background: var(--sunk); font-size: 13px; line-height: 1.6; color: var(--ink); }
+.hadm-links li > span, .hadm-hit-text { flex: 1 1 auto; min-width: 0; overflow-wrap: anywhere; }
+.hadm-links li .btn, .hadm-hits li .btn { flex: none; }
+.hadm-hit-text small { display: block; font-size: 12px; color: var(--muted); }
+.hadm-hit-done { flex: none; font-size: 12px; color: var(--muted); }
+.hadm-links li.hadm-empty, .hadm-hits li.hadm-empty { background: transparent; padding-inline: 0; color: var(--muted); }
+.hadm-urlrow { display: flex; flex-wrap: wrap; gap: 6px; }
+.hadm-urlrow input { flex: 1 1 10em; min-width: 0; }
+.hadm-urlrow .btn { flex: none; }
 .hist-edits { display: flex; flex-wrap: wrap; gap: 8px; margin: 8px 0 0; }
 .hist-edit { min-height: 44px; padding: 0 14px; border: 1px dashed currentColor; border-radius: 999px; background: transparent; color: var(--ink-2); font-size: 12px; cursor: pointer; }
 .hist-edit:hover { border-style: solid; }

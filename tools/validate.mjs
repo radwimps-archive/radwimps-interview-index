@@ -9,7 +9,7 @@
 //     node tools/validate.mjs
 
 import { readFile } from "node:fs/promises";
-import { parseArticles, parseReleases, parseHistory, parseSongs, parseSetlists, parseSites } from "../assets/data.js";
+import { parseArticles, parseReleases, parseHistory, parseSongs, parseSetlists, parseSites, checkHistoryLinks } from "../assets/data.js";
 
 const inActions = process.env.GITHUB_ACTIONS === "true";
 let errorCount = 0, warnCount = 0;
@@ -68,7 +68,9 @@ if (articles) {
 }
 if (history) {
   const videos = history.events.reduce((n, e) => n + e.videos.length, 0);
-  console.log(`年表：${history.events.length} 件の出来事を読み込みました（動画 ${videos} 本）`);
+  const links = history.events.reduce((n, e) => n + e.links.length, 0);
+  if (articles) for (const w of checkHistoryLinks(history.events, articles.items)) show("data/history.csv", "warning", w);
+  console.log(`年表：${history.events.length} 件の出来事を読み込みました（動画 ${videos} 本・関連リンク ${links} 件）`);
 }
 if (songs) console.log(`楽曲：${songs.songs.length} 曲を読み込みました（歌詞URL あり ${songs.songs.filter((x) => x.lyrics).length} 曲）`);
 if (setlists) {
