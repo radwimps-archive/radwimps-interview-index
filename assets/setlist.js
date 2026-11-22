@@ -525,14 +525,16 @@ async function loadCatalog() {
     if (!res.ok) return;
     const { rows } = parseCSV(await res.text());
     const head = rows[0] || [], ci = (n) => head.indexOf(n);
-    const [iT, iW, iY, iK, iL] = [ci("曲名"), ci("初めて出た作品"), ci("年"), ci("種類"), ci("歌詞URL")];
+    const [iT, iW, iY, iK, iL, iA] = [ci("曲名"), ci("初めて出た作品"), ci("年"), ci("種類"), ci("歌詞URL"), ci("名義")];
     if (iT < 0) return;
     // 「〈宿題発表-skit-〉」のような skit（曲と曲のあいだの短い寸劇）は、ライブでやる曲ではないので入れない
     // サウンドトラックの曲のうち、歌詞のない劇伴（映画の場面の音楽）と、映画用に短くした「(movie edit)」の版も入れない
     // （歌のある「夢灯籠」「スパークル」などは入れる）
     const isScore = (r) => iK >= 0 && (r[iK] || "").trim() === "サウンドトラック"
       && (iL < 0 || !(r[iL] || "").trim() || /\(movie edit\)\s*$/i.test(r[iT]));
-    catalog = rows.slice(1).filter((r) => (r[iT] || "").trim() && !/skit/i.test(r[iT]) && !isScore(r)).map((r) => {
+    // 「名義」が RADWIMPS 以外（illion など、野田洋次郎のソロの曲）は、RADWIMPS のライブの曲ではないので入れない
+    const isOther = (r) => iA >= 0 && !["", "radwimps"].includes((r[iA] || "").normalize("NFKC").trim().toLowerCase());
+    catalog = rows.slice(1).filter((r) => (r[iT] || "").trim() && !/skit/i.test(r[iT]) && !isScore(r) && !isOther(r)).map((r) => {
       const title = r[iT].trim();
       return { title, work: (r[iW] || "").trim(), y: +(r[iY] || 0) || 0, k: catalogKey(title) };
     }).sort((a, b) => a.y - b.y);

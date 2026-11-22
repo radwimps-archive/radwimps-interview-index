@@ -157,6 +157,19 @@ test("parseSongs：長いメモ（歌詞の書き写しを防ぐ）・使えな�
   assert.equal(r.songs.length, 1);
 });
 
+test("parseSongs：「名義」の列（空欄と RADWIMPS は RADWIMPS の曲、illion はソロの曲、ほかは使えない）", () => {
+  const r = parseSongs([`${SONG_HEAD},名義`,
+    "有心論,有心論,シングル,2006,7,26,,,,,",
+    "おしゃかしゃま,アルトコロニーの定理,アルバム,2009,3,11,,,,,RADWIMPS",
+    "MAHOROBA,MAHOROBA,配信,2013,2,6,UBU,,,,ILLION",
+    "有心論,x,配信,2013,3,6,,,,,illion",
+    "テスト,x,配信,2020,,,,,,,野田"].join("\n"));
+  assert.deepEqual(r.songs.map((s) => s.artist), ["", "", "illion", "illion"]);
+  assert.equal(r.errors.length, 1);
+  assert.match(r.errors[0].msg, /名義「野田」/);
+  assert.equal(r.warnings.length, 0, "名義がちがえば、同じ曲名でも重複にしない");
+});
+
 test("data/songs.csv：書式の問題がない", async () => {
   const { readFileSync } = await import("node:fs");
   const r = parseSongs(readFileSync(new URL("../data/songs.csv", import.meta.url), "utf8"));

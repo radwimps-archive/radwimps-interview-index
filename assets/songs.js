@@ -22,21 +22,23 @@ const reEsc = (s) => s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 // 「すずめ feat.十明」→「すずめ」のように、記事を探すときの曲名（feat. より後ろを外す）
 const baseTitle = (t) => t.replace(/\s*\(?\s*feat\..*$/i, "").trim();
 
-// プチリリ：曲ごとの歌詞のページの URL が「歌詞URL」の列にあればそこを開き、なければ、プチリリの中を「曲名・RADWIMPS」で探した結果を開きます
+// 名義：データの「名義」の列（空欄は RADWIMPS）。illion（野田洋次郎のソロプロジェクト）の曲は、検索の言葉も「illion」にします
+const artistOf = (s) => s.artist || "RADWIMPS";
+// プチリリ：曲ごとの歌詞のページの URL が「歌詞URL」の列にあればそこを開き、なければ、プチリリの中を「曲名・名義」で探した結果を開きます
 const LYRIC_SITES = [
-  { name: "プチリリ", host: "petitlyrics.com", search: (title) => `https://petitlyrics.com/search_lyrics?title=${encodeURIComponent(title)}&artist=RADWIMPS` }
+  { name: "プチリリ", host: "petitlyrics.com", search: (title, artist) => `https://petitlyrics.com/search_lyrics?title=${encodeURIComponent(title)}&artist=${encodeURIComponent(artist)}` }
 ];
-// 「聴く」：配信の曲は、音楽サブスクリプションの検索結果を開きます（曲ごとのページの URL がなくても、曲名と RADWIMPS で見つかります）
-const q = (...w) => encodeURIComponent(["RADWIMPS", ...w].join(" "));
+// 「聴く」：配信の曲は、音楽サブスクリプションの検索結果を開きます（曲ごとのページの URL がなくても、名義と曲名で見つかります）
+const q = (artist, ...w) => encodeURIComponent([artist, ...w].join(" "));
 // 歌詞のリンクは、いつも新しいタブで開きます（2026-11-14 に「このタブ」との切り替えはやめました）
 function lyricLink(href, label, text) {
   return el("a", { class: "song-btn song-lyrics", href, target: "_blank", rel: "noopener noreferrer", "aria-label": `${label}（新しいタブで開く）`, text });
 }
 
 const LISTEN = [
-  { name: "Spotify", url: (t) => `https://open.spotify.com/search/${q(t)}` },
-  { name: "Apple Music", url: (t) => `https://music.apple.com/jp/search?term=${q(t)}` },
-  { name: "YouTube Music", url: (t) => `https://music.youtube.com/search?q=${q(t)}` }
+  { name: "Spotify", url: (t, a) => `https://open.spotify.com/search/${q(a, t)}` },
+  { name: "Apple Music", url: (t, a) => `https://music.apple.com/jp/search?term=${q(a, t)}` },
+  { name: "YouTube Music", url: (t, a) => `https://music.youtube.com/search?q=${q(a, t)}` }
 ];
 // 「買う」：CD の作品は、通販サイトの検索結果を開きます。
 //   タワーレコードは、config.js の towerAffiliate（バリューコマースの sid・pid）を書くとアフィリエイトリンクになり、「PR」が出ます（年表と同じ）。
@@ -46,13 +48,13 @@ const rakutenId = /^[0-9a-f]{8}(\.[0-9a-f]{8}){3}$/.test(config.rakutenAffiliate
 const towerAff = !!(AFF.sid && AFF.pid);
 const amazonTag = /^[\w-]+-22$/.test(config.amazonTag || "") ? config.amazonTag : "";
 const BUY = [
-  { name: "タワレコ", aff: towerAff, url: (w) => {
-    const plain = `https://tower.jp/search/item/${q(w)}`;
+  { name: "タワレコ", aff: towerAff, url: (w, a) => {
+    const plain = `https://tower.jp/search/item/${q(a, w)}`;
     return towerAff ? `https://ck.jp.ap.valuecommerce.com/servlet/referral?sid=${encodeURIComponent(AFF.sid)}&pid=${encodeURIComponent(AFF.pid)}&vc_url=${encodeURIComponent(plain)}` : plain;
   } },
-  { name: "Amazon", aff: !!amazonTag, url: (w) => `https://www.amazon.co.jp/s?k=${q(w)}&i=music${amazonTag ? `&tag=${amazonTag}` : ""}` },
-  { name: "楽天", aff: !!rakutenId, url: (w) => {
-    const plain = `https://search.rakuten.co.jp/search/mall/${q(w)}/`;
+  { name: "Amazon", aff: !!amazonTag, url: (w, a) => `https://www.amazon.co.jp/s?k=${q(a, w)}&i=music${amazonTag ? `&tag=${amazonTag}` : ""}` },
+  { name: "楽天", aff: !!rakutenId, url: (w, a) => {
+    const plain = `https://search.rakuten.co.jp/search/mall/${q(a, w)}/`;
     return rakutenId ? `https://hb.afl.rakuten.co.jp/hgc/${rakutenId}/?pc=${encodeURIComponent(plain)}&link_type=text` : plain;
   } }
 ];
@@ -62,7 +64,8 @@ const youtube = (id) => `https://www.youtube.com/watch?v=${id}`;
 
 // 絞り込み：「シングル」には、CD のシングルと配信のシングル（データの種類が「配信」）の両方が入ります
 const SINGLE_KINDS = ["シングル", "配信"];
-const FILTERS = [{ slug: "all", name: "すべて" }, ...SONG_KINDS.filter((k) => k !== "配信").map((k) => ({ slug: k, name: k })), { slug: "tieup", name: "タイアップ" }];
+// 「illion」は、野田洋次郎のソロプロジェクト illion の曲だけ（「すべて」や種類のタブには、illion の曲も入ります）
+const FILTERS = [{ slug: "all", name: "すべて" }, ...SONG_KINDS.filter((k) => k !== "配信").map((k) => ({ slug: k, name: k })), { slug: "tieup", name: "タイアップ" }, { slug: "illion", name: "illion" }];
 // 曲の札に出す名前（「配信」は「配信シングル」と出す）
 const kindLabel = (k) => (k === "配信" ? "配信シングル" : k);
 let songs = [], current = "all", query = "", order = "date";
@@ -89,11 +92,12 @@ function articleFinder(items) {
   const list = pickArticles(items, () => true).map((it) => ({
     it, tags: new Set(it.tags.map(norm)), w: norm([it.title, it.summary, it.tags.join(" "), it.eventName].join(" "))
   }));
-  return (name) => {
-    const n = norm(name);
+  // artist（illion など、RADWIMPS 以外の名義）があるときは、その名前が出てくる記事だけ（「Miracle」で「Shape Of Miracle」の記事を拾わないように）
+  return (name, artist) => {
+    const n = norm(name), a = artist ? norm(artist) : "";
     if (!n) return [];
     const quoted = new RegExp(`[「『“"]${reEsc(name)}[」』”"]`);
-    return list.filter((x) => x.tags.has(n) || quoted.test(x.it.title) || quoted.test(x.it.summary) || ([...n].length >= 4 && x.w.includes(n))).map((x) => x.it);
+    return list.filter((x) => (!a || x.w.includes(a)) && (x.tags.has(n) || quoted.test(x.it.title) || quoted.test(x.it.summary) || ([...n].length >= 4 && x.w.includes(n)))).map((x) => x.it);
   };
 }
 
@@ -122,9 +126,9 @@ function load(songText, articleText, historyText) {
   return parsed.songs.map((s) => {
     const base = baseTitle(s.title);
     const sortKey = kanaKey(s.yomi || base);
-    const list = find(base);
+    const list = find(base, s.artist);
     return { ...s, base, sortKey, row: rowOf(sortKey), articles: list.length, articleList: list, video: videos.get(norm(base)) || null,
-      _h: norm([s.title, s.work, s.album, s.tieup, s.note, kindLabel(s.kind)].join(" ")) };
+      _h: norm([s.title, s.work, s.album, s.tieup, s.note, kindLabel(s.kind), s.artist].join(" ")) };
   });
 }
 
@@ -140,7 +144,7 @@ function renderFilters() {
 }
 
 function match(s, kind, q) {
-  const ok = kind === "all" || (kind === "tieup" ? !!s.tieup : kind === "シングル" ? SINGLE_KINDS.includes(s.kind) : s.kind === kind);
+  const ok = kind === "all" || (kind === "tieup" ? !!s.tieup : kind === "illion" ? s.artist === "illion" : kind === "シングル" ? SINGLE_KINDS.includes(s.kind) : s.kind === kind);
   if (!ok) return false;
   return !q || s._h.includes(q);
 }
@@ -149,10 +153,11 @@ function songItem(s, inRelease) {
   // 発売順では、日付と作品名は「発売ごとの見出し」に出すので、曲の行には種類の札だけ。50音順では今までどおり日付・作品名も出す
   // （種類の札も、発売順では作品名の隣に1つだけ出す）
   // 作品名を押すと開く行：CD の作品は「CD を探す」、配信シングルは「聴く」（配信サービス）
-  const linkBox = inRelease ? null : releasePanel(s.kind, s.work || s.title, s.base);
+  const linkBox = inRelease ? null : releasePanel(s.kind, s.work || s.title, s.base, artistOf(s));
   const meta = inRelease ? null : el("p", { class: "song-meta" },
     el("time", { text: dateLabel(s) }),
     el("span", { class: "song-kind", text: kindLabel(s.kind) }),
+    artistTag(s),
     linkBox ? workBtn(`「${s.work || s.title}」`, linkBox) : s.work && s.work !== s.title ? el("span", { text: s.kind === "動画公開" ? s.work : `「${s.work}」` }) : null);
   // 曲名の下に出す一言は、タイアップと、メジャーデビューシングルの印だけ（ほかの「メモ」は、画面には出さない。歌のない曲の判定などにだけ使う）
   const subs = [];
@@ -171,7 +176,7 @@ function songItem(s, inRelease) {
   } else {
     // 曲のページがないときは、歌詞サイトの中を曲名で探した結果を開く
     for (const site of LYRIC_SITES) {
-      links.append(lyricLink(site.search(s.base), `「${s.title}」の歌詞を${site.name}で探す`, "歌詞 ↗"));
+      links.append(lyricLink(site.search(s.base, artistOf(s)), `「${s.title}」の歌詞を${site.name}で探す`, "歌詞 ↗"));
     }
   }
   if (s.video) {
@@ -191,22 +196,26 @@ function songItem(s, inRelease) {
   const art = s.articles ? el("a", { class: "song-btn song-articles", href: more, text: `記事 ${s.articles}件` }) : null;
   return el("li", { class: "song-item" }, el("div", { class: "song-head" }, title, art), panel, meta, linkBox, ...subs);
 }
-function releasePanel(kind, work, base) {
-  if (CD_KINDS.includes(kind)) return buyPanel(work);
-  if (kind === "配信") return listenPanel(work, base || work);
+// RADWIMPS 以外の名義（illion）の曲につける札
+function artistTag(s) {
+  return s.artist ? el("span", { class: "song-kind song-artist", text: s.artist }) : null;
+}
+function releasePanel(kind, work, base, artist = "RADWIMPS") {
+  if (CD_KINDS.includes(kind)) return buyPanel(work, artist);
+  if (kind === "配信") return listenPanel(work, base || work, artist);
   return null;
 }
 // 配信シングルの作品名を押すと開く「聴く」（Spotify・Apple Music・YouTube Music）
-function listenPanel(work, base) {
+function listenPanel(work, base, artist) {
   return el("div", { class: "song-links song-buy", id: `buy${++uid}`, hidden: true }, el("span", { class: "song-label", text: "聴く" }),
-    ...LISTEN.map((m) => el("a", { class: "song-btn song-shop", href: m.url(base), target: "_blank", rel: "noopener noreferrer",
+    ...LISTEN.map((m) => el("a", { class: "song-btn song-shop", href: m.url(base, artist), target: "_blank", rel: "noopener noreferrer",
       "aria-label": `「${work}」を${m.name}で聴く（新しいタブ）`, text: `${m.name} ↗` })));
 }
 // 作品名（アルバム名・シングル名）を押すと開く「CD を探す」（タワレコ・Amazon・楽天）
-function buyPanel(work) {
+function buyPanel(work, artist) {
   const plainWork = work.replace(/[〜~].*$/, "").trim() || work; // 「RADWIMPS 4〜おかずのごはん〜」→「RADWIMPS 4」で探す（長いと見つからないため）
   return el("div", { class: "song-links song-buy", id: `buy${++uid}`, hidden: true }, el("span", { class: "song-label", text: "CD を探す" }),
-    ...BUY.map((m) => el("a", { class: "song-btn song-shop", href: m.url(plainWork), target: "_blank", rel: m.aff ? "sponsored noopener noreferrer" : "noopener noreferrer",
+    ...BUY.map((m) => el("a", { class: "song-btn song-shop", href: m.url(plainWork, artist), target: "_blank", rel: m.aff ? "sponsored noopener noreferrer" : "noopener noreferrer",
       "aria-label": `「${work}」の CD を${m.name}で探す（新しいタブ）`, text: `${m.name} ↗` }, m.aff ? el("span", { class: "pr", text: "PR" }) : null)));
 }
 function workBtn(text, panel) {
@@ -216,10 +225,11 @@ let uid = 0;
 let folded = false; // 「すべて閉じる」を選んだあとは、作品の曲を閉じた状態で並べる
 
 // 曲数：シングルのカップリングが、あとでアルバムに入るなど、2つの作品に載る曲は、1曲と数える
-const kinds = (arr) => new Set(arr.map((s) => s.title)).size;
+// （RADWIMPS と illion に同じ曲名があっても、別の曲として数える）
+const kinds = (arr) => new Set(arr.map((s) => `${s.artist}|${s.title}`)).size;
 
 // 作品数：タブの数字に使う（アルバム・シングル・サウンドトラックの数。動画公開は1本ずつ数える）
-const works = (arr) => new Set(arr.map((s) => `${s.y}|${s.m || 0}|${s.d || 0}|${relName(s)}`)).size;
+const works = (arr) => new Set(arr.map((s) => `${s.y}|${s.m || 0}|${s.d || 0}|${s.artist}|${relName(s)}`)).size;
 
 // 発売順の項目の名前：アルバム名・シングル名。動画公開は、作品名が「YouTube で公開」で札と重なるので、曲名を出す
 const relName = (s) => (s.kind === "動画公開" ? s.title : s.work || s.title);
@@ -253,7 +263,7 @@ function render() {
   const years = new Map();
   for (const s of sorted) {
     const rel = years.get(s.y) || years.set(s.y, new Map()).get(s.y);
-    const k = `${s.m || 0}|${s.d || 0}|${relName(s)}`;
+    const k = `${s.m || 0}|${s.d || 0}|${s.artist}|${relName(s)}`;
     (rel.get(k) || rel.set(k, []).get(k)).push(s);
   }
   const shut = folded && !q; // 検索中は、見つかった曲を隠さない
@@ -265,11 +275,11 @@ function render() {
       const f = items[0];
       const olId = `ol${++uid}`;
       const work = relName(f);
-      const cdBuy = releasePanel(f.kind, work, f.work === f.title || !f.work ? f.base : work);
+      const cdBuy = releasePanel(f.kind, work, f.work === f.title || !f.work ? f.base : work, artistOf(f));
       ol.append(el("li", { class: "hist-item song-release" },
         el("p", { class: "hist-meta" }, f.m ? el("time", { text: monthDay(f) }) : null,
           el("button", { type: "button", class: "song-fold-btn", "aria-expanded": String(!shut), "aria-controls": olId, title: "押すと、この作品の曲を開く・閉じる" }, `${items.length} 曲`)),
-        el("p", { class: "song-release-work" }, cdBuy ? workBtn(work, cdBuy) : el("span", { text: work }), el("span", { class: "song-kind", text: kindLabel(f.kind) })),
+        el("p", { class: "song-release-work" }, cdBuy ? workBtn(work, cdBuy) : el("span", { text: work }), el("span", { class: "song-kind", text: kindLabel(f.kind) }), artistTag(f)),
         cdBuy,
         el("ol", { class: "song-items", id: olId, hidden: shut }, ...items.map((x) => songItem(x, true)))));
     }
