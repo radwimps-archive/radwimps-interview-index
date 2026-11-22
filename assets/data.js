@@ -565,6 +565,20 @@ export function attachSites(events, sites) {
   return out;
 }
 
+// 「RADWIMPSの歩み」の検索窓で探す文字（出来事・補足・年月日・カテゴリ・動画のラベル・特設サイト）。
+//   項目のあいだは「|」で区切る（検索では空白が消えるので、見出しの終わりと補足の始まりがつながって合わないように）
+//   日付は「2016年」「4月」「4月5日」「04.05」のどれでも合うように、いくつかの形で入れる
+//   MV のタブの項目（mv: true）は、動画のボタンの文言（「MV を見る」など）を入れない（「見る」で全部が合わないように）
+export function historySearchText(e) {
+  const pad = (n) => String(n).padStart(2, "0");
+  const day = (y, m, d) => (m ? [`${y}年${m}月`, `${m}月`, ...(d ? [`${m}月${d}日`, `${pad(m)}.${pad(d)}`] : [])] : []);
+  const sites = e.sites || [];
+  return [`${e.y}年`, ...day(e.y, e.m, e.d), ...(e.ey ? [`${e.ey}年`, ...day(e.ey, e.em, e.ed)] : []),
+    e.title, e.note, ...(e.cats || []).map((c) => c.name),
+    ...(e.mv ? [] : (e.videos || []).map((v) => v.label)),
+    ...sites.map((s) => s.name), ...(sites.length ? ["特設サイト"] : [])].filter(Boolean).join("|");
+}
+
 /* ---------- 楽曲一覧（songs.csv） ---------- */
 
 // 「種類」の列に書ける値（その曲が初めて出た形）。この順番で、楽曲一覧のページの絞り込みに並びます。

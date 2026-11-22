@@ -109,11 +109,15 @@ export function looseMatch(text, query) {
   // （以前の「子音だけの形」は、関係ないライブまで合ってしまうので、ここでは使わない）
   if (!/[ぁ-ゖ]/.test(q) || !/^[ぁ-ゖa-z0-9]+$/.test(q) || [...q].length < 3) return false; // 漢字まじりは、そのまま比べる
   // 言葉の頭から比べる（「WEATHER KING」の途中の rking に「ろっきん」が合わないように）
-  const words = String(text ?? "").normalize("NFKC").split(/[\s　・\/／,、（）()「」『』"'’!！?？:：\-]+/).filter(Boolean);
+  // 「|」は項目の区切り（歩みの検索）。区切りをまたいで比べないよう、ここで文字の並びを分ける
+  const fields = String(text ?? "").normalize("NFKC").split("|");
   const keys = [soundKey(query), soundKey(qe)].filter((k) => k.length >= 3);
-  for (let i = 0; i < words.length; i++) {
-    const kt = soundKey(words.slice(i, i + 4).join(""));
-    if (keys.some((k) => kt.startsWith(k))) return true;
+  for (const field of fields) {
+    const words = field.split(/[\s　・\/／,、（）()「」『』"'’!！?？:：\-]+/).filter(Boolean);
+    for (let i = 0; i < words.length; i++) {
+      const kt = soundKey(words.slice(i, i + 4).join(""));
+      if (keys.some((k) => kt.startsWith(k))) return true;
+    }
   }
   return false;
 }

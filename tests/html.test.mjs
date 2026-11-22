@@ -30,6 +30,15 @@ for (const page of PAGES) {
   });
 }
 
+test("history.html：検索窓は type=\"search\"・100文字まで・読み上げのラベルつき（RAD LIVE SET LIST と同じ形）", () => {
+  const html = read("history.html");
+  const input = (html.match(/<input id="histSearch"[^>]*>/) || [])[0];
+  assert.ok(input, "#histSearch がありません");
+  assert.match(input, /type="search"/);
+  assert.match(input, /maxlength="100"/);
+  assert.match(html, /<label class="sl-search-box">[\s\S]*?<span class="sl-visually-hidden">[^<]+<\/span>[\s\S]*?<input id="histSearch"/, "読み上げ用のラベルがありません");
+});
+
 test("tools/build.sh：すべてのページ（404.html も）をまとめ、読み込む js・css に版の番号を付ける。closing.html は公開しない", () => {
   const out = mkdtempSync(join(tmpdir(), "build-"));
   try {

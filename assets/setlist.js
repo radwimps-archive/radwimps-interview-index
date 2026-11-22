@@ -422,7 +422,7 @@ searchBox.addEventListener("input", () => {
   clearTimeout(searchTimer);
   searchTimer = setTimeout(() => { if (lives.length) rerenderView(); }, 150);
 });
-searchBox.addEventListener("keydown", (e) => { if (e.key === "Enter") searchBox.blur(); });
+searchBox.addEventListener("keydown", (e) => { if (e.key === "Enter" && !e.isComposing && e.keyCode !== 229) searchBox.blur(); }); // 日本語の変換を確定する Enter では閉じない
 
 function setView(v, { scroll = false, push = false } = {}) {
   v = VIEW_ALIAS[v] || v;
