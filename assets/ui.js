@@ -88,8 +88,10 @@ export function watchStuck(el) {
   let queued = false;
   const update = () => {
     queued = false;
-    const top = parseFloat(getComputedStyle(el).top) || 0;
-    const stuck = el.getBoundingClientRect().top <= top + 1 && scrollY > 0;
+    const cs = getComputedStyle(el);
+    const top = parseFloat(cs.top) || 0;
+    // 背の低い画面などで上に残さない（sticky でない）ときは、貼りついたことにしない
+    const stuck = cs.position === "sticky" && el.getBoundingClientRect().top <= top + 1 && scrollY > 0;
     if (stuck) el.dataset.stuck = ""; else delete el.dataset.stuck;
   };
   const ask = () => { if (!queued) { queued = true; requestAnimationFrame(update); } };
