@@ -32,6 +32,11 @@ export default {
   // 空欄（""）のあいだは、いつもの「ベータ版です」の案内です。
   closing: "2026-11-30T23:59:00+09:00",
 
+  // 正式版のプレビュー（github.io 以外のアドレス。Cloudflare）で、「歩み」の年表の管理が保存するブランチ（運営の決定 11/22）。
+  // 保存すると .github/workflows/preview-sync.yml がチェックしてから preview/official にマージし、数分でプレビューに反映されます。
+  // github.io のサイト（ベータ版）では使わず、いつものブランチ（main）に保存します。正式版を main に入れたら空欄（""）にします。
+  previewSaveBranch: "design/blue-theme",
+
   // お知らせ用の X（旧 Twitter）のアカウント名（@ のあと）。書くと、公開終了の予告に「公開日に関しては X にてお知らせしております」とリンクが出ます。
   x: "cameradic_man",
 
