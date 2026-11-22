@@ -342,6 +342,8 @@ function setCat(slug, { scroll = false } = {}) {
 }
 
 const headerH = () => $("#header").getBoundingClientRect().height;
+// 上に残っているタブの帯（タブと検索窓）の高さ。背の低い画面では上に残さないので 0（style.css の max-height: 500px）
+const stickyH = () => { const b = $(".hist-tabs-bar"); return getComputedStyle(b).position === "sticky" ? b.offsetHeight : 0; };
 
 const tapIsAccident = () => tap.touch && (tap.moved || tap.scrolling);
 $("#timeline").addEventListener("click", (e) => {
@@ -380,7 +382,7 @@ $("#eras").addEventListener("change", (e) => {
   const sel = e.target.closest("select");
   if (!sel || !sel.value) return;
   const t = document.getElementById(`y${sel.value}`);
-  if (t) scrollTo({ top: t.getBoundingClientRect().top + scrollY - headerH() - $(".hist-tabs-bar").offsetHeight - 8, behavior: "smooth" });
+  if (t) scrollTo({ top: t.getBoundingClientRect().top + scrollY - headerH() - stickyH() - 8, behavior: "smooth" });
 });
 $("#eras").addEventListener("focusout", (e) => { if (e.target.matches("select")) e.target.value = ""; });
 // マウスやタップで開くときも「年を選ぶ」に戻す（同じ年をもう一度選んでも、その年へ飛べるように）

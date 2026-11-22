@@ -1054,10 +1054,16 @@ button.title-link { padding: 0; border: 0; background: none; font: inherit; text
 /* 検索窓（RAD LIVE SET LIST のどのタブでも） */
 .sl-search { padding-block: 12px 0; }
 /* 検索窓は、タブの帯（.hist-tabs-bar）の中に入れて、タブといっしょに上に残す（RAD LIVE SET LIST・RADWIMPSの歩み）。
-   上に貼りついたら、楽曲一覧の検索窓と同じように、上下の余白を少しつめる */
-.hist-tabs-bar .sl-search { padding-block: 12px 10px; transition: padding .2s; }
-.hist-tabs-bar[data-stuck] .sl-search { padding-block: 8px; }
-@media (prefers-reduced-motion: reduce) { .hist-tabs-bar .sl-search { transition: none; } }
+   余白は貼りついても変えない（変えると、貼りつく瞬間に下の中身がずれるため） */
+.hist-tabs-bar .sl-search { padding-block: 12px 10px; }
+/* 上に残る部分（上の黒い帯＋タブ＋検索窓）は約200px。キーボードの移動や動画を開いたときに、その下に隠れないようにする */
+html:has(> body.history-page), html:has(> body.setlist-page) { scroll-padding-top: calc(210px + env(safe-area-inset-top, 0px)); }
+/* 横向きのスマホなど背の低い画面では、上に残すと画面の半分がふさがるので、タブと検索窓は上に残さない
+   （history.js・setlist.js のスクロール位置の計算も、上に残っていないときは帯の高さを引かない） */
+@media (max-height: 500px) {
+  .hist-tabs-bar { position: static; }
+  html:has(> body.history-page), html:has(> body.setlist-page) { scroll-padding-top: 76px; }
+}
 .sl-search-box { position: relative; display: block; }
 .sl-visually-hidden { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
 .sl-search-icon { position: absolute; left: 14px; top: 50%; width: 18px; height: 18px; transform: translateY(-50%); background: var(--muted); pointer-events: none;
@@ -1132,8 +1138,9 @@ small { font-size: max(12px, .83em); }
 /* ライブ・ランキング：区分で絞り込む札（横にスクロールできる）と、年へ飛ぶメニュー */
 .sl-cats { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 10px; margin: 0 0 6px; padding: 6px 0; }
 .sl-cats #yearJump { margin-left: auto; }
-#lives, #ranking, #mine, #unplayedView { scroll-margin-top: calc(130px + env(safe-area-inset-top, 0px)); }
-.sl-year { margin: 0 0 8px; scroll-margin-top: calc(130px + env(safe-area-inset-top, 0px)); }
+#lives, #ranking, #mine, #unplayedView { scroll-margin-top: calc(210px + env(safe-area-inset-top, 0px)); }
+.sl-year { margin: 0 0 8px; scroll-margin-top: calc(210px + env(safe-area-inset-top, 0px)); }
+@media (max-height: 500px) { #lives, #ranking, #mine, #unplayedView, .sl-year { scroll-margin-top: 76px; } }
 .sl-year .hist-year-head { margin: 22px 0 10px; }
 .sl-song-info { margin: 0 0 14px; padding: 12px 14px; border: 1px solid var(--accent-soft); border-radius: 10px; background: var(--accent-tint); }
 .sl-song-info p { margin: 0 0 6px; }
