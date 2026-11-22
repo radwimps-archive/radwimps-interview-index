@@ -102,3 +102,10 @@ test("年表の画面に出る日付の形（04.05・2016.04.05）でも見つ�
   const { events: ev } = parseHistory(HEAD + "2020,1,1,,,,リリース,「Ver 2.0」リリース,,,,\n");
   assert.equal(find(ev, "2.0").length, 1);
 });
+
+test("作品名の中の「4.5」は、作品名でも点の形でも見つかる", () => {
+  const { events: ev } = parseHistory(HEAD + "2010,12,1,,,,リリース,ミュージッククリップ集「RADWIMPS4.5」リリース,,,,\n2021,4,5,,,,リリース,別の曲の配信,,,,\n");
+  assert.equal(find(ev, "RADWIMPS4.5").length, 1);
+  assert.equal(find(ev, "4.5").length, 2); // 4月5日の行と、作品名に 4.5 がある行
+  assert.equal(find(ev, "4月5日").length, 1); // 月の形は、ぴったり比べる
+});
