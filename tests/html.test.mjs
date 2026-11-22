@@ -5,7 +5,10 @@
 
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { readFileSync } from "node:fs";
+import { readFileSync, readdirSync, mkdtempSync, rmSync } from "node:fs";
+import { execFileSync } from "node:child_process";
+import { join } from "node:path";
+import { tmpdir } from "node:os";
 
 const PAGES = ["index.html", "history.html", "songs.html", "members.html", "setlist.html", "maker.html", "404.html"];
 const read = (f) => readFileSync(new URL(`../${f}`, import.meta.url), "utf8").replace(/<!--[\s\S]*?-->/g, "");
@@ -27,6 +30,25 @@ for (const page of PAGES) {
   });
 }
 
-test("公開のときに 404.html もコピーされる", () => {
-  assert.match(read(".github/workflows/deploy.yml"), /cp -r [^\n]*404\.html/);
+test("tools/build.sh：すべてのページ（404.html も）をまとめ、読み込む js・css に版の番号を付ける。closing.html は公開しない", () => {
+  const out = mkdtempSync(join(tmpdir(), "build-"));
+  try {
+    execFileSync("sh", ["tools/build.sh"], { cwd: new URL("../", import.meta.url), env: { ...process.env, OUT: out, GITHUB_SHA: "abcdef1234567890" }, stdio: "pipe" });
+    const built = readdirSync(out).filter((f) => f.endsWith(".html")).sort();
+    assert.deepEqual(built, [...PAGES].sort());
+    for (const f of built) {
+      const html = readFileSync(join(out, f), "utf8");
+      for (const m of html.matchAll(/assets\/[\w-]+\.(js|css)(\?v=\w+)?"/g)) assert.equal(m[2], "?v=abcdef12", `${f}：${m[0]} に版の番号がない`);
+    }
+    // js の中で読み込むほかの js にも、同じ番号が付く（shelf-data.js のようなハイフン入りの名前も）
+    for (const f of readdirSync(join(out, "assets")).filter((x) => x.endsWith(".js"))) {
+      for (const m of readFileSync(join(out, "assets", f), "utf8").matchAll(/"\.\/[\w-]+\.js(\?v=\w+)?"/g)) assert.equal(m[1], "?v=abcdef12", `assets/${f}：${m[0]} に版の番号がない`);
+    }
+  } finally { rmSync(out, { recursive: true, force: true }); }
+  assert.match(read(".github/workflows/deploy.yml"), /sh tools\/build\.sh/, "GitHub Pages の公開でも同じものを使う");
+});
+
+test("ページの一覧（PAGES）が、いちばん上の階層の .html と同じ（足したページがテストから漏れないように。closing.html は公開しないので除く）", () => {
+  const files = readdirSync(new URL("../", import.meta.url)).filter((f) => f.endsWith(".html") && f !== "closing.html").sort();
+  assert.deepEqual([...PAGES].sort(), files);
 });
