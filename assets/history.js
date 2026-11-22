@@ -514,9 +514,18 @@ function build(historyText, sitesText) {
 }
 
 // 年表の管理：管理者モードの端末でだけ読み込む（ほかのサイトの中に埋め込まれているときは動かさない。記事一覧の運営管理と同じ）
+// 管理者モードの端末で、年表の管理を出せなかったとき：理由を欄に出す（黙って何も出さないと、運営が原因を見分けられないため）
+function adminNote(text) {
+  const box = $("#histAdmin");
+  box.replaceChildren(el("div", { class: "hadm-card" },
+    el("div", { class: "hadm-head" }, el("h2", { id: "histAdminTitle", text: "年表の管理" })),
+    el("p", { class: "hadm-msg err", role: "alert", text })));
+  box.hidden = false;
+}
 function setupAdmin() {
   const framed = (() => { try { return window.self !== window.top; } catch { return true; } })();
-  if (!isAdminDevice() || framed) return;
+  if (!isAdminDevice()) return;
+  if (framed) { adminNote("このページは、ほかのページの中に埋め込まれて開かれているので、年表の管理は出しません。歩みのページを、ブラウザのタブで直接開いてください。"); return; }
   import("./admin-history.js").then((m) => {
     adminApi = m.mountHistoryAdmin($("#histAdmin"), {
       repo: repoUrl(),
@@ -532,7 +541,11 @@ function setupAdmin() {
     });
     shown = null;
     renderTimeline(); // 「直す」のボタンを出す
-  }).catch(() => { /* 読み込めなくても、年表はそのまま見られる */ });
+  }).catch((err) => {
+    // 読み込めなくても、年表はそのまま見られる。管理者には理由を出す
+    console.error(err);
+    adminNote(`年表の管理を読み込めませんでした（${String((err && err.message) || err).slice(0, 200)}）。ページを読み込み直しても出ないときは、この文をそのまま作業担当に伝えてください。`);
+  });
 }
 
 // 読み込み
