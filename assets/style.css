@@ -692,6 +692,25 @@ button.title-link { padding: 0; border: 0; background: none; font: inherit; text
 .hist-sites a { display: inline-flex; align-items: center; min-height: 44px; color: var(--ink-2); text-decoration: underline; text-underline-offset: 3px; }
 .hist-sites a:hover { color: var(--ink); }
 .hist-sites .sep { margin: 0 8px; }
+/* 年表の管理（管理者モードの端末だけ。assets/admin-history.js） */
+.hist-admin { padding-top: 16px; }
+.hadm-card { display: grid; gap: 12px; padding: 16px; border-radius: 6px; background: var(--card); color: var(--ink); }
+.hadm-head h2 { margin: 0; font-size: 16px; font-weight: 700; color: var(--ink); }
+.hadm-note { margin: 0; font-size: 12px; line-height: 1.7; color: var(--muted); }
+.hadm-msg { margin: 0; font-size: 13px; line-height: 1.8; color: var(--ink-2); }
+.hadm-msg .dot { display: inline-block; margin-right: 6px; vertical-align: middle; }
+.hadm-msg.err { color: var(--danger); }
+.hadm-msg a { color: var(--live); text-decoration: underline; text-underline-offset: 3px; }
+.hadm-pick { flex: 1 1 14em; min-width: 0; width: 100%; min-height: 44px; max-width: 100%; padding: 0 10px; border: 1px solid var(--line-input); border-radius: 5px; background: var(--field); color: var(--ink); font-size: 13px; }
+.hadm-pending { margin: 0; font-size: 13px; color: var(--muted); }
+.hadm-pending.on { display: grid; gap: 8px; padding: 10px 12px; border-radius: 5px; background: var(--sunk); color: var(--ink); }
+.hadm-pending.on p { margin: 0; line-height: 1.7; }
+.hadm-pending.on span { font-size: 12px; color: var(--ink-2); }
+.hadm-fields { display: grid; gap: 20px; }
+.hadm-closed { justify-self: start; min-height: 44px; }
+.hist-edits { display: flex; flex-wrap: wrap; gap: 8px; margin: 8px 0 0; }
+.hist-edit { min-height: 44px; padding: 0 14px; border: 1px dashed currentColor; border-radius: 999px; background: transparent; color: var(--ink-2); font-size: 12px; cursor: pointer; }
+.hist-edit:hover { border-style: solid; }
 .vbtn { display: inline-flex; align-items: center; gap: 6px; min-height: 36px; padding: 0; border: 0; background: none; color: var(--accent); font: inherit; font-weight: 700; cursor: pointer; -webkit-tap-highlight-color: transparent; }
 .vbtn .tri { font-size: 12px; color: var(--accent); }
 .vbtn .vl { text-decoration: underline; text-decoration-color: var(--accent-soft); text-decoration-thickness: 1.5px; text-underline-offset: 4px; }
