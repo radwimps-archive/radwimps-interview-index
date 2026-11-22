@@ -1,6 +1,6 @@
 # リンク切れチェック
-# 毎週月曜の朝（日本時間 9:17ごろ）に、記事のリンクが開けるかを確かめます。
-# 対応が必要な記事があると、「link-check」ラベルの付いた Issue を作って（または更新して）お知らせします。
+# 毎週月曜の朝（日本時間 9:17ごろ）に、記事と特設サイト（data/sites.csv）のリンクが開けるかを確かめます。
+# 対応が必要な記事・特設サイトがあると、「link-check」ラベルの付いた Issue を作って（または更新して）お知らせします。
 # 問題がなくなると、その Issue を自動で閉じます。
 # 手動で動かすとき：「Actions」タブ → 「リンク切れチェック」 → 「Run workflow」
 #
@@ -31,9 +31,20 @@ jobs:
         with:
           node-version: lts/*
 
+      - name: 特設サイトの一覧を用意する（正式版がまだ main にない間は、正式版のブランチから取り出す）
+        run: |
+          if [ -f data/sites.csv ]; then
+            cp data/sites.csv "$RUNNER_TEMP/sites.csv"
+          elif git fetch --depth=1 origin design/blue-theme && git show FETCH_HEAD:data/sites.csv > "$RUNNER_TEMP/sites.csv"; then
+            echo "正式版のブランチ（design/blue-theme）の data/sites.csv を使います"
+          else
+            echo "特設サイトの一覧が見つからないので、特設サイトは確かめません"
+            rm -f "$RUNNER_TEMP/sites.csv"
+          fi
+
       - name: リンクを確かめる
         id: check
-        run: node tools/check-links.mjs --report report.md
+        run: node tools/check-links.mjs --report report.md --sites "$RUNNER_TEMP/sites.csv"
 
       - name: 結果を Issue でお知らせする
         env:
@@ -46,10 +57,10 @@ jobs:
           if [ "${PROBLEMS:-0}" -gt 0 ]; then
             if [ -n "$number" ]; then
               gh issue edit "$number" --body-file report.md
-              gh issue comment "$number" --body "最新のチェック結果で本文を更新しました（対応が必要な記事：${PROBLEMS} 件）。"
+              gh issue comment "$number" --body "最新のチェック結果で本文を更新しました（対応が必要な記事・特設サイト：${PROBLEMS} 件）。"
             else
-              gh issue create --title "リンク切れの可能性がある記事があります" --label link-check --body-file report.md
+              gh issue create --title "リンク切れの可能性がある記事・特設サイトがあります" --label link-check --body-file report.md
             fi
           elif [ -n "$number" ]; then
-            gh issue close "$number" --comment "最新のチェックで、対応が必要な記事はなくなりました。"
+            gh issue close "$number" --comment "最新のチェックで、対応が必要な記事・特設サイトはなくなりました。"
           fi

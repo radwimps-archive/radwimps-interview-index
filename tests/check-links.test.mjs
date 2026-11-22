@@ -4,7 +4,7 @@
 
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { articleTerms, contentMatch, checkUrl, checkAll, buildReport, MIN_TEXT } from "../tools/check-links.mjs";
+import { articleTerms, contentMatch, checkUrl, checkAll, buildReport, MIN_TEXT, parseSiteRows, siteTerms } from "../tools/check-links.mjs";
 
 const article = { title: "RADWIMPS 『絶体絶命』", members: ["noda", "yamaguchi"], guests: [], tags: ["#絶体絶命", "#DADA"] };
 const filler = "ご利用のお客様へ大切なお知らせです。".repeat(30); // MIN_TEXT より長い、記事と関係のない文
@@ -71,4 +71,52 @@ test("お知らせ文：中身が違う可能性のある記事は「対応が�
   const b = buildReport([{ it: it("リンク切れ"), r }], "2026年11月21日");
   assert.equal(b.problems, 0);
   assert.doesNotMatch(b.markdown, /開けるようになった/);
+});
+
+const SITES = `状態,年,月,日,名前,種類,URL,公開終了,保存版URL,メモ,id
+公開,2025,11,19,Dear Jubilee -RADWIMPS TRIBUTE-,作品,https://example.com/dj/,,https://web.archive.org/web/1/https://example.com/dj/,日付：発売日,site-dj
+公開,2015,6,6,トイレのピエタ,映画・ドラマ,http://example.com/toilet/,終了,https://web.archive.org/web/2/http://example.com/toilet/,,site-toilet
+非表示,2010,1,1,昔のサイト,作品,https://example.com/old/,,,,site-old
+公開,2012,1,1,保存版のない終了サイト,作品,https://example.com/x/,終了,,,site-x
+`;
+
+test("特設サイト：公開中は本来の URL を、公開終了は保存版を確かめる（保存版がない終了サイトは確かめない）", () => {
+  const rows = parseSiteRows(SITES);
+  assert.deepEqual(rows.map((r) => [r.title, r.url, r.closed]), [
+    ["Dear Jubilee -RADWIMPS TRIBUTE-", "https://example.com/dj/", false],
+    ["トイレのピエタ", "https://web.archive.org/web/2/http://example.com/toilet/", true],
+    ["昔のサイト", "https://example.com/old/", false]
+  ]);
+  assert.equal(rows[0].line, 2);
+  assert.equal(rows[0].date, "2025-11-19");
+  assert.equal(rows[2].state, "非表示");
+});
+
+test("特設サイトの言葉：名前と、名前の中の固有の言葉だけ。RADWIMPS・野田洋次郎・ありふれた英単語・短い英字は入れない", () => {
+  const keys = siteTerms({ title: "Dear Jubilee -RADWIMPS TRIBUTE-" }).map((t) => t.show);
+  assert.deepEqual(keys, ["Dear Jubilee -RADWIMPS TRIBUTE-", "Jubilee", "TRIBUTE"]);
+  const tour = siteTerms({ title: "RADWIMPS FOREVER IN THE DAZE TOUR" }).map((t) => t.show);
+  assert.deepEqual(tour, ["RADWIMPS FOREVER IN THE DAZE TOUR", "DAZE"]);
+  assert.deepEqual(siteTerms({ title: "君の名は。" }).map((t) => t.show), ["君の名は。"]);
+});
+
+test("お知らせ文：公開が終わった可能性のある特設サイトと、開けない保存版は「対応が必要」。非表示のサイトは数えない", () => {
+  const [open, closed, hidden] = parseSiteRows(SITES);
+  const a = buildReport([
+    { it: open, r: { level: "dead", reason: "ページが見つかりません（404）" } },
+    { it: closed, r: { level: "dead", reason: "ページが見つかりません（404）" } },
+    { it: hidden, r: { level: "dead", reason: "ページが見つかりません（404）" } }
+  ], "2026年11月22日");
+  assert.equal(a.problems, 2);
+  assert.match(a.markdown, /公開が終わった可能性がある特設サイト（1 件）/);
+  assert.match(a.markdown, /保存版が開けない特設サイト（1 件）/);
+  assert.match(a.markdown, /特設サイト（data\/sites\.csv）2 件も確かめました/);
+  const b = buildReport([{ it: open, r: { level: "ok", reason: "" } }], "2026年11月22日");
+  assert.equal(b.problems, 0);
+  assert.match(b.markdown, /対応が必要な記事・特設サイトはありませんでした/);
+  // 開けるのに名前が見当たらないだけ（海外から開くと英語になるサイトなど）は「要確認」。お知らせ（Issue）のもとには数えない
+  const c = buildReport([{ it: open, r: { level: "mismatch", reason: "サイトの名前が見当たりません" } }], "2026年11月22日");
+  assert.equal(c.problems, 0);
+  assert.equal(c.warnings, 1);
+  assert.match(c.markdown, /\| 行 \| 日付 \| 種類 \| 名前 \| 判定の理由 \|/, "特設サイトの表の見出し");
 });
