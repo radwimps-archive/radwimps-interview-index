@@ -40,7 +40,10 @@ test("tools/build.sh：すべてのページ（404.html も）をまとめ、読
       const html = readFileSync(join(out, f), "utf8");
       for (const m of html.matchAll(/assets\/[\w-]+\.(js|css)(\?v=\w+)?"/g)) assert.equal(m[2], "?v=abcdef12", `${f}：${m[0]} に版の番号がない`);
     }
-    assert.match(readFileSync(join(out, "assets/songs.js"), "utf8"), /"\.\/room-articles\.js\?v=abcdef12"/, "ハイフン入りの名前にも付く");
+    // js の中で読み込むほかの js にも、同じ番号が付く（shelf-data.js のようなハイフン入りの名前も）
+    for (const f of readdirSync(join(out, "assets")).filter((x) => x.endsWith(".js"))) {
+      for (const m of readFileSync(join(out, "assets", f), "utf8").matchAll(/"\.\/[\w-]+\.js(\?v=\w+)?"/g)) assert.equal(m[1], "?v=abcdef12", `assets/${f}：${m[0]} に版の番号がない`);
+    }
   } finally { rmSync(out, { recursive: true, force: true }); }
   assert.match(read(".github/workflows/deploy.yml"), /sh tools\/build\.sh/, "GitHub Pages の公開でも同じものを使う");
 });
