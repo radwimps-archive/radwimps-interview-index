@@ -395,7 +395,7 @@ const HISTORY_DEFAULT_CATEGORY = HISTORY_CATEGORIES.find((c) => c.slug === "band
 
 const HISTORY_COLUMNS = {
   "年": "y", "月": "m", "日": "d", "終了年": "ey", "終了月": "em", "終了日": "ed", "カテゴリ": "cat", "出来事": "title", "補足": "note",
-  "特設サイト": "site", "タワーレコード": "tower", "動画": "video"
+  "特設サイト": "site", "タワーレコード": "tower", "動画": "video", "関連リンク": "links"
 };
 const HISTORY_REQUIRED = ["年", "カテゴリ", "出来事"];
 
@@ -415,6 +415,41 @@ export function parseVideos(value) {
 // 戻り値：{ events: 出来事の一覧（古い順）, errors: 直す必要がある問題, warnings: 気をつけたい点 }
 // 年か出来事が書けていない行は events に入りません。カテゴリの書き間違いは、チェックでエラーになります
 // （サイトでは、正しく書けたカテゴリだけで表示し、1つもなければ「バンドの出来事」に入れます）。
+// 「関連リンク」の列（出来事の下に出す、記事などへのリンク）を読みます。「 | 」で区切って並べます。
+//   記事一覧の記事：「記事:記事の id」（例：記事:yt-4eva-short）。タイトルと媒体は記事データ（articles.csv）から出します
+//   ほかのページ：「ラベル=https://…」（例：公式ニュース=https://radwimps.jp/news/…）
+// 戻り値：{ links: [{ type: "article", id } | { type: "url", label, url }], bad: 読めなかった部分の一覧 }
+export const HISTORY_LINK_LABEL_MAX = 60;
+export function parseHistoryLinks(value) {
+  const links = [], bad = [];
+  for (const part of String(value ?? "").split("|").map((x) => x.trim()).filter(Boolean)) {
+    const a = part.match(/^記事\s*[:：]\s*([\w.-]+)$/);
+    const u = part.match(/^(.+?)\s*=\s*(https:\/\/[^\s"<>|]+)$/);
+    if (a) links.push({ type: "article", id: a[1] });
+    else if (u && [...u[1].trim()].length <= HISTORY_LINK_LABEL_MAX) links.push({ type: "url", label: u[1].trim(), url: u[2] });
+    else bad.push(part);
+  }
+  return { links, bad };
+}
+// 関連リンクの一覧を、CSV の「関連リンク」の列の書き方に戻します（年表の管理で使う）。ラベルの「|」は区切りとまぎれるので外します
+export function formatHistoryLinks(links) {
+  return links.map((l) => (l.type === "article" ? `記事:${l.id}` : l.type === "url" ? `${String(l.label).replace(/[|\n]/g, " ").trim()}=${l.url}` : l.text)).join(" | ");
+}
+
+// 関連リンクの記事が、記事データ（articles.csv）にあって「公開」か確かめます（ないもの・公開していないものは、年表に出ません）
+// 戻り値：注意の一覧 [{ line, msg }]（書式チェックと、年表の管理で使う）
+export function checkHistoryLinks(events, articleItems) {
+  const byId = new Map(articleItems.map((it) => [it.id, it]));
+  const out = [];
+  for (const e of events) for (const l of e.links || []) {
+    if (l.type !== "article") continue;
+    const it = byId.get(l.id);
+    if (!it) out.push({ line: e.line, msg: `関連リンクの記事「${l.id}」が、記事データにありません（id を確かめてください。このリンクは出ません）` });
+    else if (it.state !== "公開") out.push({ line: e.line, msg: `関連リンクの記事「${it.title}」は「${it.state}」なので、年表には出ません` });
+  }
+  return out;
+}
+
 export function parseHistory(text) {
   const events = [], errors = [], warnings = [];
   const err = (line, msg) => errors.push({ line, msg });
@@ -457,12 +492,14 @@ export function parseHistory(text) {
     }
     const { videos, bad } = parseVideos(get("video"));
     for (const b of bad) err(line, `動画「${b}」の書き方が正しくありません（例：MV=XRnX65LDRoU、予告編=https://www.youtube.com/watch?v=…）`);
+    const lk = parseHistoryLinks(get("links"));
+    for (const b of lk.bad) err(line, `関連リンク「${b}」の書き方が正しくありません（記事は「記事:記事の id」、ほかのページは「ラベル=https://…」。ラベルは${HISTORY_LINK_LABEL_MAX}文字まで）`);
 
     if (errors.length > before && (!title || !start)) continue; // 年か出来事がない行は、年表に入れない
     const num = (v) => (v ? +v : 0);
     const [y, m, d] = start.split("-").map(num), [ey, em, ed] = end.split("-").map(num);
     events.push({ line, i: events.length, y, m: m || 0, d: d || 0, ey: ey || 0, em: em || 0, ed: ed || 0,
-      cats: cats.length ? cats : [HISTORY_DEFAULT_CATEGORY], title, note: get("note"), site, tower, videos });
+      cats: cats.length ? cats : [HISTORY_DEFAULT_CATEGORY], title, note: get("note"), site, tower, videos, links: lk.links });
   }
   // 古い順（同じ日は CSV に書いた順）。月・日がないものは、その年・その月のはじめに
   events.sort((a, b) => a.y - b.y || a.m - b.m || a.d - b.d || a.i - b.i);
@@ -559,7 +596,7 @@ export function attachSites(events, sites) {
     if (e) { e.sites.push(s); continue; }
     const cat = HISTORY_CATEGORIES.find((c) => c.name === s.kind.history) || HISTORY_DEFAULT_CATEGORY;
     out.push({ line: 0, i: 100000 + extra++, y: s.y, m: s.m, d: s.d, ey: 0, em: 0, ed: 0, cats: [cat],
-      title: `「${s.name}」の特設サイト`, note: "", site: "", tower: "", videos: [], sites: [s], fromSites: true });
+      title: `「${s.name}」の特設サイト`, note: "", site: "", tower: "", videos: [], links: [], sites: [s], fromSites: true });
   }
   out.sort((a, b) => a.y - b.y || a.m - b.m || a.d - b.d || a.i - b.i);
   return out;

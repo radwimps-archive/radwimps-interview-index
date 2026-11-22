@@ -78,6 +78,23 @@ test("parseHistory：カテゴリの書き間違いはエラー（表示は「�
   assert.deepEqual(r.events.map((e) => e.cats[0].slug), ["band", "band"]);
 });
 
+test("parseHistory：関連リンク（記事:id と ラベル=URL）を読み、書き間違いはエラー。formatHistoryLinks で書き戻せる", async () => {
+  const { formatHistoryLinks, parseHistoryLinks, checkHistoryLinks } = await import("../assets/data.js");
+  const head = HISTORY_HEAD + ",関連リンク";
+  const r = parseHistory([head,
+    "2020,1,1,,,,リリース,リンクあり,,,,,記事:na-001 | 公式ニュース=https://radwimps.jp/news/1",
+    "2020,1,2,,,,リリース,書き間違い,,,,,公式=http://example.com | ただの文字"].join("\n"));
+  assert.deepEqual(r.events[0].links, [{ type: "article", id: "na-001" }, { type: "url", label: "公式ニュース", url: "https://radwimps.jp/news/1" }]);
+  assert.equal(r.errors.length, 2, "http:// と、形のちがう文字はエラー");
+  assert.equal(r.events.length, 2, "出来事は残す");
+  assert.equal(formatHistoryLinks(r.events[0].links), "記事:na-001 | 公式ニュース=https://radwimps.jp/news/1");
+  assert.deepEqual(parseHistoryLinks(formatHistoryLinks([{ type: "url", label: "A|B", url: "https://x.jp/" }])).links, [{ type: "url", label: "A B", url: "https://x.jp/" }]);
+  const w = checkHistoryLinks(r.events, [{ id: "zz", state: "公開", title: "x" }]);
+  assert.equal(w.length, 1);
+  assert.match(w[0].msg, /na-001/);
+  assert.equal(checkHistoryLinks(r.events, [{ id: "na-001", state: "非表示", title: "記事A" }])[0].msg.includes("非表示"), true);
+});
+
 test("parseHistory：年や出来事がない行はエラーになり、年表に入らない", () => {
   const r = history(",5,1,,,,リリース,年がない,,,,", "2020,5,1,,,,リリース,,,,,", "2020,13,1,,,,リリース,月がおかしい,,,,");
   assert.equal(r.errors.length, 3);

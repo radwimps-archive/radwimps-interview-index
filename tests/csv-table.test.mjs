@@ -175,3 +175,14 @@ test("同じ内容の行をわざと2回足しても、重ね直しで1つにま
   assert.equal(t2.rows.filter((r) => r[7] === "B").length, 2);
   assert.equal(t2.counts().add, 1);
 });
+
+test("最新の CSV で右に列が増えていても（関連リンク）、直す・消すの変更はその行に重なる", () => {
+  const t = make(csv(toCSVLine(row(2020, 1, 1, "A")), toCSVLine(row(2020, 1, 2, "B"))));
+  t.doOp({ type: "edit", orig: toCSVLine(t.rows[0]), cells: row(2020, 1, 1, "A2") });
+  t.doOp({ type: "delete", orig: toCSVLine(t.rows[1]), cells: null });
+  const wide = "﻿" + [HEAD + ",関連リンク", toCSVLine([...row(2020, 1, 1, "A"), ""]), toCSVLine([...row(2020, 1, 2, "B"), ""])].join("\n") + "\n";
+  const r = t.reload(wide);
+  assert.deepEqual(r, { lost: 0, gone: 0 });
+  assert.deepEqual(t.rows.map((x) => x[7]), ["A2"]);
+  assert.equal(t.rows[0].length, 13);
+});
