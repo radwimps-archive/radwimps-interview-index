@@ -422,7 +422,7 @@ searchBox.addEventListener("input", () => {
   clearTimeout(searchTimer);
   searchTimer = setTimeout(() => { if (lives.length) rerenderView(); }, 150);
 });
-searchBox.addEventListener("keydown", (e) => { if (e.key === "Enter") searchBox.blur(); });
+searchBox.addEventListener("keydown", (e) => { if (e.key === "Enter" && !e.isComposing && e.keyCode !== 229) searchBox.blur(); }); // 日本語の変換を確定する Enter では閉じない
 
 function setView(v, { scroll = false, push = false } = {}) {
   v = VIEW_ALIAS[v] || v;
@@ -442,7 +442,7 @@ function setView(v, { scroll = false, push = false } = {}) {
   tabs.scrollTo({ left: Math.max(0, cur.offsetLeft - (tabs.clientWidth - cur.offsetWidth) / 2), behavior: scroll ? "smooth" : "auto" });
   // ランキングに戻ったときは、前に押した曲の位置へ
   const last = view === "ranking" && rankSong && $("#ranking .sl-rank-row.last");
-  if (last) { scrollTo({ top: last.getBoundingClientRect().top + scrollY - headerH() - $(".hist-tabs-bar").offsetHeight - 16 }); return; }
+  if (last) { scrollTo({ top: last.getBoundingClientRect().top + scrollY - headerH() - stickyH() - 16 }); return; }
   if (scroll) {
     const top = $(".hist-tabs-bar").getBoundingClientRect().top + scrollY - headerH();
     if (scrollY > top) scrollTo({ top });
@@ -458,11 +458,13 @@ function setSong(key, { scroll = true, push = true } = {}) {
   // 作り直した画面でも、キーボードの位置が迷子にならないように、案内（なければ見出しの行）へ移す
   const f = $("#lives .sl-song-head") || $("#lives .sl-view");
   if (f) { f.tabIndex = -1; f.focus({ preventScroll: true }); }
-  if (scroll) scrollTo({ top: $("#lives").getBoundingClientRect().top + scrollY - headerH() - $(".hist-tabs-bar").offsetHeight - 8 });
+  if (scroll) scrollTo({ top: $("#lives").getBoundingClientRect().top + scrollY - headerH() - stickyH() - 8 });
 }
 
 const headerH = () => $("#header").getBoundingClientRect().height;
-const scrollToEl = (d) => scrollTo({ top: d.getBoundingClientRect().top + scrollY - headerH() - $(".hist-tabs-bar").offsetHeight - 8 });
+// 上に残っているタブの帯（タブと検索窓）の高さ。背の低い画面では上に残さないので 0（style.css の max-height: 500px）
+const stickyH = () => { const b = $(".hist-tabs-bar"); return getComputedStyle(b).position === "sticky" ? b.offsetHeight : 0; };
+const scrollToEl = (d) => scrollTo({ top: d.getBoundingClientRect().top + scrollY - headerH() - stickyH() - 8 });
 
 $("#tabs").addEventListener("click", (e) => {
   const b = e.target.closest("[data-view]");

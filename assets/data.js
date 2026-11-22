@@ -565,6 +565,68 @@ export function attachSites(events, sites) {
   return out;
 }
 
+// 「RADWIMPSの歩み」の検索窓で探す文字（出来事・補足・年・カテゴリ・動画のラベル・特設サイト）。
+//   項目のあいだは「|」で区切る（検索では空白が消えるので、見出しの終わりと補足の始まりがつながって合わないように）
+//   MV のタブの項目（mv: true）は、動画のボタンの文言（「MV を見る」など）を入れない（「見る」で全部が合わないように）
+//   月日（「4月」「4月5日」）は、ここには入れず matchHistory で別に比べる（「1月」が「11月」に合わないように）
+export function historySearchText(e) {
+  const sites = e.sites || [];
+  return [`${e.y}年`, ...(e.ey ? [`${e.ey}年`] : []),
+    e.title, e.note, ...(e.cats || []).map((c) => c.name),
+    ...(e.mv ? [] : (e.videos || []).map((v) => v.label)),
+    ...sites.map((s) => s.name), ...(sites.length ? ["特設サイト"] : [])].filter(Boolean).join("|");
+}
+// 出来事の月日の言葉（「4月」「4月5日」「2016年4月」「2016年4月5日」）。期間のある出来事は、途中の月と終わりの月日も
+function historyDateWords(e) {
+  const out = new Set();
+  const month = (y, m) => { out.add(`${m}月`); out.add(`${y}年${m}月`); };
+  const day = (y, m, d) => { if (!m) return; month(y, m); if (d) { out.add(`${m}月${d}日`); out.add(`${y}年${m}月${d}日`); } };
+  day(e.y, e.m, e.d);
+  if (e.ey && e.m) {
+    day(e.ey, e.em, e.ed);
+    for (let y = e.y, m = e.m; y < e.ey || (y === e.ey && m < (e.em || 12)); ) { // 途中の月（終わりの月が書いてなければ、その年の12月まで）
+      if (++m > 12) { m = 1; y++; }
+      month(y, m);
+    }
+  }
+  return out;
+}
+// 検索の言葉の中の月日（「4月」「4月5日」「2016年4月」と、年表の画面に出る形「11.23」「2021.11.23」）。
+//   前が数字のときは月日と見なさない（「11月」の中の「1月」）。点の形は、前が英字のときも見なさない（作品名「RADWIMPS4.5」）
+const DATE_IN = /(?<!\d)(?:(\d{4})年)?(\d{1,2})月(?:(\d{1,2})日)?|(?<![\d.a-z])(?:(\d{4})\.)?(\d{1,2})\.(\d{1,2})(?![\d.])/gi;
+// 抜き出した月日を [年, 月, 日] にそろえる（「11.23」→ [undefined, "11", "23"]）
+const datePartsOf = (m) => (m[2] ? [m[1], m[2], m[3]] : [m[4], m[5], m[6]]);
+// ありうる月日か（「2.0」「13月」などは月日と見なさず、ふつうの言葉として探す）
+const isDate = ([, m, d]) => Number(m) >= 1 && Number(m) <= 12 && (d === undefined || (Number(d) >= 1 && Number(d) <= 31));
+const esc = (n) => `0*${Number(n)}`;
+// 出来事が検索の言葉に合うか。空白で区切った言葉の中の月日（「4月」「4月5日」「2016年4月」「11.23」。「ツアー4月」のように続けて入れても）は、
+//   出来事の日付（期間のときは途中の月も）か、出来事の文・補足の中に書いた日付とぴったり比べる（「1月」が「11月」に合わないように）。
+//   それ以外の言葉は historySearchText にゆるく比べる（match には search.js の looseMatchAll を渡す。textOf で探す文字の作り方を変えられる）
+export function matchHistory(e, query, match, textOf = historySearchText) {
+  const parts = String(query ?? "").normalize("NFKC").split(/\s+/).filter(Boolean);
+  if (!parts.length) return true;
+  const rest = [];
+  let dates = null, body = null;
+  for (const p of parts) {
+    for (const found of p.matchAll(DATE_IN)) {
+      const m = [found[0], ...datePartsOf(found)];
+      if (!isDate(datePartsOf(found))) continue;
+      const word = `${m[1] ? `${m[1]}年` : ""}${Number(m[2])}月${m[3] ? `${Number(m[3])}日` : ""}`;
+      if ((dates ||= historyDateWords(e)).has(word)) continue;
+      // 出来事の文・補足に書いた日付（例：補足「1月27日に先行配信」）。数字の前後が別の数字に続かないときだけ
+      const re = new RegExp(`(?<!\\d)${m[1] ? `${m[1]}年` : ""}${esc(m[2])}月${m[3] ? `${esc(m[3])}日` : ""}`);
+      if (re.test(body ??= `${e.title || ""}|${e.note || ""}`.normalize("NFKC"))) continue;
+      // 点の形（「4.5」）は、作品名などの一部のこともあるので、出来事の文・補足にそのまま（点も残して）書いてあるかも見る。
+      // ゆるい一致は点を消して「45」で比べてしまい、「2.5」が 2025年に合うので使わない
+      if (!m[0].includes("月") && new RegExp(`(?<![\\d.])${m[0].replace(/\./g, "\\.")}(?![\\d.])`).test(body)) continue;
+      return false;
+    }
+    const left = p.replace(DATE_IN, (...g) => (isDate(datePartsOf(g)) ? " " : g[0])).trim();
+    if (left) rest.push(...left.split(/\s+/));
+  }
+  return !rest.length || match(textOf(e), rest.join(" "));
+}
+
 /* ---------- 楽曲一覧（songs.csv） ---------- */
 
 // 「種類」の列に書ける値（その曲が初めて出た形）。この順番で、楽曲一覧のページの絞り込みに並びます。

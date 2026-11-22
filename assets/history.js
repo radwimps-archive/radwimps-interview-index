@@ -6,11 +6,12 @@
 //   どの出来事がどの公演か：data/setlists.csv の公演のうち、出来事の日付（期間）に入るもの。期間の中に別のライブ（フェスなど）があるときは、いちばん公演数の多いツアーだけ。
 
 import "./analytics.js";
-import { parseHistory, parseSetlists, parseSites, attachSites, siteKey, HISTORY_CATEGORIES } from "./data.js";
+import { parseHistory, parseSetlists, parseSites, attachSites, siteKey, historySearchText, matchHistory, HISTORY_CATEGORIES } from "./data.js";
 import { attendButton, attendCount, assignKeys, sync as syncAttend, setupAttendClicks } from "./attended.js";
 import { h as el, setupMenu, isAdminDevice, watchScrollFade, watchStuck } from "./ui.js";
 import config from "./config.js";
 import { feedbackUrl, hasFeedback, setupBeta, KIND } from "./feedback.js";
+import { looseMatchAll } from "./search.js"; // ゆるい一致は「RAD LIVE SET LIST」の検索窓と同じもの
 
 const $ = (s) => document.querySelector(s);
 
@@ -23,6 +24,9 @@ const VIEWS = ["all", ...CATS.map((c) => c.slug), MV_TAB.slug];
 let events = [];
 let lives = [];   // セトリのデータ（data/setlists.csv）の公演。読めないときは空（印は出ません）
 let current = "all";
+let query = "";   // 検索窓の言葉。タブを切り替えても残す（どのタブも同じ年表の出来事なので）
+let ready = false; // 年表・特設サイト・セトリをすべて読み終えたら true（それまでは検索しても描かない）
+let shown = null;  // いま年表に並べている出来事（検索で中身が変わらないときは、作り直さないため）
 
 const pad = (n) => String(n).padStart(2, "0");
 function dateLabel(e) {
@@ -67,25 +71,44 @@ function attendLine(e) {
   return el("details", { class: "att-shows" }, el("summary", {}, "行った公演を選ぶ", attendCount(shows)), chips);
 }
 
-function renderTabs() {
+// center：選んでいるタブが見えるところまで、タブの帯を横に動かす（タブを選んだときだけ。検索のたびには動かさない）
+function renderTabs({ center = true } = {}) {
   const tabs = $("#tabs");
+  const keep = tabs.scrollLeft; // 作り直す前の横の位置
   tabs.replaceChildren();
   tabs.className = `hist-tabs wrap cat-${current}`; // 下の細い線の色は、選んでいるカテゴリの色
   const all = [{ name: "すべて", slug: "all", short: "すべて" }, ...CATS, MV_TAB];
   for (const t of all) {
-    const n = t.slug === "all" ? events.length : t.slug === "mv" ? mvSongs().length : events.filter((e) => e.cats.some((c) => c.slug === t.slug)).length;
+    // 件数は、検索しているときは検索に合う出来事の数（パソコンの幅では、件数はタブの数字だけに出るため）
+    const n = inTab(t.slug).filter(hit).length;
     const b = el("button", { type: "button", role: "tab", class: `hist-tab cat-${t.slug}`, "aria-selected": String(t.slug === current), "data-cat": t.slug, "aria-label": `${t.name} ${n}件` },
       el("span", { class: "lbl-full", text: t.name }), el("span", { class: "lbl-short", text: t.short, "aria-hidden": "true" }), el("small", { text: String(n) }));
     tabs.append(b);
   }
   // 入りきらないときは、選んでいるタブが見えるところまで横にスクロールする
   const on = tabs.querySelector('[aria-selected="true"]');
-  if (on) tabs.scrollTo({ left: on.offsetLeft - (tabs.clientWidth - on.offsetWidth) / 2, behavior: "auto" });
+  if (!center) tabs.scrollLeft = keep;
+  else if (on) tabs.scrollTo({ left: on.offsetLeft - (tabs.clientWidth - on.offsetWidth) / 2, behavior: "auto" });
 }
 
+// 検索窓の言葉に合うか。探す文字は data.js の historySearchText（出来事・補足・年・カテゴリ・動画の名前・特設サイト）。
+//   全角半角・ひらがなとカタカナの違いは気にしない。英語の名前はひらがなでも見つかる（例：「ふぉーえばー」→ FOREVER IN THE DAZE TOUR）。
+//   空白で区切ると、すべての言葉に合うものだけ（例：「ツアー 2016」）
+//   「4月」「4月5日」の形の言葉は、月日でぴったり比べる（data.js の matchHistory。「1月」が「11月」に合わないように）
+const texts = new WeakMap(); // 探す文字は、出来事ごとに一度だけ作る（出来事を作り直したときは、新しく作られる）
+function searchText(e) {
+  if (!texts.has(e)) texts.set(e, historySearchText(e));
+  return texts.get(e);
+}
+const hit = (e) => !query.trim() || matchHistory(e, query, looseMatchAll, searchText);
+const inTab = (slug) => (slug === "all" ? events : slug === "mv" ? mvSongs() : events.filter((e) => e.cats.some((c) => c.slug === slug)));
+
 function renderTimeline() {
+  closePlayer(); // 作り直すと動画の場所がなくなるので、先に閉じる
   const box = $("#timeline");
-  const list = current === "all" ? events : current === "mv" ? mvSongs() : events.filter((e) => e.cats.some((c) => c.slug === current));
+  const base = inTab(current);
+  const list = base.filter(hit);
+  shown = list;
   // 今見ているカテゴリの名前と件数（スマホではタブに件数を出さないので、ここに出す）
   const view = current === "all" ? "すべての出来事" : current === "mv" ? "MV（ない曲は公式のライブ映像など）" : CATS.find((c) => c.slug === current).name;
   $("#view").replaceChildren(el("b", { text: view }), el("span", { text: `${list.length} 件` }));
@@ -112,7 +135,9 @@ function renderTimeline() {
     sec.append(ol);
     box.append(sec);
   }
-  if (!list.length) box.append(el("p", { class: "hist-loading", text: current === "mv" ? "MV はまだありません。" : "このカテゴリの出来事はまだありません。" }));
+  if (!list.length) box.append(el("p", { class: "hist-loading", text: query.trim() && base.length
+    ? `「${query.trim()}」に合う出来事は、見つかりませんでした。ひらがなや英語、作品名の一部でも探せます。`
+    : current === "mv" ? "MV はまだありません。" : "このカテゴリの出来事はまだありません。" }));
   renderEras(list);
   syncAttend(box);
 }
@@ -133,7 +158,7 @@ function mvSongs() {
   // 同じ曲かどうかを見るための名前（「(movie ver.)」などのちがい、空白、大文字・小文字は気にしない）
   const songKey = (name) => name.replace(/\s*[（(［\[].*$/, "").replace(/\s+/g, "").toLowerCase();
   const item = (e, v, j, name, label, tag = MV_TAB) => ({ y: e.y, m: e.m, d: e.d, ey: 0, em: 0, ed: 0, cat: MV_TAB,
-    cats: [tag, ...e.cats.filter((c) => c.person)], title: `「${name}」`, note: e.title, i: e.i * 100 + j,
+    cats: [tag, ...e.cats.filter((c) => c.person)], title: `「${name}」`, note: e.title, i: e.i * 100 + j, mv: true,
     site: "", tower: "", videos: [{ label, id: v.id }] });
   const mvs = [], lives = [], seen = new Set();
   for (const e of events) e.videos.forEach((v, j) => {
@@ -317,6 +342,8 @@ function setCat(slug, { scroll = false } = {}) {
 }
 
 const headerH = () => $("#header").getBoundingClientRect().height;
+// 上に残っているタブの帯（タブと検索窓）の高さ。背の低い画面では上に残さないので 0（style.css の max-height: 500px）
+const stickyH = () => { const b = $(".hist-tabs-bar"); return getComputedStyle(b).position === "sticky" ? b.offsetHeight : 0; };
 
 const tapIsAccident = () => tap.touch && (tap.moved || tap.scrolling);
 $("#timeline").addEventListener("click", (e) => {
@@ -355,11 +382,35 @@ $("#eras").addEventListener("change", (e) => {
   const sel = e.target.closest("select");
   if (!sel || !sel.value) return;
   const t = document.getElementById(`y${sel.value}`);
-  if (t) scrollTo({ top: t.getBoundingClientRect().top + scrollY - headerH() - $(".hist-tabs-bar").offsetHeight - 8, behavior: "smooth" });
+  if (t) scrollTo({ top: t.getBoundingClientRect().top + scrollY - headerH() - stickyH() - 8, behavior: "smooth" });
 });
 $("#eras").addEventListener("focusout", (e) => { if (e.target.matches("select")) e.target.value = ""; });
 // マウスやタップで開くときも「年を選ぶ」に戻す（同じ年をもう一度選んでも、その年へ飛べるように）
 $("#eras").addEventListener("pointerdown", (e) => { if (e.target.matches("select")) e.target.value = ""; });
+
+// 検索窓：入れ終わって 0.15 秒たったら、年表を作り直す（楽曲一覧・RAD LIVE SET LIST と同じ）。Enter でキーボードを閉じる
+const searchBox = $("#histSearch");
+let searchTimer = 0;
+searchBox.addEventListener("input", () => {
+  clearTimeout(searchTimer);
+  searchTimer = setTimeout(runSearch, 150);
+});
+// Enter でキーボードを閉じる（日本語の変換を確定する Enter では閉じない）
+searchBox.addEventListener("keydown", (e) => { if (e.key === "Enter" && !e.isComposing && e.keyCode !== 229) searchBox.blur(); });
+function runSearch() {
+  query = searchBox.value;
+  // URL の ?q= も今の言葉にする（再読み込みや共有で、消した言葉が戻らないように。ブラウザの履歴には積まない）
+  const u = new URL(location.href);
+  if (query.trim()) u.searchParams.set("q", query.trim()); else u.searchParams.delete("q");
+  try { history.replaceState(null, "", u.pathname + u.search + u.hash); } catch { /* 変えられない環境 */ }
+  if (!ready) return;
+  renderTabs({ center: false });
+  // 合う出来事が変わらないときは、作り直さない（開いている「CD を探す」や、再生中の動画を閉じないように）。
+  // 0件のときは、見つからないときの文に今の言葉を出すため、いつも作り直す
+  const list = inTab(current).filter(hit);
+  if (shown && list.length && list.length === shown.length && list.every((e, i) => e === shown[i])) return;
+  renderTimeline();
+}
 
 // いちばん上へ戻るボタン
 const toTop = $("#toTop");
@@ -402,9 +453,15 @@ if (isAdminDevice()) $("#adminLink").hidden = false;
     for (const e of events) e.shows = showsOf(e);
     if (events.length) $("#span").textContent = `${events[0].y} — ${events[events.length - 1].y}`;
     if (affiliateOn) $("#prNote").hidden = $("#prTop").hidden = false;
+    // URL の ?q= で、検索した状態で開ける（楽曲一覧と同じ。例：history.html?q=ツアー）
+    const q0 = new URLSearchParams(location.search).get("q");
+    if (q0) { query = q0.slice(0, 100); searchBox.value = query; }
+    // 読み込みの途中で検索窓に入れた言葉があれば、それを使う
+    if (searchBox.value) query = searchBox.value;
+    ready = true;
     setCat(location.hash.slice(1));
   } catch {
     $("#loading").textContent = "年表を読み込めませんでした。時間をおいて、もう一度開いてください。";
   }
 })();
-addEventListener("hashchange", () => { if (VIEWS.includes(location.hash.slice(1))) setCat(location.hash.slice(1)); });
+addEventListener("hashchange", () => { if (ready && VIEWS.includes(location.hash.slice(1))) setCat(location.hash.slice(1)); });

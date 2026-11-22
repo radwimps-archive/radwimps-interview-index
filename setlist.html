@@ -60,7 +60,7 @@
 
   <!-- ここから下は、淡い青の「紙」の面（.paper-sheet）にのせます -->
   <div class="paper-sheet">
-  <!-- 表示の切り替え：フォルダの見出しのような「タブ」。スクロールしても上に残ります -->
+  <!-- 表示の切り替え：フォルダの見出しのような「タブ」と検索窓。スクロールしても上に残ります -->
   <div class="hist-tabs-bar">
     <div class="sl-tabs wrap" role="tablist" aria-label="表示の切り替え" id="tabs">
       <button type="button" role="tab" class="sl-tab" id="tabLive" data-view="live" aria-selected="true" aria-controls="lives">ライブ</button>
@@ -68,15 +68,14 @@
       <button type="button" role="tab" class="sl-tab" id="tabUnplayed" data-view="unplayed" aria-selected="false" aria-controls="unplayedView" hidden>ライブ未演奏</button>
       <button type="button" role="tab" class="sl-tab" id="tabMine" data-view="mine" aria-selected="false" aria-controls="mine">参加公演</button>
     </div>
-  </div>
-
-  <!-- 検索窓：どのタブでも使えます（タブごとに、入れた言葉を覚えています） -->
-  <div class="sl-search wrap">
-    <label class="sl-search-box">
-      <span class="sl-search-icon" aria-hidden="true"></span>
-      <span class="sl-visually-hidden">このタブの中を検索</span>
-      <input id="viewSearch" type="search" autocomplete="off" autocapitalize="off" enterkeyhint="search" placeholder="ライブ名・会場・曲名で探す">
-    </label>
+    <!-- 検索窓（タブといっしょに、スクロールしても上に残ります）：どのタブでも使えます（タブごとに、入れた言葉を覚えています） -->
+    <div class="sl-search wrap">
+      <label class="sl-search-box">
+        <span class="sl-search-icon" aria-hidden="true"></span>
+        <span class="sl-visually-hidden">このタブの中を検索</span>
+        <input id="viewSearch" type="search" autocomplete="off" autocapitalize="off" enterkeyhint="search" placeholder="ライブ名・会場・曲名で探す">
+      </label>
+    </div>
   </div>
 
   <!-- 参加公演：行ったライブ（足あとのマークを付けた公演）のライブ名と公演日だけ -->
