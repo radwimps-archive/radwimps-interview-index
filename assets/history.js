@@ -91,7 +91,7 @@ function renderTabs({ center = true } = {}) {
   else if (on) tabs.scrollTo({ left: on.offsetLeft - (tabs.clientWidth - on.offsetWidth) / 2, behavior: "auto" });
 }
 
-// 検索窓の言葉に合うか。探す文字は data.js の historySearchText（出来事・補足・年月日・カテゴリ・動画の名前・特設サイト）。
+// 検索窓の言葉に合うか。探す文字は data.js の historySearchText（出来事・補足・年・カテゴリ・動画の名前・特設サイト）。
 //   全角半角・ひらがなとカタカナの違いは気にしない。英語の名前はひらがなでも見つかる（例：「ふぉーえばー」→ FOREVER IN THE DAZE TOUR）。
 //   空白で区切ると、すべての言葉に合うものだけ（例：「ツアー 2016」）
 //   「4月」「4月5日」の形の言葉は、月日でぴったり比べる（data.js の matchHistory。「1月」が「11月」に合わないように）

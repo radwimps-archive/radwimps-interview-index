@@ -15,7 +15,7 @@ const { events } = parseHistory(HEAD + [
   "2016,4,5,,,,ライブ・ツアー,全国ツアー「Human Bloom Tour 2016」開催,,,,",
   "2016,8,24,,,,リリース,7th Album「人間開花」リリース,,,RADWIMPS 人間開花,MV「光」=WuU6C8oXzIA",
   "2021,12,4,2022,1,30,ライブ・ツアー,全国アリーナツアー「RADWIMPS FOREVER IN THE DAZE TOUR 2021-2022」開催,,,,",
-  "2023,11,1,,,,バンドの出来事,秋の出来事,,,,",
+  "2023,11,1,,,,バンドの出来事,秋の出来事,1月27日に先行配信,,,",
 ].join("\n"));
 
 test("ひらがなで英語の名前が見つかる（マニュアルの例：ふぉーえばー）", () => {
@@ -36,7 +36,9 @@ test("日付はいくつかの形で見つかる（2016年・4月・4月5日・2
 });
 
 test("「1月」は 11月・12月の出来事に合わない", () => {
-  assert.deepEqual(find(events, "1月"), [events[2].title]); // 2022年1月30日に終わるツアーだけ（2023年11月1日・2021年12月4日の始まりには合わない）
+  // 2022年1月30日に終わるツアーと、補足に「1月27日」と書いた行だけ（2023年11月1日という日付そのものには合わない）
+  assert.deepEqual(find(events, "1月"), [events[2].title, events[3].title]);
+  assert.deepEqual(find(events, "11月"), [events[3].title]);
   assert.deepEqual(find(events, "1月1日"), []);
   assert.deepEqual(find(events, "11月1日"), [events[3].title]);
 });
@@ -66,4 +68,28 @@ test("特設サイトをつないだ後の出来事は、特設サイトの名�
 test("今の data/history.csv：マニュアルの例が見つかる", () => {
   const all = parseHistory(readFileSync(new URL("../data/history.csv", import.meta.url), "utf8")).events;
   assert.ok(find(all, "ふぉーえばー").some((t) => t.includes("FOREVER IN THE DAZE TOUR")));
+});
+
+test("補足に書いた日付でも見つかる。前後が別の数字のときは合わない", () => {
+  assert.deepEqual(find(events, "1月27日"), [events[3].title]);
+  assert.deepEqual(find(events, "1月2日"), []); // 「1月27日」の途中では合わない
+});
+
+test("期間のある出来事は、途中の月でも見つかる（2021年12月〜2022年1月）", () => {
+  const { events: ev } = parseHistory(HEAD + "2016,4,1,2016,7,31,ライブ・ツアー,長いツアー,,,,\n");
+  assert.equal(find(ev, "5月").length, 1);
+  assert.equal(find(ev, "2016年6月").length, 1);
+  assert.equal(find(ev, "8月").length, 0);
+  assert.deepEqual(find(events, "2021年12月"), [events[2].title]);
+});
+
+test("日付とほかの言葉を続けて入れても見つかる（ツアー4月・4月ツアー）", () => {
+  assert.deepEqual(find(events, "ツアー4月"), [events[0].title]);
+  assert.deepEqual(find(events, "4月ツアー"), [events[0].title]);
+});
+
+test("今の data/history.csv：補足の日付で見つかる（1月27日・10月7日）", () => {
+  const all = parseHistory(readFileSync(new URL("../data/history.csv", import.meta.url), "utf8")).events;
+  assert.ok(find(all, "1月27日").length >= 1);
+  assert.ok(find(all, "10月7日").length >= 1);
 });

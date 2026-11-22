@@ -576,31 +576,42 @@ export function historySearchText(e) {
     ...(e.mv ? [] : (e.videos || []).map((v) => v.label)),
     ...sites.map((s) => s.name), ...(sites.length ? ["特設サイト"] : [])].filter(Boolean).join("|");
 }
-// 出来事の月日の言葉（「4月」「4月5日」「2016年4月」「2016年4月5日」。終わりの日付も）
+// 出来事の月日の言葉（「4月」「4月5日」「2016年4月」「2016年4月5日」）。期間のある出来事は、途中の月と終わりの月日も
 function historyDateWords(e) {
   const out = new Set();
-  const add = (y, m, d) => {
-    if (!m) return;
-    out.add(`${m}月`); out.add(`${y}年${m}月`);
-    if (d) { out.add(`${m}月${d}日`); out.add(`${y}年${m}月${d}日`); }
-  };
-  add(e.y, e.m, e.d);
-  if (e.ey) add(e.ey, e.em, e.ed);
+  const month = (y, m) => { out.add(`${m}月`); out.add(`${y}年${m}月`); };
+  const day = (y, m, d) => { if (!m) return; month(y, m); if (d) { out.add(`${m}月${d}日`); out.add(`${y}年${m}月${d}日`); } };
+  day(e.y, e.m, e.d);
+  if (e.ey && e.m) {
+    day(e.ey, e.em, e.ed);
+    for (let y = e.y, m = e.m; y < e.ey || (y === e.ey && m < (e.em || 12)); ) { // 途中の月（終わりの月が書いてなければ、その年の12月まで）
+      if (++m > 12) { m = 1; y++; }
+      month(y, m);
+    }
+  }
   return out;
 }
-const DATE_WORD = /^(?:(\d{4})年)?(\d{1,2})月(?:(\d{1,2})日)?$/;
-// 出来事が検索の言葉に合うか。空白で区切った言葉のうち、「4月」「4月5日」「2016年4月」の形のものは月日で（ぴったり）比べ、
-// それ以外は historySearchText にゆるく比べる（match には search.js の looseMatchAll を渡す。textOf で探す文字の作り方を変えられる）
+// 検索の言葉の中の月日（「4月」「4月5日」「2016年4月」）。前が数字のときは月日と見なさない（「11月」の中の「1月」）
+const DATE_IN = /(?<!\d)(?:(\d{4})年)?(\d{1,2})月(?:(\d{1,2})日)?/g;
+const esc = (n) => `0*${Number(n)}`;
+// 出来事が検索の言葉に合うか。空白で区切った言葉の中の月日（「4月」「4月5日」「2016年4月」。「ツアー4月」のように続けて入れても）は、
+//   出来事の日付（期間のときは途中の月も）か、出来事の文・補足の中に書いた日付とぴったり比べる（「1月」が「11月」に合わないように）。
+//   それ以外の言葉は historySearchText にゆるく比べる（match には search.js の looseMatchAll を渡す。textOf で探す文字の作り方を変えられる）
 export function matchHistory(e, query, match, textOf = historySearchText) {
   const parts = String(query ?? "").normalize("NFKC").split(/\s+/).filter(Boolean);
   if (!parts.length) return true;
   const rest = [];
-  let dates = null;
+  let dates = null, body = null;
   for (const p of parts) {
-    const m = p.match(DATE_WORD);
-    if (!m) { rest.push(p); continue; }
-    const word = `${m[1] ? `${m[1]}年` : ""}${Number(m[2])}月${m[3] ? `${Number(m[3])}日` : ""}`;
-    if (!(dates ||= historyDateWords(e)).has(word)) return false;
+    for (const m of p.matchAll(DATE_IN)) {
+      const word = `${m[1] ? `${m[1]}年` : ""}${Number(m[2])}月${m[3] ? `${Number(m[3])}日` : ""}`;
+      if ((dates ||= historyDateWords(e)).has(word)) continue;
+      // 出来事の文・補足に書いた日付（例：補足「1月27日に先行配信」）。数字の前後が別の数字に続かないときだけ
+      const re = new RegExp(`(?<!\\d)${m[1] ? `${m[1]}年` : ""}${esc(m[2])}月${m[3] ? `${esc(m[3])}日` : ""}`);
+      if (!re.test(body ??= `${e.title || ""}|${e.note || ""}`.normalize("NFKC"))) return false;
+    }
+    const left = p.replace(DATE_IN, " ").trim();
+    if (left) rest.push(...left.split(/\s+/));
   }
   return !rest.length || match(textOf(e), rest.join(" "));
 }
