@@ -8,10 +8,8 @@
 
 import { parseCSV, parseArticles, toCSVLine, ARTICLE_HEADER, KIND_ORDER, MEMBERS, MEMBER_ORDER, LANGS, STATES, CATEGORIES, idFromUrl, youtubeId, VIDEO_KIND, INTERVIEW_KIND } from "./data.js";
 import { h, downloadFile } from "./ui.js";
+import { STORE_TOKEN, STORE_REPO, lsGet, lsSet, repoName, GhError, GitHub } from "./github.js"; // GitHub とのやりとり（年表の管理と同じもの）
 
-const STORE_TOKEN = "radwimps-interview-index:gh-token";
-const STORE_REPO = "radwimps-interview-index:gh-repo";
-const API = "https://api.github.com";
 const FILE = "data/articles.csv";
 const PAGE = 40; // 一覧に一度に出す件数
 // 合鍵を作る GitHub の画面。名前・説明・有効期限（90日）・許可（Contents の読み書き）と、
@@ -19,7 +17,7 @@ const PAGE = 40; // 一覧に一度に出す件数
 function tokenUrl() {
   const q = {
     name: "RADWIMPS Archives 運営管理",
-    description: "RADWIMPS Archives の運営管理から、記事データ（data/articles.csv）を保存するための合鍵",
+    description: "RADWIMPS Archives の運営管理から、記事データと年表（data フォルダの CSV）を保存するための合鍵",
     expires_in: "90",
     contents: "write"
   };
@@ -31,26 +29,6 @@ function tokenUrl() {
 /* ---------- 小さな道具（画面の部品を作る h() とファイルの書き出しは ui.js） ---------- */
 
 const nf = (s) => String(s ?? "").normalize("NFKC").trim();
-const lsGet = (k) => { try { return localStorage.getItem(k) || ""; } catch { return ""; } };
-const lsSet = (k, v) => { try { if (v) localStorage.setItem(k, v); else localStorage.removeItem(k); } catch { /* 保存できない環境 */ } };
-
-function decodeBase64Utf8(b64) {
-  const bin = atob(String(b64).replace(/\s/g, ""));
-  const bytes = new Uint8Array(bin.length);
-  for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
-  return new TextDecoder("utf-8", { ignoreBOM: true }).decode(bytes); // 先頭の BOM も文字として残す
-}
-function encodeBase64Utf8(text) {
-  const bytes = new TextEncoder().encode(text);
-  let bin = "";
-  for (let i = 0; i < bytes.length; i += 0x8000) bin += String.fromCharCode(...bytes.subarray(i, i + 0x8000));
-  return btoa(bin);
-}
-// 「owner/repo」や「https://github.com/owner/repo」から「owner/repo」を取り出す
-function repoName(s) {
-  const m = nf(s).replace(/\.git$/, "").match(/^(?:https?:\/\/github\.com\/)?([A-Za-z0-9-]+)\/([A-Za-z0-9._-]+)\/?$/);
-  return m ? `${m[1]}/${m[2]}` : "";
-}
 
 /* ---------- 状態 ---------- */
 
@@ -58,7 +36,7 @@ const A = {
   opts: null, root: null,
   mode: "off",        // off：つないでいない　connecting：接続中　github：GitHub とつながっている　practice：保存せずに試す
   error: "",
-  token: "", repo: "", branch: "", sha: "",
+  token: "", repo: "", branch: "", sha: "", gh: null,
   header: [], rows: [], baseRows: [], bom: true, eol: "\n",
   ops: [],            // 保存していない変更（GitHub 側が先に変わっていたときに、やり直すため）
   q: "", filter: "all", limit: PAGE,
@@ -129,48 +107,14 @@ function summary() {
 
 /* ---------- GitHub ---------- */
 
-class GhError extends Error {}
-async function gh(path, init = {}) {
-  let res;
-  try {
-    res = await fetch(API + path, {
-      ...init, cache: "no-store",
-      headers: { Accept: "application/vnd.github+json", "X-GitHub-Api-Version": "2022-11-28", Authorization: "Bearer " + A.token, ...(init.headers || {}) }
-    });
-  } catch {
-    throw new GhError("GitHub につながりませんでした。通信の状態を確かめてください（claude.ai のプレビューでは GitHub につなげません。公開したサイトで使えます）。");
-  }
-  return res;
-}
-async function ghFail(res, what) {
-  let msg = "";
-  try { msg = (await res.json()).message || ""; } catch { /* 本文なし */ }
-  // keyProblem：合鍵そのものの問題（登録し直してもらう）
-  const err = (m, keyProblem = false) => Object.assign(new GhError(m), { keyProblem });
-  if (res.status === 401) return err("合鍵（アクセストークン）が正しくないか、期限が切れています。新しい合鍵を作って、登録し直してください。", true);
-  if (res.status === 403 && /rate limit/i.test(msg)) return err("GitHub の利用回数の上限に達しました。しばらく待ってから、もう一度試してください。");
-  if (res.status === 403) return err("この合鍵には、記事データを書き換える許可がありません。「Contents」を「Read and write」にした合鍵を作って、登録し直してください。", true);
-  if (res.status === 404) return err(`${what}が見つかりません。リポジトリ名（${A.repo}）と、合鍵を作るときに選んだリポジトリが合っているか確かめてください。`);
-  return err(`GitHub でエラーが起きました（${res.status}${msg ? "：" + msg : ""}）。`);
-}
 // 合鍵を登録し直してもらう：保存していない変更は残しておき、つなぎ直したら続きから保存できるようにする
 function dropKey(message) {
   lsSet(STORE_TOKEN, "");
   A.token = ""; A.mode = "off"; A.error = message;
   A.carry = summary().total > 0;
 }
-async function fetchFile() {
-  const res = await gh(`/repos/${A.repo}/contents/${FILE}?ref=${encodeURIComponent(A.branch)}`);
-  if (!res.ok) throw await ghFail(res, "記事データ（data/articles.csv）");
-  const j = await res.json();
-  let text = j.content ? decodeBase64Utf8(j.content) : "";
-  if (!j.content) { // 1MB を超えるファイルは、別の形で受け取る
-    const raw = await gh(`/repos/${A.repo}/contents/${FILE}?ref=${encodeURIComponent(A.branch)}`, { headers: { Accept: "application/vnd.github.raw+json" } });
-    if (!raw.ok) throw await ghFail(raw, "記事データ（data/articles.csv）");
-    text = await raw.text();
-  }
-  return { text, sha: j.sha };
-}
+const WHAT = "記事データ（data/articles.csv）";
+const fetchFile = () => A.gh.read(FILE, WHAT);
 // 引き継ぐ変更があれば、読み込み直した最新の記事データに重ねる
 function loadWithCarry(text) {
   const carry = A.carry ? A.ops.slice() : [];
@@ -182,19 +126,9 @@ async function connect(token, repo) {
   A.token = token; A.repo = repo; A.mode = "connecting"; A.error = "";
   render();
   try {
-    const res = await gh(`/repos/${repo}`);
-    if (!res.ok) throw await ghFail(res, "リポジトリ");
-    A.branch = (await res.json()).default_branch || "main";
-    // 保存したときの記録（コミット）に、個人のメールアドレスが出ないようにする：GitHub の「noreply」のアドレスを使う
-    // （リポジトリは誰でも見られるので。取れないときは、GitHub の設定のままで保存します）
-    A.committer = null;
-    try {
-      const u = await gh("/user");
-      if (u.ok) {
-        const me = await u.json();
-        if (me.login && me.id) A.committer = { name: me.login, email: `${me.id}+${me.login}@users.noreply.github.com` };
-      }
-    } catch { /* 取れなくても保存はできる */ }
+    A.gh = new GitHub(token, repo);
+    await A.gh.init(); // リポジトリの確認・保存先のブランチ・記録に出す名前（github.js）
+    A.branch = A.gh.branch;
     const { text, sha } = await fetchFile();
     loadWithCarry(text);
     A.sha = sha;
@@ -223,10 +157,7 @@ async function save() {
   A.saving = true;
   render();
   const message = `記事データを更新（運営管理から：追加 ${sum.added}・修正 ${sum.edited}・削除 ${sum.deleted}）`;
-  const put = () => gh(`/repos/${A.repo}/contents/${FILE}`, {
-    method: "PUT", headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ message, content: encodeBase64Utf8(serialize()), sha: A.sha, branch: A.branch, ...(A.committer ? { committer: A.committer, author: A.committer } : {}) })
-  });
+  const put = () => A.gh.write(FILE, serialize(), A.sha, message);
   let merged = false, keyLost = false;
   try {
     let res = await put();
@@ -240,7 +171,7 @@ async function save() {
       merged = true;
       res = await put();
     }
-    if (!res.ok) throw await ghFail(res, "記事データ（data/articles.csv）");
+    if (!res.ok) throw await A.gh.fail(res, WHAT);
     A.sha = (await res.json()).content.sha;
     A.baseRows = clone(A.rows);
     A.ops = [];
@@ -548,7 +479,7 @@ function setupSheet() {
     else if (act === "remove") removeRow();
     else if (act === "back") renderFoot();
   });
-  document.addEventListener("keydown", (e) => { if (e.key === "Escape" && !$s("#editSheet").hidden) closeEditor(); });
+  document.addEventListener("keydown", (e) => { if (e.key === "Escape" && !$s("#editSheet").hidden && !e.isComposing && e.keyCode !== 229) closeEditor(); }); // 日本語の変換中の Esc では閉じない
 }
 
 function setState(s) { for (const r of F.state.querySelectorAll("input")) r.checked = r.value === s; }

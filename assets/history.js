@@ -10,7 +10,7 @@ import { parseHistory, parseSetlists, parseSites, attachSites, siteKey, historyS
 import { attendButton, attendCount, assignKeys, sync as syncAttend, setupAttendClicks } from "./attended.js";
 import { h as el, setupMenu, isAdminDevice, watchScrollFade, watchStuck } from "./ui.js";
 import config from "./config.js";
-import { feedbackUrl, hasFeedback, setupBeta, KIND } from "./feedback.js";
+import { feedbackUrl, hasFeedback, setupBeta, KIND, repoUrl } from "./feedback.js";
 import { looseMatchAll } from "./search.js"; // ゆるい一致は「RAD LIVE SET LIST」の検索窓と同じもの
 
 const $ = (s) => document.querySelector(s);
@@ -27,6 +27,8 @@ let current = "all";
 let query = "";   // 検索窓の言葉。タブを切り替えても残す（どのタブも同じ年表の出来事なので）
 let ready = false; // 年表・特設サイト・セトリをすべて読み終えたら true（それまでは検索しても描かない）
 let shown = null;  // いま年表に並べている出来事（検索で中身が変わらないときは、作り直さないため）
+let sourceTexts = { history: "", sites: "" }; // ページを開いたときに読んだ CSV（年表の管理の「保存せずに試す」で使う）
+let adminApi = null; // 年表の管理（管理者モードの端末だけ。assets/admin-history.js）
 
 const pad = (n) => String(n).padStart(2, "0");
 function dateLabel(e) {
@@ -95,10 +97,10 @@ function renderTabs({ center = true } = {}) {
 //   全角半角・ひらがなとカタカナの違いは気にしない。英語の名前はひらがなでも見つかる（例：「ふぉーえばー」→ FOREVER IN THE DAZE TOUR）。
 //   空白で区切ると、すべての言葉に合うものだけ（例：「ツアー 2016」）
 //   「4月」「4月5日」の形の言葉は、月日でぴったり比べる（data.js の matchHistory。「1月」が「11月」に合わないように）
-const texts = new WeakMap(); // 探す文字は、出来事ごとに一度だけ作る（出来事を作り直したときは、新しく作られる）
+const searchTexts = new WeakMap(); // 探す文字は、出来事ごとに一度だけ作る（出来事を作り直したときは、新しく作られる）
 function searchText(e) {
-  if (!texts.has(e)) texts.set(e, historySearchText(e));
-  return texts.get(e);
+  if (!searchTexts.has(e)) searchTexts.set(e, historySearchText(e));
+  return searchTexts.get(e);
 }
 const hit = (e) => !query.trim() || matchHistory(e, query, looseMatchAll, searchText);
 const inTab = (slug) => (slug === "all" ? events : slug === "mv" ? mvSongs() : events.filter((e) => e.cats.some((c) => c.slug === slug)));
@@ -130,7 +132,8 @@ function renderTimeline() {
         e.note ? el("p", { class: "hist-sub", text: e.note }) : null,
         attendLine(e),
         videoLine(e),
-        siteLine(e)));
+        siteLine(e),
+        editLine(e)));
     }
     sec.append(ol);
     box.append(sec);
@@ -256,6 +259,16 @@ function siteLine(e) {
   return p;
 }
 
+// 年表の管理（管理者モードの端末だけ）：出来事の下の「直す」。特設サイトがつながっていれば、その特設サイトの「直す」も
+//   data-hedit：data/history.csv の行番号　data-sedit：data/sites.csv の行番号（MV のタブの行は、もとの出来事から作ったものなので出さない）
+function editLine(e) {
+  if (!adminApi || e.mv) return null;
+  const btns = [];
+  if (e.line && !e.fromSites) btns.push(el("button", { type: "button", class: "hist-edit", "data-hedit": String(e.line), text: "直す" }));
+  for (const s of e.sites || []) btns.push(el("button", { type: "button", class: "hist-edit", "data-sedit": String(s.line), "aria-label": `特設サイト「${s.name}」を直す`, text: "特設サイトを直す" }));
+  return btns.length ? el("p", { class: "hist-edits" }, ...btns) : null;
+}
+
 // 動画（MV・予告編など）。CSV の「動画」の列に「ラベル=YouTube の ID か URL」を「 | 」で区切って書く。
 //   例：MV=XRnX65LDRoU　／　MV「光」=WuU6C8oXzIA | MV「前前前世 [original ver.]」=vLGQQbjZc5A　／　予告編=https://www.youtube.com/watch?v=…
 // 出来事の下に、小さな文字で「▶ MV」などを並べる。押すと、その場（出来事のすぐ下）で再生する
@@ -347,6 +360,12 @@ const stickyH = () => { const b = $(".hist-tabs-bar"); return getComputedStyle(b
 
 const tapIsAccident = () => tap.touch && (tap.moved || tap.scrolling);
 $("#timeline").addEventListener("click", (e) => {
+  const ed = e.target.closest("[data-hedit], [data-sedit]");
+  if (ed) {
+    if (!adminApi) return;
+    if (ed.dataset.hedit) adminApi.editEvent(+ed.dataset.hedit); else adminApi.editSite(+ed.dataset.sedit);
+    return;
+  }
   if (e.target.closest("a.title-link, a.hist-shop")) { if (tapIsAccident()) e.preventDefault(); return; }
   const buy = e.target.closest(".title-buy");
   if (buy) {
@@ -430,28 +449,60 @@ if (hasFeedback) {
 }
 if (isAdminDevice()) $("#adminLink").hidden = false;
 
+// 年表の CSV（と特設サイトの CSV）から、出来事の一覧を作る。年表の管理で直したときも、ここから作り直す
+function build(historyText, sitesText) {
+  events = load(historyText);
+  // 特設サイトを出来事につなぐ
+  if (sitesText) events = attachSites(events, parseSites(sitesText).sites).map((e) => {
+    // 見出しのリンクと同じ特設サイトが「公開終了」なら、見出しのリンク先も保存版に（保存版がなければリンクなし）
+    const same = e.site && e.sites.find((s) => s.closed && siteKey(s.url) === siteKey(e.site));
+    return { ...e, cat: e.cats[0], site: same ? same.archive : e.site };
+  });
+  for (const e of events) e.shows = showsOf(e);
+  mvCache = null;
+  if (events.length) $("#span").textContent = `${events[0].y} — ${events[events.length - 1].y}`;
+}
+
+// 年表の管理：管理者モードの端末でだけ読み込む（ほかのサイトの中に埋め込まれているときは動かさない。記事一覧の運営管理と同じ）
+function setupAdmin() {
+  const framed = (() => { try { return window.self !== window.top; } catch { return true; } })();
+  if (!isAdminDevice() || framed) return;
+  import("./admin-history.js").then((m) => {
+    adminApi = m.mountHistoryAdmin($("#histAdmin"), {
+      repo: repoUrl(),
+      sourceTexts: () => sourceTexts,
+      // 直した内容で年表を作り直す（タブ・検索の言葉・スクロールの位置はそのまま）
+      rebuild(historyText, sitesText) {
+        build(historyText, sitesText);
+        shown = null;
+        renderTabs({ center: false });
+        renderTimeline();
+      }
+    });
+    shown = null;
+    renderTimeline(); // 「直す」のボタンを出す
+  }).catch(() => { /* 読み込めなくても、年表はそのまま見られる */ });
+}
+
 // 読み込み
 (async () => {
   try {
     const res = await fetch("data/history.csv", { cache: "no-cache" });
     if (!res.ok) throw new Error();
-    events = load(await res.text());
-    // 特設サイト（data/sites.csv）を出来事につなぐ。読めなくても、年表はそのまま見られる
+    const historyText = await res.text();
+    // 特設サイト（data/sites.csv）。読めなくても、年表はそのまま見られる
+    let sitesText = "";
     try {
       const sr = await fetch("data/sites.csv", { cache: "no-cache" });
-      if (sr.ok) events = attachSites(events, parseSites(await sr.text()).sites).map((e) => {
-        // 見出しのリンクと同じ特設サイトが「公開終了」なら、見出しのリンク先も保存版に（保存版がなければリンクなし）
-        const same = e.site && e.sites.find((s) => s.closed && siteKey(s.url) === siteKey(e.site));
-        return { ...e, cat: e.cats[0], site: same ? same.archive : e.site };
-      });
+      if (sr.ok) sitesText = await sr.text();
     } catch { /* 特設サイトの印は出さない */ }
     // セトリのデータ（行ったライブの印のため）。読めなくても、年表はそのまま見られる
     try {
       const sl = await fetch("data/setlists.csv", { cache: "no-cache" });
       if (sl.ok) { lives = parseSetlists(await sl.text()).lives; assignKeys(lives); }
     } catch { /* 印は出さない */ }
-    for (const e of events) e.shows = showsOf(e);
-    if (events.length) $("#span").textContent = `${events[0].y} — ${events[events.length - 1].y}`;
+    sourceTexts = { history: historyText, sites: sitesText };
+    build(historyText, sitesText);
     if (affiliateOn) $("#prNote").hidden = $("#prTop").hidden = false;
     // URL の ?q= で、検索した状態で開ける（楽曲一覧と同じ。例：history.html?q=ツアー）
     const q0 = new URLSearchParams(location.search).get("q");
@@ -460,6 +511,7 @@ if (isAdminDevice()) $("#adminLink").hidden = false;
     if (searchBox.value) query = searchBox.value;
     ready = true;
     setCat(location.hash.slice(1));
+    setupAdmin();
   } catch {
     $("#loading").textContent = "年表を読み込めませんでした。時間をおいて、もう一度開いてください。";
   }
