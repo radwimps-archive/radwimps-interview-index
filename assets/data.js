@@ -616,8 +616,9 @@ export function matchHistory(e, query, match, textOf = historySearchText) {
       // 出来事の文・補足に書いた日付（例：補足「1月27日に先行配信」）。数字の前後が別の数字に続かないときだけ
       const re = new RegExp(`(?<!\\d)${m[1] ? `${m[1]}年` : ""}${esc(m[2])}月${m[3] ? `${esc(m[3])}日` : ""}`);
       if (re.test(body ??= `${e.title || ""}|${e.note || ""}`.normalize("NFKC"))) continue;
-      // 点の形（「4.5」）は、作品名などの一部のこともあるので、ふつうの言葉としても比べる
-      if (!m[0].includes("月") && match(textOf(e), m[0])) continue;
+      // 点の形（「4.5」）は、作品名などの一部のこともあるので、出来事の文・補足にそのまま（点も残して）書いてあるかも見る。
+      // ゆるい一致は点を消して「45」で比べてしまい、「2.5」が 2025年に合うので使わない
+      if (!m[0].includes("月") && new RegExp(`(?<![\\d.])${m[0].replace(/\./g, "\\.")}(?![\\d.])`).test(body)) continue;
       return false;
     }
     const left = p.replace(DATE_IN, (...g) => (isDate(datePartsOf(g)) ? " " : g[0])).trim();

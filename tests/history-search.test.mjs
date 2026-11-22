@@ -109,3 +109,9 @@ test("作品名の中の「4.5」は、作品名でも点の形でも見つか�
   assert.equal(find(ev, "4.5").length, 2); // 4月5日の行と、作品名に 4.5 がある行
   assert.equal(find(ev, "4月5日").length, 1); // 月の形は、ぴったり比べる
 });
+
+test("点の形の月日は、ほかの数字（2025年・11th など）に合わない", () => {
+  const { events: ev } = parseHistory(HEAD + "2025,6,1,,,,リリース,11th Album リリース,3月11日に発表,,,\n2020,2,5,,,,リリース,2月5日の出来事,,,,\n");
+  assert.deepEqual(find(ev, "2.5"), ["2月5日の出来事"]);
+  assert.deepEqual(find(ev, "1.1"), []);
+});
