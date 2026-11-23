@@ -6,7 +6,7 @@
 //   どの出来事がどの公演か：data/setlists.csv の公演のうち、出来事の日付（期間）に入るもの。期間の中に別のライブ（フェスなど）があるときは、いちばん公演数の多いツアーだけ。
 
 import "./analytics.js";
-import { parseHistory, parseSetlists, parseSites, parseArticles, attachSites, siteKey, historySearchText, matchHistory, HISTORY_CATEGORIES } from "./data.js";
+import { parseHistory, parseSetlists, parseSites, parseArticles, linkHistorySites, historyShows, siteKey, historySearchText, matchHistory, HISTORY_CATEGORIES } from "./data.js";
 import { attendButton, attendCount, assignKeys, sync as syncAttend, setupAttendClicks } from "./attended.js";
 import { h as el, setupMenu, isAdminDevice, watchScrollFade, watchStuck } from "./ui.js";
 import config from "./config.js";
@@ -52,20 +52,9 @@ function load(text) {
 }
 
 // 出来事に当てはまる公演（セトリのデータから）。ライブ・ツアーの出来事だけ
-const isoOf = (y, m, d) => `${y}-${pad(m || 1)}-${pad(d || 1)}`;
-function showsOf(e) {
-  // 特設サイトの一覧から足した行には出さない（同じツアーの行が別にあると、「行った」の印が2か所に出てしまうため）
-  if (e.fromSites) return [];
-  if (!e.m || !e.cats.some((c) => c.name === "ライブ・ツアー")) return [];
-  const from = isoOf(e.y, e.m, e.d);
-  const to = e.ey ? isoOf(e.ey, e.em || 12, e.ed || 31) : e.d ? from : isoOf(e.y, e.m, 31);
-  const inside = lives.filter((l) => { const k = isoOf(l.y, l.m, l.d); return k >= from && k <= to; });
-  if (!e.ey) return inside;
-  // 期間の中にフェスなど別のライブがあるときは、公演がいちばん多いツアー（同じなら早いほう）だけにする
-  const by = new Map();
-  for (const l of inside) (by.get(l.name) || by.set(l.name, []).get(l.name)).push(l);
-  return [...by.values()].sort((a, b) => b.length - a.length)[0] || [];
-}
+// 出来事に入る公演（data.js の historyShows。「RAD LIVE SET LIST」と同じ決まり）。
+// 特設サイトの一覧から足した行には出さない（同じツアーの行が別にあると、「行った」の印が2か所に出てしまうため）
+const showsOf = (e) => historyShows(e, lives);
 // 出来事の下の「行った」ボタン。1公演だけならボタン、複数ならたたんだ欄に公演日を並べる
 function attendLine(e) {
   const shows = e.shows;
@@ -503,11 +492,8 @@ if (isAdminDevice()) $("#adminLink").hidden = false;
 function build(historyText, sitesText) {
   events = load(historyText);
   // 特設サイトを出来事につなぐ
-  if (sitesText) events = attachSites(events, parseSites(sitesText).sites).map((e) => {
-    // 見出しのリンクと同じ特設サイトが「公開終了」なら、見出しのリンク先も保存版に（保存版がなければリンクなし）
-    const same = e.site && e.sites.find((s) => s.closed && siteKey(s.url) === siteKey(e.site));
-    return { ...e, cat: e.cats[0], site: same ? same.archive : e.site };
-  });
+  // 見出しのリンクと同じ特設サイトが「公開終了」なら、見出しのリンク先も保存版に（data.js の linkHistorySites。SET LIST と同じ）
+  if (sitesText) events = linkHistorySites(events, parseSites(sitesText).sites).map((e) => ({ ...e, cat: e.cats[0] }));
   for (const e of events) e.shows = showsOf(e);
   mvCache = null;
   if (events.length) $("#span").textContent = `${events[0].y} — ${events[events.length - 1].y}`;

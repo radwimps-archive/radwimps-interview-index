@@ -9,8 +9,11 @@
 //   ランキング：よく演奏された曲の順位（#ranking）。セトリから自動で数えるので、CSV に公演を足すと順位も変わります。
 //           楽曲一覧（data/songs.csv）にない曲（未発表の曲・カバー・映画の劇伴など）は入れない。区分（国内ツアーなど）と年代で絞れる。多い順・少ない順を切り替えられる（1回も演奏していない曲は入れない）。曲名を押すと、「ライブ」でその曲を演奏したライブだけになる
 //   ライブ未演奏：楽曲一覧にあって、どの公演のセトリにも出てこない曲（#unplayed。songs.csv がないときはタブごと出しません）
+// 「RADWIMPSの歩み」とのつながり（運営の希望 11/23。歩みの年表の管理で直したものが、ここにも出る）：
+//   年表（data/history.csv）と特設サイトの一覧（data/sites.csv）も読み、ライブ・ツアーの出来事に入る公演（data.js の historyShows。歩みと同じ決まり）のツアーに、
+//   その出来事の特設サイト・公式ページのリンクを出し、出来事に付けたタグでも検索で見つかるようにする。読めなくても、このページはそのまま使える
 
-import { parseCSV, parseSetlists, songKey, SETLIST_CONFIDENCE, SETLIST_CATEGORIES } from "./data.js";
+import { parseCSV, parseSetlists, parseHistory, parseSites, linkHistorySites, historyShows, historySiteLinks, songKey, SETLIST_CONFIDENCE, SETLIST_CATEGORIES } from "./data.js";
 import { h as el, setupMenu, isAdminDevice, watchScrollFade, watchStuck } from "./ui.js";
 import { feedbackUrl, hasFeedback, setupBeta, KIND } from "./feedback.js";
 import { looseMatch, looseMatchAll, fold } from "./search.js";
@@ -52,6 +55,31 @@ function periodLabel(t) {
 }
 
 // ライブ名ごとにまとめる（並びは、いちばん早い公演の日付順）
+// 歩みの出来事をツアーにつなぐ：t.hist に出来事（特設サイト・タグを持つ）を入れる
+function attachHistory(historyText, sitesText) {
+  if (!historyText) return;
+  const sites = sitesText ? parseSites(sitesText).sites : [];
+  const events = linkHistorySites(parseHistory(historyText).events, sites);
+  for (const e of events) {
+    for (const l of historyShows(e, lives)) {
+      const t = l.tour;
+      if (t && !(t.hist ||= []).includes(e)) t.hist.push(e);
+    }
+  }
+}
+// ツアーを開いたところに出す、歩みの出来事の特設サイト・公式ページのリンク（新しいタブで開く）
+function siteLine(t) {
+  const seen = new Set();
+  const links = (t.hist || []).flatMap(historySiteLinks).filter((x) => !seen.has(x.href) && seen.add(x.href));
+  if (!links.length) return null;
+  const p = el("p", { class: "hist-sites sl-sites" });
+  links.forEach((x, i) => {
+    if (i) p.append(el("span", { class: "sep", "aria-hidden": "true", text: "·" }));
+    p.append(el("a", { href: x.href, target: "_blank", rel: "noopener noreferrer", "aria-label": `${x.name || t.name}の${x.label}を新しいタブで開く` }, `${x.label} ↗`));
+  });
+  return p;
+}
+
 function groupTours() {
   const map = new Map();
   for (const l of lives) {
@@ -150,6 +178,8 @@ function tourCard(t, open, openIds, played) {
         one ? (one.venue || "") : played ? "" : `${n}公演`,
         el("span", { class: "sl-count", text: one ? (hasSongs(one) ? `${songsOf(one).length}曲` : "セトリ未確認") : played ? `演奏 ${n}／${t.lives.length} 公演` : `セトリあり ${withSongs}／${n}` }),
         one ? null : attendCount(ls))));
+  const sitesP = siteLine(t);
+  if (sitesP) card.append(sitesP);
   if (one) { const b = setlistBody(one); b.id = liveId(one); card.append(b); }
   else card.append(el("div", { class: "sl-shows" }, ...ls.map((l) => showRow(l, !!openIds?.has(liveId(l))))));
   return card;
@@ -166,7 +196,9 @@ const PLACEHOLDERS = {
 function hitTour(t, query) {
   const parts = String(query || "").normalize("NFKC").split(/\s+/).filter(Boolean);
   if (!parts.length) return true;
-  const names = t.hayN || (t.hayN = [t.name, ...t.lives.flatMap((l) => [l.venue, dateLabel(l)])].join(" "));
+  // 歩みの出来事に付けたタグ（「#」付きでも探せる）も、ライブ名と同じくゆるく比べる
+  const names = t.hayN || (t.hayN = [t.name, ...t.lives.flatMap((l) => [l.venue, dateLabel(l)]),
+    ...(t.hist || []).flatMap((e) => (e.tags || []).flatMap((x) => [x, `#${x}`]))].join(" "));
   const inner = t.hayS || (t.hayS = fold(t.lives.flatMap((l) => [...songsOf(l).map((s) => s.title), ...l.guests, ...l.main.map((s) => s.part || "")]).join(" ")));
   const one = (p) => looseMatch(names, p) || (fold(p) !== "" && inner.includes(fold(p)));
   const whole = fold(query);
@@ -548,13 +580,16 @@ async function loadCatalog() {
 // 読み込み
 (async () => {
   try {
-    const res = await fetch("data/setlists.csv", { cache: "no-cache" });
+    // 歩みの年表と特設サイトの一覧は、セトリと同時に読む（読めなくても、このページはそのまま使える）
+    const opt = (f) => fetch(f, { cache: "no-cache" }).then((r) => (r.ok ? r.text() : "")).catch(() => "");
+    const [res, historyText, sitesText] = await Promise.all([fetch("data/setlists.csv", { cache: "no-cache" }), opt("data/history.csv"), opt("data/sites.csv")]);
     if (!res.ok) throw new Error();
     const { lives: list, errors } = parseSetlists(await res.text());
     if (errors.length) console.warn("セットリストのデータに、直すところがあります", errors);
     lives = list;
     assignKeys(lives);
     groupTours();
+    try { attachHistory(historyText, sitesText); } catch (e) { console.warn("歩みの年表をつなげませんでした", e); }
     indexSongs();
     if (lives.length) $("#span").textContent = `${lives[0].y} — ${lives[lives.length - 1].y}`;
     renderRanking();
