@@ -606,6 +606,45 @@ export function parseSites(text) {
 //   2. なければ、同じ年月日の出来事のうち、出来事の文に特設サイトの名前が入っているものへ
 //   3. どれにもなければ、その日付に新しい出来事（「〇〇」の特設サイト）を1つ足す
 // events の各出来事に sites（つながった特設サイトの一覧）を付け、足した出来事も入れて、古い順に並べ直したものを返す
+// 歩みの出来事に特設サイトをつなぎ、見出しのリンクと同じ特設サイトが「公開終了」なら、見出しのリンク先も保存版にする
+// （保存版がなければリンクなし）。「RADWIMPSの歩み」と「RAD LIVE SET LIST」で同じものを使う
+export function linkHistorySites(events, sites) {
+  return attachSites(events, sites).map((e) => {
+    const same = e.site && e.sites.find((s) => s.closed && siteKey(s.url) === siteKey(e.site));
+    return { ...e, site: same ? same.archive : e.site, siteClosed: !!same };
+  });
+}
+// ライブ・ツアーの出来事に入る公演（data/setlists.csv）。出来事の日付から終わりの日付まで（日がなければその月の中）の公演。
+// 期間の中にフェスなど別のライブがあるときは、公演がいちばん多いツアー（同じなら早いほう）だけ。特設サイトの一覧から足した行は除く。
+// 「RADWIMPSの歩み」の「行った」ボタンと、「RAD LIVE SET LIST」に出す特設サイト・検索のタグで同じものを使う
+export function historyShows(e, lives) {
+  if (e.fromSites || !e.m || !(e.cats || []).some((c) => c.name === "ライブ・ツアー")) return [];
+  const iso = (y, m, d) => `${y}-${String(m || 1).padStart(2, "0")}-${String(d || 1).padStart(2, "0")}`;
+  const from = iso(e.y, e.m, e.d);
+  const to = e.ey ? iso(e.ey, e.em || 12, e.ed || 31) : e.d ? from : iso(e.y, e.m, 31);
+  const inside = lives.filter((l) => { const k = iso(l.y, l.m, l.d); return k >= from && k <= to; });
+  if (!e.ey) return inside;
+  const by = new Map();
+  for (const l of inside) (by.get(l.name) || by.set(l.name, []).get(l.name)).push(l);
+  return [...by.values()].sort((a, b) => b.length - a.length)[0] || [];
+}
+// 出来事の特設サイト・公式ページのリンク（linkHistorySites のあとの出来事）：[{ href, label, name }]
+//   見出しのリンク（「特設サイト」の列）と、つないだ特設サイト（data/sites.csv）。同じサイトは1つだけ。公開終了は保存版へ（なければ出さない）
+export function historySiteLinks(e) {
+  const out = [], seen = new Set();
+  const push = (href, label, name) => { if (!href || seen.has(siteKey(href))) return; seen.add(siteKey(href)); out.push({ href, label, name }); };
+  const sites = e.sites || [];
+  if (e.site) {
+    const s = sites.find((x) => siteKey(x.url) === siteKey(e.site) || (x.closed && x.archive && siteKey(x.archive) === siteKey(e.site)));
+    push(e.site, e.siteClosed ? "特設サイト（公開終了）の保存版" : s ? "特設サイト" : "公式ページ", s ? s.name : "");
+  }
+  for (const s of sites) {
+    if (!s.closed && e.site && siteKey(s.url) === siteKey(e.site)) continue;
+    push(s.closed ? s.archive : s.url, s.closed ? "特設サイト（公開終了）の保存版" : "特設サイト", s.name);
+  }
+  return out;
+}
+
 export function attachSites(events, sites) {
   const loose = (t) => nfkc(t).toLowerCase().replace(/[\s"“”「」『』]/g, "");
   const out = events.map((e) => ({ ...e, sites: [] }));

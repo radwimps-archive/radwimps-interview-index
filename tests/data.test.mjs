@@ -112,6 +112,23 @@ test("parseHistory：タグ（#区切り・「、」区切り）を読み、検�
   assert.equal(matchHistory(t, "1月公演", (txt, q) => txt.includes(q)), true, "日付の形を含むタグでも見つかる");
 });
 
+test("historyShows・historySiteLinks：歩みのライブの出来事に入る公演と、特設サイトのリンク（SET LIST と共通）", async () => {
+  const { historyShows, historySiteLinks, linkHistorySites } = await import("../assets/data.js");
+  const head = HISTORY_HEAD + ",関連リンク,タグ";
+  const ev = parseHistory([head,
+    "2017,2,25,2017,5,10,ライブ・ツアー,「Human Bloom Tour 2017」開催,,https://radwimps.jp/live/9128/,,,,#HBT",
+    "2017,3,1,,,,リリース,シングル,,,,,,"].join("\n")).events;
+  const lives = [{ y: 2017, m: 2, d: 25, name: "Human Bloom Tour 2017" }, { y: 2017, m: 3, d: 2, name: "Human Bloom Tour 2017" },
+    { y: 2017, m: 3, d: 5, name: "フェス" }, { y: 2017, m: 6, d: 1, name: "別" }];
+  assert.deepEqual(historyShows(ev[0], lives).map((l) => l.d), [25, 2], "期間の中でいちばん公演が多いツアーだけ");
+  assert.deepEqual(historyShows(ev[1], lives), [], "ライブ・ツアーでない出来事は公演につながない");
+  const sites = [{ state: "公開", y: 2017, m: 2, d: 25, name: "Human Bloom Tour 2017", kind: "ライブ・ツアー", url: "https://radwimps.jp/hbt/", closed: true, archive: "https://web.archive.org/web/2017/https://radwimps.jp/hbt/" }];
+  const linked = linkHistorySites(ev, sites);
+  const links = historySiteLinks(linked[0]);
+  assert.equal(links[0].label, "公式ページ");
+  assert.ok(links.some((x) => x.label.includes("保存版") && x.href.startsWith("https://web.archive.org/")), "公開終了の特設サイトは保存版へ");
+});
+
 test("parseHistory：年や出来事がない行はエラーになり、年表に入らない", () => {
   const r = history(",5,1,,,,リリース,年がない,,,,", "2020,5,1,,,,リリース,,,,,", "2020,13,1,,,,リリース,月がおかしい,,,,");
   assert.equal(r.errors.length, 3);
