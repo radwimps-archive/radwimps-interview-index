@@ -459,6 +459,9 @@ dialog.modal::backdrop { background: rgba(23, 32, 24, .5); -webkit-backdrop-filt
 .admrow { display: flex; flex-wrap: wrap; gap: 8px; }
 .admrow .admq { flex: 1 1 200px; }
 .admlist { list-style: none; margin: 0; padding: 0; border-top: 1px solid var(--rule); }
+/* 記事の一覧の見出し：件数と「一覧を開く／閉じる」 */
+.admlist-head { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 8px; }
+.admlist-head .count { margin: 0; }
 .admitem { display: grid; gap: 4px; width: 100%; padding: 11px 2px; border: 0; border-bottom: 1px solid var(--rule); background: none; color: var(--ink); text-align: left; }
 .admitem:hover .admtitle { text-decoration: underline; text-underline-offset: 4px; }
 .admmeta { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 10px; font-size: 12px; color: var(--ink-2); font-variant-numeric: tabular-nums; }
