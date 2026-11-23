@@ -169,22 +169,27 @@ function ingest(text) {
 
 async function loadData() {
   try {
-    // 年表（data/history.csv）：「RADWIMPSの歩み」の関連リンクでつないだ記事に、その出来事へのリンクを出すため。8 秒で届かなければあきらめる
-    const [aRes, rRes, hText] = await Promise.all([
+    // 年表（data/history.csv）：「RADWIMPSの歩み」の関連リンクでつないだ記事に、その出来事へのリンクを出すため。
+    // 記事を先に出し、届いたらカードに足す（8 秒で届かなければあきらめる）
+    const hLoad = fetch("data/history.csv", { cache: "no-cache", signal: AbortSignal.timeout ? AbortSignal.timeout(8000) : undefined })
+      .then((r) => (r.ok ? r.text() : "")).catch(() => "");
+    const [aRes, rRes] = await Promise.all([
       fetch("data/articles.csv", { cache: "no-cache" }),
-      fetch("data/releases.csv", { cache: "no-cache" }).catch(() => null),
-      fetch("data/history.csv", { cache: "no-cache", signal: AbortSignal.timeout ? AbortSignal.timeout(8000) : undefined }).then((r) => (r.ok ? r.text() : "")).catch(() => "")
+      fetch("data/releases.csv", { cache: "no-cache" }).catch(() => null)
     ]);
-    if (hText) {
+    hLoad.then((hText) => {
+      if (!hText) return;
       try {
-        S.histByArticle = new Map();
+        const map = new Map();
         for (const e of parseHistory(hText).events) for (const l of e.links || []) {
           if (l.type !== "article") continue;
-          const list = S.histByArticle.get(l.id) || S.histByArticle.set(l.id, []).get(l.id);
-          if (!list.some((x) => x.title === e.title)) list.push({ title: e.title, y: e.y });
+          const list = map.get(l.id) || map.set(l.id, []).get(l.id);
+          if (!list.some((x) => x.title === e.title && x.y === e.y)) list.push({ title: e.title, y: e.y });
         }
+        S.histByArticle = map;
+        addHistoryLines();
       } catch (err) { console.warn("年表を読めませんでした", err); }
-    }
+    });
     if (!aRes.ok) throw new Error("articles.csv: HTTP " + aRes.status);
     ingest(await aRes.text());
     if (rRes && rRes.ok) S.releases = parseReleases(await rRes.text()).byYear;
@@ -439,6 +444,24 @@ function whoLine(it) {
   if (it.kind === RADIO_KIND && it.guests.length) return `<p class="mention-context"><span>出演</span>${names([...it.members.filter((k) => k !== "band").map((k) => MEMBERS[k].name), ...it.guests])}</p>`;
   return "";
 }
+// 「RADWIMPSの歩み」の関連リンクでこの記事をつないだ出来事（押すと、歩みでその出来事を検索した状態で開く）
+function historyLine(it) {
+  const list = S.histByArticle?.get(it.id);
+  if (!list?.length) return "";
+  return `<p class="card-history">歩み：${list.map((x) => `<a href="history.html?q=${encodeURIComponent(x.title)}">${esc(x.y)}年 ${esc(x.title)}</a>`).join("、")}</p>`;
+}
+// 年表があとから届いたとき：表示中のカードに「歩み：」の行を足す（作り直さないので、開いている説明や位置はそのまま）
+function addHistoryLines() {
+  for (const el of document.querySelectorAll(".article-card[data-id]")) {
+    if (el.querySelector(".card-history")) continue;
+    const it = S.items.find((x) => x.id === el.dataset.id);
+    const html = it ? historyLine(it) : "";
+    if (!html) continue;
+    const after = el.querySelector(".event-meta") || el.querySelector(".card-main");
+    after?.insertAdjacentHTML("afterend", html);
+  }
+}
+
 function card(it) {
   const saved = !!S.marks.lt[it.id], read = !!S.marks.rd[it.id], fav = !!S.marks.fv[it.id];
   const isVideo = it.kind === VIDEO_KIND, isRadio = it.kind === RADIO_KIND, isLive = it.kind === LIVE_KIND;
@@ -459,7 +482,7 @@ function card(it) {
     + whoLine(it) + `</div></div>`
     + (it.eventDate ? `<p class="event-meta">公演 ${esc(dotDate(it.eventDate))}${it.venue ? " · " + esc(it.venue) : ""}</p>` : "")
     // 「RADWIMPSの歩み」の関連リンクでこの記事をつないだ出来事（押すと、歩みでその出来事を検索した状態で開く）
-    + (S.histByArticle?.get(it.id)?.length ? `<p class="card-history">歩み：${S.histByArticle.get(it.id).slice(0, 3).map((x) => `<a href="history.html?q=${encodeURIComponent(x.title)}">${esc(x.y)}年 ${esc(x.title)}</a>`).join("、")}</p>` : "")
+    + historyLine(it)
     + (hasMore ? `<details class="card-description"><summary><span class="description-toggle"><span class="when-closed">説明を開く</span><span class="when-open">説明を閉じる</span><span class="chev" aria-hidden="true">⌄</span></span></summary><div class="card-description-body">`
       + (it.summary ? `<p class="card-summary">${esc(it.summary)}</p>` : "")
       + (it.note ? `<p class="${isReference ? "reference-note" : "card-note"}">${linkify(it.note)}</p>` : "")

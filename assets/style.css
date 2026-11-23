@@ -272,7 +272,7 @@ body::before { content: ""; position: fixed; inset: 0 0 auto; height: env(safe-a
 .event-meta { margin: 8px 0 0; font-size: 12px; line-height: 1.6; color: var(--live); }
 /* 歩みの出来事へのリンク（歩みの関連リンクでつないだ記事だけ） */
 .card-history { margin: 8px 0 0; font-size: 12px; line-height: 1.8; color: var(--ink-2); }
-.card-history a { display: inline-block; padding: 6px 0; color: var(--live); text-decoration: underline; text-underline-offset: 3px; }
+.card-history a { display: inline-flex; align-items: center; min-height: 44px; color: var(--live); text-decoration: underline; text-underline-offset: 3px; }
 
 /* 「説明を開く」：押すと説明・メモ・タグがその場で開く */
 .card-description summary { list-style: none; cursor: pointer; }
