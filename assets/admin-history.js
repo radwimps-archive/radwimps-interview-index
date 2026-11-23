@@ -33,6 +33,19 @@ T.setlists.dateKey = (r) => {
   const m = nf(T.setlists.cell(r, "公演日")).match(/^(\d{4})(?:-(\d{1,2}))?(?:-(\d{1,2}))?/);
   return m ? [m[1], (m[2] || "0").padStart(2, "0"), (m[3] || "0").padStart(2, "0")].join("-") : "0000-00-00";
 };
+// 新しい公演は、同じライブ名の公演のまとまりの中（日付の順）に入れる（setlists.csv は RAD 本体・山口智史・illion のまとまりごとに並んでいるので、
+// ファイルの最後に入れると、同じ日の公演の「#2」の番号がずれて、「行った」の印がほかの公演に移ることがある）。同じライブ名がなければ、日付の順
+T.setlists.insertSorted = (rows, cells) => {
+  const t = T.setlists, k = t.dateKey(cells), name = t.cell(cells, "ライブ名");
+  const same = rows.map((r, i) => [r, i]).filter(([r]) => t.cell(r, "ライブ名") === name);
+  if (same.length) {
+    const after = same.filter(([r]) => t.dateKey(r) <= k).pop();
+    rows.splice(after ? after[1] + 1 : same[0][1], 0, cells);
+    return;
+  }
+  const i = rows.findIndex((r) => t.dateKey(r) > k);
+  rows.splice(i < 0 ? rows.length : i, 0, cells);
+};
 // 保存したときの記録（コミット）に出す名前
 const SAVE_NAMES = { history: "年表", sites: "特設サイトの一覧", setlists: "セットリスト" };
 
@@ -364,7 +377,7 @@ function buildSetlistBox(ev) {
   ev.slAdd = h("button", { type: "button", class: "btn", "data-sladd": "", text: "＋ 公演（セトリ）を追加" });
   const S = ev.sl = {};
   const text = (ph, attrs = {}) => h("input", { type: "text", autocomplete: "off", placeholder: ph, ...attrs });
-  S.date = h("input", { type: "date", "aria-label": "公演日" });
+  S.date = h("input", { type: "text", inputmode: "numeric", autocomplete: "off", maxlength: "10", placeholder: "例：2017-05-10（日がわからなければ 2017-05）", "aria-label": "公演日" });
   S.name = text("例：Human Bloom Tour 2017");
   S.venue = text("例：横浜アリーナ（神奈川）");
   S.cat = h("select", { "aria-label": "区分" }, ...SETLIST_CATEGORIES.map((c) => h("option", { value: c, text: c })));
@@ -399,7 +412,7 @@ function buildSetlistBox(ev) {
   const lines = (s) => String(s || "").split(/[\n／]/).map((x) => x.trim()).filter(Boolean);
   const cellsOf = () => {
     const t = T.setlists, base = ev.slEditing?.index != null ? t.rows[ev.slEditing.index] : null;
-    const map = { "公演日": S.date.value, "ライブ名": oneLine(S.name.value), "会場": oneLine(S.venue.value), "区分": S.cat.value,
+    const map = { "公演日": nf(S.date.value), "ライブ名": oneLine(S.name.value), "会場": oneLine(S.venue.value), "区分": S.cat.value,
       "本編": lines(S.main.value).join("／"), "アンコール": lines(S.encore.value).join("／"), "ゲスト": oneLine(S.guests.value),
       "確かさ": S.conf.value, "出典": oneLine(S.source.value), "出典URL": S.url.value.trim(), "メモ": oneLine(S.note.value) };
     return t.header.map((col, i) => (col in map ? String(map[col] ?? "") : base ? base[i] ?? "" : ""));
@@ -411,7 +424,7 @@ function buildSetlistBox(ev) {
     const text = t.text([...others, cells]);
     const line = parseCSV(text).lines[others.length + 1];
     const res = t.parse(text);
-    const errors = [...(S.date.value ? [] : ["公演日を入れてください"]), ...res.errors.filter((x) => x.line === line).map((x) => x.msg)];
+    const errors = [...(S.date.value.trim() ? [] : ["公演日を入れてください"]), ...res.errors.filter((x) => x.line === line).map((x) => x.msg)];
     const warnings = res.warnings.filter((x) => x.line === line).map((x) => x.msg);
     S.issues.replaceChildren(...errors.map((m) => h("p", { class: "msg err", text: "直してください：" + m })), ...warnings.map((m) => h("p", { class: "msg", text: "注意：" + m })));
     S.save.disabled = errors.length > 0;
@@ -425,8 +438,13 @@ function buildSetlistBox(ev) {
       if (!t.header.length) { toast("セットリストを読み込めていないので、ここでは足せません。ページを読み込み直してください"); return; }
       ev.slEditing = { index: null, orig: null };
       const [y, m, d] = getDate("s");
-      S.date.value = y && m && d ? `${y}-${String(m).padStart(2, "0")}-${String(d).padStart(2, "0")}` : "";
-      S.name.value = quotedNames(ev.text.value)[0] || ""; S.venue.value = ""; S.cat.value = SETLIST_CATEGORIES[0];
+      S.date.value = y && m ? `${y}-${String(m).padStart(2, "0")}${d ? `-${String(d).padStart(2, "0")}` : ""}` : "";
+      // ライブ名と区分は、この期間に今ある公演のもの（いちばん多いもの）を使う（SET LIST で同じツアーにまとまるように）。
+      // 公演がまだないときだけ、出来事の「」の中の名前
+      const cur = ev.slShows || [];
+      const top = (key) => { const c = new Map(); for (const l of cur) if (l[key]) c.set(l[key], (c.get(l[key]) || 0) + 1); return [...c].sort((a, b) => b[1] - a[1])[0]?.[0] || ""; };
+      S.name.value = top("name") || quotedNames(ev.text.value)[0] || ""; S.venue.value = "";
+      S.cat.value = SETLIST_CATEGORIES.includes(top("cat")) ? top("cat") : SETLIST_CATEGORIES[0];
       S.main.value = ""; S.encore.value = ""; S.guests.value = ""; S.conf.value = "セトリなし"; S.source.value = ""; S.url.value = ""; S.note.value = "";
       openSlForm("公演を追加", "この公演を足す", false);
       return;
@@ -435,7 +453,7 @@ function buildSetlistBox(ev) {
     if (ed) {
       const i = +ed.dataset.sledit, r = t.rows[i], c = (n) => t.cell(r, n);
       ev.slEditing = { index: i, orig: toCSVLine(r) };
-      S.date.value = /^\d{4}-\d{2}-\d{2}$/.test(c("公演日")) ? c("公演日") : "";
+      S.date.value = c("公演日");
       S.name.value = c("ライブ名"); S.venue.value = c("会場"); S.cat.value = SETLIST_CATEGORIES.includes(c("区分")) ? c("区分") : SETLIST_CATEGORIES[0];
       S.main.value = lines(c("本編")).join("\n"); S.encore.value = lines(c("アンコール")).join("\n"); S.guests.value = c("ゲスト");
       S.conf.value = SETLIST_CONFIDENCE.some((x) => x.name === c("確かさ")) ? c("確かさ") : "セトリなし";
@@ -449,13 +467,13 @@ function buildSetlistBox(ev) {
       if (errors.length) return;
       const isNew = ev.slEditing.index == null;
       if (!t.doOp({ type: isNew ? "add" : "edit", orig: ev.slEditing.orig, cells })) { closeSlForm(); toast("変わったところがないので、そのままにしました"); return; }
-      const date = cells[t.col("公演日")];
       closeSlForm();
       show(); render();
-      // 出来事の期間の外の公演は、この一覧には出ない（SET LIST には出る）ので、そう知らせる
-      const inRange = [...ev.slList.querySelectorAll("[data-sledit]")].some((b) => t.cell(t.rows[+b.dataset.sledit] || [], "公演日") === date);
+      // この一覧に出たかを、行で確かめる（出ないとき：期間の外か、期間の中のいちばん多いライブ名とちがうライブ名）
+      const row = t.rows.findIndex((r) => toCSVLine(r) === toCSVLine(cells));
+      const listed = !!ev.slList.querySelector(`[data-sledit="${row}"]`);
       toast(`公演を${isNew ? "足し" : "直し"}ました（まだ保存していません。年表の上の「GitHub に保存」で保存します）`
-        + (inRange ? "" : "。この出来事の日付（期間）の外なので、この一覧には出ませんが、SET LIST には出ます"));
+        + (listed ? "" : "。日付がこの出来事の期間の外か、ライブ名がこの期間のほかの公演とちがうので、この一覧には出ませんが、SET LIST には出ます"));
       return;
     }
     if (e.target.closest("[data-sldel]")) {
@@ -496,6 +514,7 @@ function renderSetlistBox() {
   const text = t.text(), { lines } = parseCSV(text);
   const lives = parseSetlists(text).lives;
   const shows = historyShows(pseudo, lives);
+  ev.slShows = shows;
   const idxOf = (l) => lines.indexOf(l.line) - 1;
   ev.slList.replaceChildren(...(shows.length ? shows.map((l) => {
     const n = (l.main?.length || 0) + (l.encore?.length || 0);
@@ -711,7 +730,7 @@ function openEditor(table, index) {
     ev.artQ.value = ""; ev.urlLabel.value = ""; ev.urlUrl.value = "";
     renderLinks(); renderHits();
     // 古い年表の CSV（「関連リンク」の列がない）では、足しても保存されないので、操作の欄の代わりに理由と「試す」ボタンを出す
-    ev.slForm.hidden = true; ev.slEditing = null;
+    ev.slForm.hidden = true; ev.slEditing = null; ev.slAdd.hidden = false;
     renderSetlistBox();
     const hasCol = t.header.includes("関連リンク");
     ev.linkControls.hidden = !hasCol;
@@ -739,6 +758,8 @@ function openEditor(table, index) {
   sheet.querySelector('.sheet-head [data-act="cancel"]').focus({ preventScroll: true });
 }
 function closeEditor() {
+  // 公演の入力の途中で閉じたときは、足していないことを知らせる（入力中の公演は、変更には入っていない）
+  if (F.ev?.slForm && !F.ev.slForm.hidden && A.editing?.table === "history") toast("入力中だった公演は、足していません（「この公演を足す／直す」を押すまでは変更に入りません）");
   sheet.hidden = true;
   document.documentElement.classList.remove("locked");
   for (const x of document.body.children) x.inert = false;
