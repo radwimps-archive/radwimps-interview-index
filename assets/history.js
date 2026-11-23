@@ -6,7 +6,7 @@
 //   どの出来事がどの公演か：data/setlists.csv の公演のうち、出来事の日付（期間）に入るもの。期間の中に別のライブ（フェスなど）があるときは、いちばん公演数の多いツアーだけ。
 
 import "./analytics.js";
-import { parseHistory, parseSetlists, parseSites, parseArticles, linkHistorySites, historyShows, historyLinkItems, siteKey, historySearchText, matchHistory, HISTORY_CATEGORIES } from "./data.js";
+import { parseHistory, parseSetlists, parseSites, parseArticles, linkHistorySites, historyShows, historyLinkItems, historyTagIndex, tagsForNames, quotedNames, tagSearchWords, siteKey, historySearchText, matchHistory, HISTORY_CATEGORIES } from "./data.js";
 import { attendButton, attendCount, assignKeys, sync as syncAttend, setupAttendClicks } from "./attended.js";
 import { h as el, setupMenu, isAdminDevice, watchScrollFade, watchStuck } from "./ui.js";
 import config from "./config.js";
@@ -90,8 +90,9 @@ function renderTabs({ center = true } = {}) {
 //   空白で区切ると、すべての言葉に合うものだけ（例：「ツアー 2016」）
 //   「4月」「4月5日」の形の言葉は、月日でぴったり比べる（data.js の matchHistory。「1月」が「11月」に合わないように）
 const searchTexts = new WeakMap(); // 探す文字は、出来事ごとに一度だけ作る（出来事を作り直したときは、新しく作られる）
+let tagIndex = null; // タグの共通化：同じ名前（「」の中）のほかの出来事に付けたタグでも見つかる（data.js の historyTagIndex）
 function searchText(e) {
-  if (!searchTexts.has(e)) searchTexts.set(e, historySearchText(e));
+  if (!searchTexts.has(e)) searchTexts.set(e, [historySearchText(e), e.mv ? "" : tagSearchWords(tagsForNames(tagIndex, quotedNames(e.title)))].join("|"));
   return searchTexts.get(e);
 }
 const hit = (e) => !query.trim() || matchHistory(e, query, looseMatchAll, searchText);
@@ -490,6 +491,7 @@ function build(historyText, sitesText) {
   // 見出しのリンクと同じ特設サイトが「公開終了」なら、見出しのリンク先も保存版に（data.js の linkHistorySites。SET LIST と同じ）
   if (sitesText) events = linkHistorySites(events, parseSites(sitesText).sites).map((e) => ({ ...e, cat: e.cats[0] }));
   for (const e of events) e.shows = showsOf(e);
+  tagIndex = historyTagIndex(events);
   mvCache = null;
   if (events.length) $("#span").textContent = `${events[0].y} — ${events[events.length - 1].y}`;
 }
