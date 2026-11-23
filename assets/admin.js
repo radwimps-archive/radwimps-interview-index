@@ -12,6 +12,14 @@ import { STORE_TOKEN, STORE_REPO, lsGet, lsSet, repoName, GhError, GitHub } from
 
 const FILE = "data/articles.csv";
 const PAGE = 40; // 一覧に一度に出す件数
+// 記事の一覧を開いているか（運営の希望 11/23：一覧が長くてスクロールが大変なので、開閉できるようにした）。
+// 最初は閉じておき、開いた・閉じたはこの端末で覚える。検索の言葉を入れたときと、「公開」「非表示」などで絞ったときは開く
+const STORE_LIST_OPEN = "radwimps-interview-index:admin-list-open";
+let listOpen = (() => { try { return localStorage.getItem(STORE_LIST_OPEN) === "1"; } catch { return false; } })();
+function setListOpen(on) {
+  listOpen = on;
+  try { if (on) localStorage.setItem(STORE_LIST_OPEN, "1"); else localStorage.removeItem(STORE_LIST_OPEN); } catch { /* 保存できない環境では、このページを開いているあいだだけ */ }
+}
 // 合鍵を作る GitHub の画面。名前・説明・有効期限（90日）・許可（Contents の読み書き）と、
 // 持ち主（Resource owner：リポジトリの持ち主。Organization ならその Organization）を入れた状態で開く
 function tokenUrl() {
@@ -324,14 +332,14 @@ function toolbar() {
   const add = h("button", { type: "button", class: "btn primary", text: "＋ 記事を追加" });
   add.addEventListener("click", () => openEditor(null));
   const q = h("input", { type: "search", class: "admq", placeholder: "タイトル・媒体・URL で探す", value: A.q, "aria-label": "運営管理の記事を探す" });
-  q.addEventListener("input", () => { A.q = q.value; A.limit = PAGE; renderList(); });
+  q.addEventListener("input", () => { A.q = q.value; A.limit = PAGE; if (A.q.trim() && !listOpen) setListOpen(true); renderList(); });
   const issues = rowIssues();
   const counts = { all: A.rows.length, issues: issues.filter((x) => x.e.length || x.w.length).length };
   for (const s of STATES) counts[s] = A.rows.filter((r) => (nf(cell(r, "状態")) || "公開") === s).length;
   const chips = h("div", { class: "chips", role: "group", "aria-label": "表示する記事" },
     ...[["all", "すべて"], ...STATES.map((s) => [s, s]), ["issues", "要確認"]].map(([v, l]) => {
       const b = h("button", { type: "button", class: "chip", "aria-pressed": String(A.filter === v) }, l, h("span", { class: "n", text: counts[v] }));
-      b.addEventListener("click", () => { A.filter = v; A.limit = PAGE; render(); });
+      b.addEventListener("click", () => { A.filter = v; A.limit = PAGE; if (!listOpen) setListOpen(true); render(); });
       return b;
     }));
   return h("div", { class: "admtools" }, h("div", { class: "admrow" }, add, q), chips);
@@ -371,12 +379,22 @@ function renderList() {
     b.addEventListener("click", () => openEditor(i));
     ul.append(h("li", null, b));
   }
-  const parts = [h("p", { class: "count", text: shown.length === A.rows.length ? `${A.rows.length} 件` : `${shown.length} 件（全 ${A.rows.length} 件）` })];
-  parts.push(shown.length ? ul : h("p", { class: "hint", text: "当てはまる記事はありません。" }));
+  const toggle = h("button", { type: "button", class: "btn admlist-toggle", "aria-expanded": String(listOpen), "aria-controls": "admListBody" },
+    listOpen ? "一覧を閉じる ▲" : "一覧を開く ▼");
+  toggle.addEventListener("click", () => {
+    setListOpen(!listOpen);
+    renderList();
+    listBox.querySelector(".admlist-toggle")?.focus();
+  });
+  const parts = [h("div", { class: "admlist-head" },
+    h("p", { class: "count", text: shown.length === A.rows.length ? `${A.rows.length} 件` : `${shown.length} 件（全 ${A.rows.length} 件）` }), toggle)];
+  const body = h("div", { id: "admListBody", hidden: !listOpen });
+  parts.push(body);
+  body.append(shown.length ? ul : h("p", { class: "hint", text: "当てはまる記事はありません。" }));
   if (shown.length > A.limit) {
     const more = h("button", { type: "button", class: "btn", text: `さらに表示（残り ${shown.length - A.limit} 件）` });
     more.addEventListener("click", () => { A.limit += PAGE * 2; renderList(); });
-    parts.push(more);
+    body.append(more);
   }
   listBox.replaceChildren(...parts);
 }
