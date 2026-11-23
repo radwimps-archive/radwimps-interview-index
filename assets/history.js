@@ -27,7 +27,7 @@ let current = "all";
 let query = "";   // 検索窓の言葉。タブを切り替えても残す（どのタブも同じ年表の出来事なので）
 let ready = false; // 年表・特設サイト・セトリをすべて読み終えたら true（それまでは検索しても描かない）
 let shown = null;  // いま年表に並べている出来事（検索で中身が変わらないときは、作り直さないため）
-let sourceTexts = { history: "", sites: "" }; // ページを開いたときに読んだ CSV（年表の管理の「保存せずに試す」で使う）
+let sourceTexts = { history: "", sites: "", setlists: "" }; // ページを開いたときに読んだ CSV（年表の管理の「保存せずに試す」で使う）
 let adminApi = null; // 年表の管理（管理者モードの端末だけ。assets/admin-history.js）
 let articleById = new Map(); // 記事データ（data/articles.csv）の公開している記事。関連リンクの「記事:id」から、タイトルと媒体を出すため
 const itemEvent = new WeakMap(); // 年表の行（li）→ その出来事（記事データを読み終えたとき、関連リンクの行だけを足すため）
@@ -602,7 +602,9 @@ function setupAdmin() {
       sourceTexts: () => sourceTexts,
       loadArticles, // 記事から選ぶときの記事の一覧（公開している記事）
       // 直した内容で年表を作り直す（タブ・検索の言葉・スクロールの位置はそのまま）
-      rebuild(historyText, sitesText) {
+      // setlistsText：年表の管理でセトリ（公演）を直したときは、行ったボタン・SET LIST の検索に使う公演も作り直す
+      rebuild(historyText, sitesText, setlistsText) {
+        if (setlistsText) { try { lives = parseSetlists(setlistsText).lives; assignKeys(lives); } catch { /* 前の公演のまま */ } }
         build(historyText, sitesText);
         shown = null;
         renderTabs({ center: false });
@@ -632,11 +634,12 @@ function setupAdmin() {
       if (sr.ok) sitesText = await sr.text();
     } catch { /* 特設サイトの印は出さない */ }
     // セトリのデータ（行ったライブの印のため）。読めなくても、年表はそのまま見られる
+    let setlistsText = "";
     try {
       const sl = await fetch("data/setlists.csv", { cache: "no-cache" });
-      if (sl.ok) { lives = parseSetlists(await sl.text()).lives; assignKeys(lives); }
+      if (sl.ok) { setlistsText = await sl.text(); lives = parseSetlists(setlistsText).lives; assignKeys(lives); }
     } catch { /* 印は出さない */ }
-    sourceTexts = { history: historyText, sites: sitesText };
+    sourceTexts = { history: historyText, sites: sitesText, setlists: setlistsText };
     build(historyText, sitesText);
     if (affiliateOn) $("#prNote").hidden = $("#prTop").hidden = false;
     // URL の ?q= で、検索した状態で開ける（楽曲一覧と同じ。例：history.html?q=ツアー）

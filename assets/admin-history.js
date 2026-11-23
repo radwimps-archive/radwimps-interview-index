@@ -8,7 +8,7 @@
 //   ・出来事の「タグ」：検索のための言葉を「足す」「✕」で付け外しします（「タグ」の列。年表には出さず、歩みの検索窓で見つかるようになる）。
 //   ・出来事の「関連リンク」：記事一覧の記事を選んでつなぐか、ほかのページの URL を足します。「外す」で外せます（「関連リンク」の列）。
 
-import { parseCSV, toCSVLine, parseHistory, parseSites, parseHistoryLinks, formatHistoryLinks, checkHistoryLinks, HISTORY_LINK_LABEL_MAX, parseHistoryTags, formatHistoryTags, HISTORY_TAG_MAX, HISTORY_CATEGORIES, SITE_KINDS } from "./data.js";
+import { parseCSV, toCSVLine, parseHistory, parseSites, parseSetlists, historyShows, quotedNames, SETLIST_CONFIDENCE, SETLIST_CATEGORIES, parseHistoryLinks, formatHistoryLinks, checkHistoryLinks, HISTORY_LINK_LABEL_MAX, parseHistoryTags, formatHistoryTags, HISTORY_TAG_MAX, HISTORY_CATEGORIES, SITE_KINDS } from "./data.js";
 import { Table } from "./csv-table.js"; // 読み込んだ CSV と、まだ保存していない変更
 import { h, downloadFile } from "./ui.js";
 import { STORE_TOKEN, STORE_REPO, lsGet, lsSet, repoName, GhError, GitHub } from "./github.js";
@@ -24,8 +24,17 @@ const oneLine = (s) => String(s ?? "").replace(/\s*\n\s*/g, " ").trim();
 
 const T = {
   history: new Table({ file: "data/history.csv", what: "年表（data/history.csv）", label: "出来事", parse: parseHistory, newestFirst: false }),
-  sites: new Table({ file: "data/sites.csv", what: "特設サイトの一覧（data/sites.csv）", label: "特設サイト", parse: parseSites, newestFirst: true })
+  sites: new Table({ file: "data/sites.csv", what: "特設サイトの一覧（data/sites.csv）", label: "特設サイト", parse: parseSites, newestFirst: true }),
+  // セトリ（RAD LIVE SET LIST のデータ）。ライブ・ツアーの出来事の「直す」から、公演を足す・直す・消す（運営の希望 11/23）
+  setlists: new Table({ file: "data/setlists.csv", what: "セットリスト（data/setlists.csv）", label: "公演", parse: parseSetlists, newestFirst: false })
 };
+// セトリは「公演日」の1列（2017-02-25 の形）で日付の順に並べる（年表・特設サイトは「年」「月」「日」の3列）
+T.setlists.dateKey = (r) => {
+  const m = nf(T.setlists.cell(r, "公演日")).match(/^(\d{4})(?:-(\d{1,2}))?(?:-(\d{1,2}))?/);
+  return m ? [m[1], (m[2] || "0").padStart(2, "0"), (m[3] || "0").padStart(2, "0")].join("-") : "0000-00-00";
+};
+// 保存したときの記録（コミット）に出す名前
+const SAVE_NAMES = { history: "年表", sites: "特設サイトの一覧", setlists: "セットリスト" };
 
 /* ---------- 状態 ---------- */
 
@@ -35,7 +44,7 @@ const A = {
   error: "", gh: null, saving: false,
   editing: null  // 編集中 { table: "history" | "sites", index: 何番目か（追加は null）, orig: もとの行の中身 }
 };
-const pending = () => T.history.counts().total + T.sites.counts().total;
+const pending = () => Object.values(T).reduce((n, t) => n + t.counts().total, 0);
 
 let toastBox = null, toastTimer = 0;
 function toast(msg) {
@@ -59,7 +68,7 @@ function reloadNote(t, lost, gone) {
     + (gone ? `消すはずだった${t.label} ${gone} 件は、もう消えていたか、別の場所で直されていました（前の保存で、もう消してあった可能性もあります。消す変更は取りやめました）。` : "");
 }
 // 直した内容を、ページの年表に映す
-const show = () => A.opts.rebuild(T.history.text(), T.sites.text());
+const show = () => A.opts.rebuild(T.history.text(), T.sites.text(), T.setlists.header.length ? T.setlists.text() : "");
 
 /* ---------- GitHub ---------- */
 
@@ -92,6 +101,7 @@ function startPractice() {
   if (!T.history.header.length && !src.history) { toast("年表を読み込めていません。ページを読み込み直してください"); return; }
   if (!T.history.header.length) T.history.load(src.history);
   if (!T.sites.header.length && src.sites) T.sites.load(src.sites);
+  if (!T.setlists.header.length && src.setlists) T.setlists.load(src.setlists);
   A.mode = "practice"; A.error = "";
   show(); // 年表を、この表の中身で作り直す（「直す」の行番号を、表とそろえるため）
   render();
@@ -103,6 +113,7 @@ function practiceFromPage() {
   if (!src.history) { toast("年表を読み込めていません。ページを読み込み直してください"); return; }
   T.history.load(src.history);
   if (src.sites) T.sites.load(src.sites);
+  if (src.setlists) T.setlists.load(src.setlists);
   A.mode = "practice"; A.error = "";
   closeEditor();
   show(); render();
@@ -121,7 +132,8 @@ async function save() {
     for (const t of Object.values(T)) {
       if (!t.ops.length) continue;
       const c = t.counts();
-      const message = `${t.label === "出来事" ? "年表" : "特設サイトの一覧"}を更新（歩みのページから：追加 ${c.add}・修正 ${c.edit}・削除 ${c.delete}）`;
+      const key = Object.keys(T).find((k) => T[k] === t);
+      const message = `${SAVE_NAMES[key]}を更新（歩みのページから：追加 ${c.add}・修正 ${c.edit}・削除 ${c.delete}）`;
       let res = await A.gh.write(t.file, t.text(), t.sha, message);
       if (res.status === 409 || res.status === 422) {
         // 開いているあいだに GitHub 側で変わっていた：最新を読み込み、今回の変更を重ねてからもう一度保存する
@@ -290,7 +302,8 @@ function buildSheet() {
     field("CD を探す（タワーレコードの列）", ev.tower, "検索する言葉（例：RADWIMPS 人間開花）か、tower.jp の商品ページの URL。書くと、作品名を押したときに「CD を探す」が開きます。"),
     field("動画（1行に1つ）", ev.video, "「ラベル=YouTube の URL か ID」の形。ラベルを「MV」で始めると、MV のタブにも並びます（例：MV「光」=…、予告編=…）。"),
     buildTagBox(ev),
-    buildLinkBox(ev));
+    buildLinkBox(ev),
+    buildSetlistBox(ev));
 
   // 特設サイトの欄
   F.st = {};
@@ -319,6 +332,8 @@ function buildSheet() {
   F.issues = h("div", { class: "editissues", "aria-live": "polite" });
   F.form.addEventListener("input", validate);
   F.form.addEventListener("change", validate);
+  // カテゴリや日付を変えたら、セトリの欄（ライブ・ツアーのときだけ）と、その期間の公演の一覧を出し直す
+  F.form.addEventListener("change", (e) => { if (A.editing?.table === "history" && !e.target.closest(".hadm-slform")) renderSetlistBox(); });
   F.form.addEventListener("submit", (e) => e.preventDefault());
   sheet.addEventListener("click", (e) => {
     const b = e.target.closest("[data-act]");
@@ -333,6 +348,160 @@ function buildSheet() {
   });
   // Esc で閉じる（日本語の変換中の Esc では閉じない）
   document.addEventListener("keydown", (e) => { if (e.key === "Escape" && !sheet.hidden && !e.isComposing && e.keyCode !== 229) closeEditor(); });
+}
+
+/* ---------- セトリ（RAD LIVE SET LIST の公演） ---------- */
+// ライブ・ツアーの出来事の「直す」に出す欄。出来事の日付（期間）に入る公演（data.js の historyShows。歩み・SET LIST と同じ決まり）を並べ、
+// 公演を足す・直す・消すと、data/setlists.csv の変更として「保存していない変更」に入る（「GitHub に保存」で保存。SET LIST のページにもそのまま出る）。
+// 出来事の「この内容にする」とは別に、公演の「この公演を足す／直す」を押した時点で変更に入る
+const SL_FIELDS = ["公演日", "ライブ名", "会場", "区分", "本編", "アンコール", "ゲスト", "確かさ", "出典", "出典URL", "メモ"];
+const isLiveForm = () => {
+  const ev = F.ev;
+  return ev.cat.value === "ライブ・ツアー" || [...ev.more.querySelectorAll("input:checked")].some((x) => x.value === "ライブ・ツアー");
+};
+function buildSetlistBox(ev) {
+  ev.slList = h("ul", { class: "hadm-links", "aria-label": "この出来事の公演" });
+  ev.slAdd = h("button", { type: "button", class: "btn", "data-sladd": "", text: "＋ 公演（セトリ）を追加" });
+  const S = ev.sl = {};
+  const text = (ph, attrs = {}) => h("input", { type: "text", autocomplete: "off", placeholder: ph, ...attrs });
+  S.date = h("input", { type: "date", "aria-label": "公演日" });
+  S.name = text("例：Human Bloom Tour 2017");
+  S.venue = text("例：横浜アリーナ（神奈川）");
+  S.cat = h("select", { "aria-label": "区分" }, ...SETLIST_CATEGORIES.map((c) => h("option", { value: c, text: c })));
+  S.main = h("textarea", { rows: "8", spellcheck: "false", placeholder: "1行に1曲。演奏した順に\n例：\nNEVER EVER ENDER\n光\n前前前世" });
+  S.encore = h("textarea", { rows: "3", spellcheck: "false", placeholder: "1行に1曲（なければ空欄）" });
+  S.guests = text("例：あいみょん、Taka（「、」で区切る）");
+  S.conf = h("select", { "aria-label": "確かさ" }, ...SETLIST_CONFIDENCE.map((c) => h("option", { value: c.name, text: c.label === c.name ? c.name : `${c.name}（${c.label}）` })));
+  S.source = text("例：ORICON NEWS（ライブレポート）");
+  S.url = h("input", { type: "url", inputmode: "url", autocomplete: "off", spellcheck: "false", placeholder: "https://" });
+  S.note = text("運営用のメモ（サイトに出ないものもあります）");
+  S.issues = h("div", { class: "editissues", "aria-live": "polite" });
+  S.save = h("button", { type: "button", class: "btn primary", "data-slsave": "" });
+  S.cancel = h("button", { type: "button", class: "btn plain", "data-slcancel": "", text: "やめる" });
+  S.del = h("button", { type: "button", class: "btn plain danger", "data-sldel": "", text: "この公演を消す" });
+  ev.slForm = h("div", { class: "hadm-slform", hidden: "" },
+    h("h4", { class: "hadm-slform-title" }),
+    field("公演日（必須）", S.date),
+    field("ライブ名（必須）", S.name, "同じライブ名の公演が、SET LIST で1つのツアーにまとまります。"),
+    field("会場", S.venue, "会場名（都道府県）の形。"),
+    field("区分", S.cat),
+    field("本編（1行に1曲）", S.main, "演奏した順に。【アンコール1】【kZm】などの見出しは、その行だけに書きます。「／」で区切って貼り付けてもかまいません。"),
+    field("アンコール（1行に1曲）", S.encore),
+    field("ゲスト", S.guests),
+    field("確かさ", S.conf, "ライブレポートで確かめたら「確認済み」、ファンの投稿サイトなら「未確認」。セトリがまだなら「セトリなし」。"),
+    field("出典", S.source), field("出典URL", S.url), field("メモ", S.note),
+    S.issues,
+    h("div", { class: "panelbtns" }, S.save, S.cancel, S.del));
+  ev.slBox = h("div", { class: "fgroup hadm-linkbox" },
+    h("h3", { text: "セトリ（RAD LIVE SET LIST の公演）" }),
+    h("p", { class: "hadm-note", text: "この出来事の日付（期間）に入る公演です。足した・直した公演は「保存していない変更」に入り、「GitHub に保存」で SET LIST のページにも出ます。" }),
+    ev.slList, ev.slAdd, ev.slForm);
+  const lines = (s) => String(s || "").split(/[\n／]/).map((x) => x.trim()).filter(Boolean);
+  const cellsOf = () => {
+    const t = T.setlists, base = ev.slEditing?.index != null ? t.rows[ev.slEditing.index] : null;
+    const map = { "公演日": S.date.value, "ライブ名": oneLine(S.name.value), "会場": oneLine(S.venue.value), "区分": S.cat.value,
+      "本編": lines(S.main.value).join("／"), "アンコール": lines(S.encore.value).join("／"), "ゲスト": oneLine(S.guests.value),
+      "確かさ": S.conf.value, "出典": oneLine(S.source.value), "出典URL": S.url.value.trim(), "メモ": oneLine(S.note.value) };
+    return t.header.map((col, i) => (col in map ? String(map[col] ?? "") : base ? base[i] ?? "" : ""));
+  };
+  // 書式のチェック（年表と同じく、サイトのチェックと同じ決まり）。戻り値：直す必要のある問題
+  const check = () => {
+    const t = T.setlists, idx = ev.slEditing?.index;
+    const cells = cellsOf(), others = t.rows.filter((_, i) => i !== idx);
+    const text = t.text([...others, cells]);
+    const line = parseCSV(text).lines[others.length + 1];
+    const res = t.parse(text);
+    const errors = [...(S.date.value ? [] : ["公演日を入れてください"]), ...res.errors.filter((x) => x.line === line).map((x) => x.msg)];
+    const warnings = res.warnings.filter((x) => x.line === line).map((x) => x.msg);
+    S.issues.replaceChildren(...errors.map((m) => h("p", { class: "msg err", text: "直してください：" + m })), ...warnings.map((m) => h("p", { class: "msg", text: "注意：" + m })));
+    S.save.disabled = errors.length > 0;
+    return { errors, cells };
+  };
+  ev.slForm.addEventListener("input", check);
+  ev.slForm.addEventListener("change", check);
+  ev.slBox.addEventListener("click", (e) => {
+    const t = T.setlists;
+    if (e.target.closest("[data-sladd]")) {
+      if (!t.header.length) { toast("セットリストを読み込めていないので、ここでは足せません。ページを読み込み直してください"); return; }
+      ev.slEditing = { index: null, orig: null };
+      const [y, m, d] = getDate("s");
+      S.date.value = y && m && d ? `${y}-${String(m).padStart(2, "0")}-${String(d).padStart(2, "0")}` : "";
+      S.name.value = quotedNames(ev.text.value)[0] || ""; S.venue.value = ""; S.cat.value = SETLIST_CATEGORIES[0];
+      S.main.value = ""; S.encore.value = ""; S.guests.value = ""; S.conf.value = "セトリなし"; S.source.value = ""; S.url.value = ""; S.note.value = "";
+      openSlForm("公演を追加", "この公演を足す", false);
+      return;
+    }
+    const ed = e.target.closest("[data-sledit]");
+    if (ed) {
+      const i = +ed.dataset.sledit, r = t.rows[i], c = (n) => t.cell(r, n);
+      ev.slEditing = { index: i, orig: toCSVLine(r) };
+      S.date.value = /^\d{4}-\d{2}-\d{2}$/.test(c("公演日")) ? c("公演日") : "";
+      S.name.value = c("ライブ名"); S.venue.value = c("会場"); S.cat.value = SETLIST_CATEGORIES.includes(c("区分")) ? c("区分") : SETLIST_CATEGORIES[0];
+      S.main.value = lines(c("本編")).join("\n"); S.encore.value = lines(c("アンコール")).join("\n"); S.guests.value = c("ゲスト");
+      S.conf.value = SETLIST_CONFIDENCE.some((x) => x.name === c("確かさ")) ? c("確かさ") : "セトリなし";
+      S.source.value = c("出典"); S.url.value = c("出典URL"); S.note.value = c("メモ");
+      openSlForm(`公演を直す（${c("公演日")}）`, "この公演を直す", true);
+      return;
+    }
+    if (e.target.closest("[data-slcancel]")) { closeSlForm(); return; }
+    if (e.target.closest("[data-slsave]")) {
+      const { errors, cells } = check();
+      if (errors.length) return;
+      const isNew = ev.slEditing.index == null;
+      if (!t.doOp({ type: isNew ? "add" : "edit", orig: ev.slEditing.orig, cells })) { closeSlForm(); toast("変わったところがないので、そのままにしました"); return; }
+      const date = cells[t.col("公演日")];
+      closeSlForm();
+      show(); render();
+      // 出来事の期間の外の公演は、この一覧には出ない（SET LIST には出る）ので、そう知らせる
+      const inRange = [...ev.slList.querySelectorAll("[data-sledit]")].some((b) => t.cell(t.rows[+b.dataset.sledit] || [], "公演日") === date);
+      toast(`公演を${isNew ? "足し" : "直し"}ました（まだ保存していません。年表の上の「GitHub に保存」で保存します）`
+        + (inRange ? "" : "。この出来事の日付（期間）の外なので、この一覧には出ませんが、SET LIST には出ます"));
+      return;
+    }
+    if (e.target.closest("[data-sldel]")) {
+      if (!confirmInline(S.del, "もう一度押すと、この公演を消します")) return;
+      t.doOp({ type: "delete", orig: ev.slEditing.orig, cells: null });
+      closeSlForm();
+      show(); render();
+      toast("公演を消しました（まだ保存していません）");
+    }
+  });
+  function openSlForm(title, saveText, canDelete) {
+    ev.slForm.querySelector(".hadm-slform-title").textContent = title;
+    S.save.textContent = saveText;
+    S.del.hidden = !canDelete;
+    ev.slForm.hidden = false; ev.slAdd.hidden = true;
+    check();
+    S.date.focus();
+  }
+  function closeSlForm() {
+    ev.slForm.hidden = true; ev.slAdd.hidden = false; ev.slEditing = null;
+    renderSetlistBox();
+    ev.slAdd.focus();
+  }
+  return ev.slBox;
+}
+// セトリの欄を出し直す：ライブ・ツアーのときだけ出し、出来事の日付（期間）に入る公演を並べる
+function renderSetlistBox() {
+  const ev = F.ev;
+  if (!ev.slBox) return;
+  const show = isLiveForm();
+  ev.slBox.hidden = !show;
+  if (!show) return;
+  const t = T.setlists;
+  if (!t.header.length) { ev.slList.replaceChildren(h("li", { class: "hadm-empty", text: "セットリストを読み込めていません。" })); return; }
+  const [y, m, d] = getDate("s"), [ey, em, ed] = getDate("e");
+  const pseudo = { y: +y || 0, m: +m || 0, d: +d || 0, ey: +ey || 0, em: +em || 0, ed: +ed || 0, cats: [{ name: "ライブ・ツアー" }] };
+  // 表の行（何番目か）と、読み取った公演を対応させる（同じ CSV から作るので、行番号でつなぐ）
+  const text = t.text(), { lines } = parseCSV(text);
+  const lives = parseSetlists(text).lives;
+  const shows = historyShows(pseudo, lives);
+  const idxOf = (l) => lines.indexOf(l.line) - 1;
+  ev.slList.replaceChildren(...(shows.length ? shows.map((l) => {
+    const n = (l.main?.length || 0) + (l.encore?.length || 0);
+    return h("li", {}, h("span", { text: `${l.date} ${l.venue || ""}（${n ? `${n}曲` : "曲なし"}・${l.conf?.name || ""}）` }),
+      h("button", { type: "button", class: "btn", "data-sledit": String(idxOf(l)), "aria-label": `${l.date} ${l.venue || ""}の公演を直す`, text: "直す" }));
+  }) : [h("li", { class: "hadm-empty", text: m ? "この期間の公演は、まだありません。" : "日付（月まで）を入れると、その期間の公演が出ます。" })]));
 }
 
 /* ---------- タグ（検索のための言葉） ---------- */
@@ -542,6 +711,8 @@ function openEditor(table, index) {
     ev.artQ.value = ""; ev.urlLabel.value = ""; ev.urlUrl.value = "";
     renderLinks(); renderHits();
     // 古い年表の CSV（「関連リンク」の列がない）では、足しても保存されないので、操作の欄の代わりに理由と「試す」ボタンを出す
+    ev.slForm.hidden = true; ev.slEditing = null;
+    renderSetlistBox();
     const hasCol = t.header.includes("関連リンク");
     ev.linkControls.hidden = !hasCol;
     ev.linkMissing.hidden = hasCol;
