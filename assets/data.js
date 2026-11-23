@@ -395,7 +395,7 @@ const HISTORY_DEFAULT_CATEGORY = HISTORY_CATEGORIES.find((c) => c.slug === "band
 
 const HISTORY_COLUMNS = {
   "年": "y", "月": "m", "日": "d", "終了年": "ey", "終了月": "em", "終了日": "ed", "カテゴリ": "cat", "出来事": "title", "補足": "note",
-  "特設サイト": "site", "タワーレコード": "tower", "動画": "video", "関連リンク": "links"
+  "特設サイト": "site", "タワーレコード": "tower", "動画": "video", "関連リンク": "links", "タグ": "tags"
 };
 const HISTORY_REQUIRED = ["年", "カテゴリ", "出来事"];
 
@@ -450,6 +450,24 @@ export function checkHistoryLinks(events, articleItems) {
   return out;
 }
 
+// 「タグ」の列（運営が付ける、検索のための言葉。年表には出さない）。記事データと同じく「#ツアー #横浜」のように # を付けて書く
+//   # がないときは「、」で区切ったものとして読む。1つ 40 文字まで
+export const HISTORY_TAG_MAX = 40;
+export function parseHistoryTags(value) {
+  const cell = String(value ?? "");
+  const list = /[#＃]/.test(cell) ? splitList(cell, /[#＃]/) : splitList(cell, /[、,，]/);
+  const tags = [], bad = [];
+  for (const t of list) {
+    if ([...t].length > HISTORY_TAG_MAX) bad.push(t);
+    else if (!tags.includes(t)) tags.push(t);
+  }
+  return { tags, bad };
+}
+// タグの一覧を、CSV の「タグ」の列の書き方に戻す（年表の管理で使う）。# と改行は区切りとまぎれるので外す
+export function formatHistoryTags(tags) {
+  return tags.map((t) => String(t).replace(/[#＃\n]/g, " ").replace(/\s+/g, " ").trim()).filter(Boolean).map((t) => `#${t}`).join(" ");
+}
+
 export function parseHistory(text) {
   const events = [], errors = [], warnings = [];
   const err = (line, msg) => errors.push({ line, msg });
@@ -492,6 +510,8 @@ export function parseHistory(text) {
     }
     const { videos, bad } = parseVideos(get("video"));
     for (const b of bad) err(line, `動画「${b}」の書き方が正しくありません（例：MV=XRnX65LDRoU、予告編=https://www.youtube.com/watch?v=…）`);
+    const tg = parseHistoryTags(get("tags"));
+    for (const b of tg.bad) err(line, `タグ「${b.slice(0, 20)}…」が長すぎます（1つ ${HISTORY_TAG_MAX} 文字まで。タグは「#ツアー #横浜」のように1つずつ # を付けて書きます）`);
     const lk = parseHistoryLinks(get("links"));
     for (const b of lk.bad) err(line, `関連リンク「${b}」の書き方が正しくありません（記事は「記事:記事の id」、ほかのページは「ラベル=https://…」。ラベルは${HISTORY_LINK_LABEL_MAX}文字まで）`);
 
@@ -499,7 +519,7 @@ export function parseHistory(text) {
     const num = (v) => (v ? +v : 0);
     const [y, m, d] = start.split("-").map(num), [ey, em, ed] = end.split("-").map(num);
     events.push({ line, i: events.length, y, m: m || 0, d: d || 0, ey: ey || 0, em: em || 0, ed: ed || 0,
-      cats: cats.length ? cats : [HISTORY_DEFAULT_CATEGORY], title, note: get("note"), site, tower, videos, links: lk.links });
+      cats: cats.length ? cats : [HISTORY_DEFAULT_CATEGORY], title, note: get("note"), site, tower, videos, links: lk.links, tags: tg.tags });
   }
   // 古い順（同じ日は CSV に書いた順）。月・日がないものは、その年・その月のはじめに
   events.sort((a, b) => a.y - b.y || a.m - b.m || a.d - b.d || a.i - b.i);
@@ -611,7 +631,8 @@ export function historySearchText(e) {
   return [`${e.y}年`, ...(e.ey ? [`${e.ey}年`] : []),
     e.title, e.note, ...(e.cats || []).map((c) => c.name),
     ...(e.mv ? [] : (e.videos || []).map((v) => v.label)),
-    ...sites.map((s) => s.name), ...(sites.length ? ["特設サイト"] : [])].filter(Boolean).join("|");
+    ...sites.map((s) => s.name), ...(sites.length ? ["特設サイト"] : []),
+    ...(e.mv ? [] : (e.tags || []).flatMap((t) => [t, `#${t}`]))].filter(Boolean).join("|");
 }
 // 出来事の月日の言葉（「4月」「4月5日」「2016年4月」「2016年4月5日」）。期間のある出来事は、途中の月と終わりの月日も
 function historyDateWords(e) {

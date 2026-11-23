@@ -5,9 +5,10 @@
 //   ・「GitHub に保存」を押すと、GitHub の CSV が書き換わり、1〜2分でサイトに反映されます。
 //   ・合鍵（アクセストークン）は、記事一覧の運営管理（記事の管理）で登録したものを、そのまま使います（github.js）。
 //   ・合鍵がなくても「保存せずに試す」で試せます（直した CSV はファイルに書き出せます）。
+//   ・出来事の「タグ」：検索のための言葉を「足す」「✕」で付け外しします（「タグ」の列。年表には出さず、歩みの検索窓で見つかるようになる）。
 //   ・出来事の「関連リンク」：記事一覧の記事を選んでつなぐか、ほかのページの URL を足します。「外す」で外せます（「関連リンク」の列）。
 
-import { parseCSV, toCSVLine, parseHistory, parseSites, parseHistoryLinks, formatHistoryLinks, checkHistoryLinks, HISTORY_LINK_LABEL_MAX, HISTORY_CATEGORIES, SITE_KINDS } from "./data.js";
+import { parseCSV, toCSVLine, parseHistory, parseSites, parseHistoryLinks, formatHistoryLinks, checkHistoryLinks, HISTORY_LINK_LABEL_MAX, parseHistoryTags, formatHistoryTags, HISTORY_TAG_MAX, HISTORY_CATEGORIES, SITE_KINDS } from "./data.js";
 import { Table } from "./csv-table.js"; // 読み込んだ CSV と、まだ保存していない変更
 import { h, downloadFile } from "./ui.js";
 import { STORE_TOKEN, STORE_REPO, lsGet, lsSet, repoName, GhError, GitHub } from "./github.js";
@@ -288,6 +289,7 @@ function buildSheet() {
     field("特設サイト・公式ページの URL", ev.site, "https:// で始まる URL。作品名・ライブ名を押すと開きます。"),
     field("CD を探す（タワーレコードの列）", ev.tower, "検索する言葉（例：RADWIMPS 人間開花）か、tower.jp の商品ページの URL。書くと、作品名を押したときに「CD を探す」が開きます。"),
     field("動画（1行に1つ）", ev.video, "「ラベル=YouTube の URL か ID」の形。ラベルを「MV」で始めると、MV のタブにも並びます（例：MV「光」=…、予告編=…）。"),
+    buildTagBox(ev),
     buildLinkBox(ev));
 
   // 特設サイトの欄
@@ -331,6 +333,60 @@ function buildSheet() {
   });
   // Esc で閉じる（日本語の変換中の Esc では閉じない）
   document.addEventListener("keydown", (e) => { if (e.key === "Escape" && !sheet.hidden && !e.isComposing && e.keyCode !== 229) closeEditor(); });
+}
+
+/* ---------- タグ（検索のための言葉） ---------- */
+// 出来事に付ける言葉。年表には出さず、歩みの検索窓で見つかるようになる（例：ライブの愛称、作品の別の呼び方）
+function buildTagBox(ev) {
+  ev.tags = [];
+  ev.tagList = h("ul", { class: "hadm-tags", "aria-label": "付けているタグ" });
+  ev.tagIn = h("input", { type: "text", autocomplete: "off", maxlength: String(HISTORY_TAG_MAX), enterkeyhint: "done", list: "hadmTagList", placeholder: "例：胎盤ツアー", "aria-label": "足すタグ" });
+  ev.tagSuggest = h("datalist", { id: "hadmTagList" });
+  const add = h("button", { type: "button", class: "btn", "data-tadd": "", text: "足す" });
+  ev.tagMissing = h("p", { class: "msg hadm-tagmissing", hidden: "", text: "いま読み込んでいる年表には「タグ」の列がまだないので、タグは付けられません（関連リンクの欄の「公開中のサイトの年表で、保存せずに試す」で試せます）。" });
+  ev.tagControls = h("div", { class: "hadm-linkbox" },
+    ev.tagList,
+    h("div", { class: "admfield" }, h("span", { text: "タグを足す" }),
+      h("div", { class: "hadm-urlrow" }, ev.tagIn, add),
+      h("small", { text: `年表には出ません。歩みの検索窓で、この言葉でも見つかるようになります（例：ライブの愛称、作品の別の呼び方）。1つ ${HISTORY_TAG_MAX} 文字まで。Enter でも足せます。` })),
+    ev.tagSuggest);
+  const box = h("div", { class: "fgroup hadm-linkbox" }, h("h3", { text: "タグ（検索のための言葉）" }), ev.tagMissing, ev.tagControls);
+  const addTag = () => {
+    const t = ev.tagIn.value.replace(/[#＃]/g, " ").replace(/\s+/g, " ").trim();
+    if (!t) { toast("足すタグを書いてください"); ev.tagIn.focus(); return; }
+    if (ev.tags.includes(t)) { toast(`「${t}」は、もう付いています`); ev.tagIn.select(); return; }
+    ev.tags.push(t);
+    ev.tagIn.value = "";
+    renderTags(); validate();
+    ev.tagIn.focus();
+    toast(`タグ「${t}」を足しました（まだ保存していません。下の「この内容にする」を押すと年表に映ります）`);
+  };
+  ev.tagIn.addEventListener("keydown", (e) => { if (e.key === "Enter" && !e.isComposing && e.keyCode !== 229) { e.preventDefault(); addTag(); } });
+  box.addEventListener("click", (e) => {
+    if (e.target.closest("[data-tadd]")) return addTag();
+    const rm = e.target.closest("[data-trm]");
+    if (!rm) return;
+    const i = +rm.dataset.trm, t = ev.tags[i];
+    ev.tags.splice(i, 1);
+    renderTags(); validate();
+    (ev.tagList.querySelectorAll("[data-trm]")[Math.min(i, ev.tags.length - 1)] || ev.tagIn).focus();
+    toast(`タグ「${t}」を外しました（まだ保存していません）`);
+  });
+  ev.tagBox = box;
+  return box;
+}
+function renderTags() {
+  const ev = F.ev;
+  ev.tagList.replaceChildren(...(ev.tags.length ? ev.tags.map((t, i) => h("li", {},
+    h("span", { text: `#${t}` }),
+    h("button", { type: "button", class: "hadm-tag-x", "data-trm": String(i), "aria-label": `タグ「${t}」を外す`, text: "✕" })))
+    : [h("li", { class: "hadm-empty", text: "まだ付けていません。" })]));
+}
+// 入力の候補：ほかの出来事で使っているタグ（表記をそろえやすくするため）
+function tagSuggestions() {
+  const t = T.history, set = new Set();
+  for (const r of t.rows) for (const x of parseHistoryTags(t.cell(r, "タグ")).tags) set.add(x);
+  F.ev.tagSuggest.replaceChildren(...[...set].sort((a, b) => a.localeCompare(b, "ja")).map((x) => h("option", { value: x })));
 }
 
 /* ---------- 関連リンク（記事など） ---------- */
@@ -469,6 +525,12 @@ function openEditor(table, index) {
     for (const x of ev.more.querySelectorAll("input")) x.checked = cats.slice(1).includes(x.value);
     ev.text.value = c("出来事"); ev.note.value = c("補足"); ev.site.value = c("特設サイト"); ev.tower.value = c("タワーレコード");
     ev.video.value = c("動画").split("|").map((x) => x.trim()).filter(Boolean).join("\n");
+    ev.tags = parseHistoryTags(c("タグ")).tags;
+    ev.tagIn.value = "";
+    renderTags(); tagSuggestions();
+    const hasTagCol = t.header.includes("タグ");
+    ev.tagControls.hidden = !hasTagCol;
+    ev.tagMissing.hidden = hasTagCol;
     const lk = parseHistoryLinks(c("関連リンク"));
     ev.links = [...lk.links, ...lk.bad.map((text) => ({ type: "raw", text }))];
     ev.artQ.value = ""; ev.urlLabel.value = ""; ev.urlUrl.value = "";
@@ -541,7 +603,7 @@ function formToCells() {
     const cats = [ev.cat.value, ...[...ev.more.querySelectorAll("input:checked")].map((x) => x.value).filter((n) => n !== ev.cat.value)];
     map = { "年": y, "月": m, "日": d, "終了年": ey, "終了月": em, "終了日": ed, "カテゴリ": cats.join("、"), "出来事": oneLine(ev.text.value),
       "補足": ev.note.value.trim(), "特設サイト": ev.site.value.trim(), "タワーレコード": ev.tower.value.trim(),
-      "動画": ev.video.value.split("\n").map((x) => x.trim()).filter(Boolean).join(" | "), "関連リンク": formatHistoryLinks(ev.links) };
+      "動画": ev.video.value.split("\n").map((x) => x.trim()).filter(Boolean).join(" | "), "関連リンク": formatHistoryLinks(ev.links), "タグ": formatHistoryTags(ev.tags) };
   } else {
     const st = F.st, sel = st.state.querySelector("input:checked");
     const [y, m, d] = getDate("t");
@@ -568,6 +630,7 @@ function validate() {
     const ev = res.events.find((x) => x.line === line);
     if (ev && articleAll) warnings.push(...checkHistoryLinks([ev], articleAll).map((x) => x.msg));
     // URL を書いたまま「足す」を押していないと、そのリンクは残らないので、先に知らせる
+    if (F.ev.tagIn.value.trim()) errors.push("「タグを足す」に書いた言葉が、まだ足されていません。「足す」を押すか、欄を空にしてください");
     if (F.ev.urlUrl.value.trim() || F.ev.urlLabel.value.trim()) errors.push("「ほかのページの URL を足す」に書いた内容が、まだ足されていません。「足す」を押すか、欄を空にしてください");
   }
   F.issues.replaceChildren(...[
