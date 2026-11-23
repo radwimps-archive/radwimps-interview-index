@@ -40,7 +40,7 @@ export default {
   // field ：メールアドレスの欄の名前（サービスによって email・EMAIL など。空欄なら email）。
   // 書いたら、closing.html の CSP の form-action に、送り先のホスト名（送信後に別のホストへ移るなら、そのホストも）を足し、
   // tools/closing-switch.sh をもう一度実行して各ページに写し直してください。
-  newsletter: { action: "", field: "" },
+  newsletter: { action: "https://buttondown.com/api/emails/embed-subscribe/archives", field: "email" }, // Buttondown（ユーザー名 archives）
 
   // ご意見・不具合をメールで受け取る設定（Web3Forms という無料のメール転送サービスを使います。マニュアル13-2）。
   // key：Web3Forms から届いた「Access Key」（英数字とハイフン）。書くと、サイトの中の送信フォームから運営者のメールに届きます。

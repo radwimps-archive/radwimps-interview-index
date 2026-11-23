@@ -959,6 +959,7 @@ GitHub Pages だけでは、サイトが何回見られたかはわかりませ�
 - 案内ページではアクセス数を数えません（analytics.js を読み込まないため）。
 - `closing.html` や `config.js` を直したときは、**`sh tools/closing-switch.sh` をもう一度実行**してからコミットします（公開されるのは写したほうです）。
 - **メールの登録欄**：`config.js` の `newsletter.action` に配信サービスの登録フォームの送り先を書くと出ます（空欄のあいだは出ません）。あわせて `closing.html` の CSP の `form-action` に送り先のホスト名を足します。送信のあとに別のホスト（お礼のページなど）へ移るサービスなら、そのホストも足します。
+  - 使っているサービス：**Buttondown**（<https://buttondown.com>、ユーザー名 `archives`）。送り先は `https://buttondown.com/api/emails/embed-subscribe/archives`、欄の名前は `email`。登録した人の一覧は、Buttondown の左の「Subscribers」で見られます。正式版を公開したら、左の「Emails」からお知らせを書いて送ります。
 - **保存データの書き出し**：記事一覧の「保存データの管理」と同じ形（バージョン5）のファイルです。正式版でも、このファイルを「保存データの管理」で読み込めるようにしておきます（読み込みの処理を変えるときは、バージョン5のファイルが読めることを必ず確かめる）。
 
 ## 付録：表記・見た目のルール（デザインレビューで決めたこと）

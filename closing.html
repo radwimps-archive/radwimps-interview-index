@@ -8,7 +8,7 @@
      安全のための決まり（CSP）：HTML の中に直接 <script> や style="…" を書くと動かないので、assets/closing.js・closing.css に書いてください。
      メールの登録欄を使うときは、配信サービスのホスト名を form-action に足してください（送信のあとに別のホストへ移るサービスなら、そのホストも）。
      このファイルを直したら、tools/closing-switch.sh をもう一度実行して、各ページに写し直してください（公開されるのは写したほうです）。 -->
-<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data:; font-src 'self'; connect-src 'self'; object-src 'none'; base-uri 'self'; form-action 'self'; upgrade-insecure-requests">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data:; font-src 'self'; connect-src 'self'; object-src 'none'; base-uri 'self'; form-action 'self' https://buttondown.com; upgrade-insecure-requests">
 <meta name="referrer" content="strict-origin-when-cross-origin">
 <title>RADWIMPS Archives｜正式版の準備中</title>
 <meta name="description" content="RADWIMPS Archives のベータ版は公開を終え、正式版に向けたアップデートの準備をしています。">
