@@ -147,6 +147,8 @@ async function connect(token, repo) {
     A.mode = "off";
     A.error = e instanceof GhError ? e.message : "読み込めませんでした。";
     if (e.keyProblem) lsSet(STORE_TOKEN, ""); // 使えない合鍵は、次に開いたときに使わない
+    // 記事一覧の「直す」から来たときは、運営管理の画面が見えていないので、ここで知らせる
+    if (A.wantEdit) { toast(`GitHub につなげませんでした（${A.error}）。運営管理を開いて確かめてください`); A.wantEdit = null; }
   }
   render();
   afterReady();
@@ -241,6 +243,7 @@ const api = {
   //   GitHub とつないでいる途中なら、読み込みが終わってから開く。合鍵がなければ「保存せずに試す」にしてから開く
   editById(id) {
     if (A.mode === "github" || A.mode === "practice") return openById(id);
+    if (A.mode === "off" && lsGet(STORE_TOKEN)) { toast("GitHub につながっていません。運営管理を開いて、つなぎ直してください"); return; }
     A.wantEdit = id;
     if (A.mode === "off") { toast("合鍵が登録されていないので、保存せずに試す形で開きます（GitHub に保存するには、運営管理で合鍵を登録します）"); startPractice(); }
   },
@@ -261,7 +264,7 @@ function afterReady() {
 function render() {
   const root = A.root;
   if (!root) return;
-  A.opts?.onChange?.(summary().total); // 記事一覧の「保存していない変更」の帯のため
+  A.opts?.onChange?.(summary().total, A.mode); // 記事一覧の「保存していない変更」の帯のため
   if (A.mode === "off") return root.replaceChildren(connectView());
   if (A.mode === "connecting") return root.replaceChildren(h("p", { class: "hint", text: "記事データを読み込んでいます…" }));
   root.replaceChildren(statusLine(), toolbar(), listView(), pendingBar());
@@ -607,7 +610,8 @@ function openEditor(index) {
   (isNew ? F.url : $s("#editTitle").parentElement.querySelector("[data-edit='cancel']")).focus({ preventScroll: true });
 }
 // タグ：F.tags（「#a #b」）を札として並べる。足す・外すと F.tags を書き換えて、チェックし直す
-const tagsOf = () => String(F.tags.value || "").split(/[#＃]/).map((t) => t.trim()).filter(Boolean);
+// （サイトと同じく、「#」がないときは「、」で区切ったものとして読む）
+const tagsOf = () => { const v = String(F.tags.value || ""); return (/[#＃]/.test(v) ? v.split(/[#＃]/) : v.split(/[、,，]/)).map((t) => t.trim()).filter(Boolean); };
 function setTags(list) { F.tags.value = list.map((t) => `#${t}`).join(" "); renderTagChips(); validate(); }
 function renderTagChips() {
   const list = tagsOf();
@@ -627,7 +631,7 @@ function addTag() {
 // 入力の候補：ほかの記事で使っているタグ
 function tagSuggestions() {
   const set = new Set();
-  for (const r of A.rows) for (const t of String(cell(r, "タグ")).split(/[#＃]/)) if (t.trim()) set.add(t.trim());
+  for (const r of A.rows) { const v = String(cell(r, "タグ")); for (const t of (/[#＃]/.test(v) ? v.split(/[#＃]/) : v.split(/[、,，]/))) if (t.trim()) set.add(t.trim()); }
   F.tagSuggest.replaceChildren(...[...set].sort((a, b) => a.localeCompare(b, "ja")).map((x) => h("option", { value: x })));
 }
 function closeEditor() {

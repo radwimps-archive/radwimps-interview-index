@@ -687,6 +687,7 @@ function goList(change) {
   resetFilters();
   if (change) change();
   S.page = "list";
+  listPendingBar(adminEditor ? adminEditor.pending() : 0); // 運営管理からメニューで戻ったときも、帯を出し直す
   if (location.hash) history.replaceState(null, "", location.pathname + location.search);
   render();
   window.scrollTo({ top: 0, behavior: "auto" });
@@ -1088,14 +1089,19 @@ function loadAdmin() {
   return adminLoading;
 }
 // 記事一覧で「直す」から直したとき：保存していない変更があれば、画面の下に帯を出す（保存は運営管理の「GitHub に保存」で）
-function listPendingBar(n) {
+let pendingMode = "github";
+function listPendingBar(n, mode) {
+  if (mode) pendingMode = mode;
   let bar = $("#listPending");
+  document.body.classList.toggle("has-pending", !!n && S.page !== "admin");
   if (!n || S.page === "admin") { if (bar) bar.hidden = true; return; }
   if (!bar) {
     bar = h("div", { class: "list-pending", id: "listPending", role: "region", "aria-label": "保存していない記事の変更" });
     document.body.append(bar);
   }
-  bar.replaceChildren(h("span", { text: `保存していない記事の変更 ${n} 件` }), h("a", { class: "btn primary", href: "#admin", text: "運営管理で保存する →" }));
+  // 保存せずに試しているときは、GitHub には保存できないので、ファイルに書き出す案内にする
+  bar.replaceChildren(h("span", { text: pendingMode === "practice" ? `保存せずに試している記事の変更 ${n} 件` : `保存していない記事の変更 ${n} 件` }),
+    h("a", { class: "btn primary", href: "#admin", text: pendingMode === "practice" ? "運営管理で書き出す →" : "運営管理で保存する →" }));
   bar.hidden = false;
 }
 function renderAdmin() {
