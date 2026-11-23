@@ -343,7 +343,11 @@ function buildTagBox(ev) {
   ev.tagIn = h("input", { type: "text", autocomplete: "off", maxlength: String(HISTORY_TAG_MAX), enterkeyhint: "done", list: "hadmTagList", placeholder: "例：胎盤ツアー", "aria-label": "足すタグ" });
   ev.tagSuggest = h("datalist", { id: "hadmTagList" });
   const add = h("button", { type: "button", class: "btn", "data-tadd": "", text: "足す" });
-  ev.tagMissing = h("p", { class: "msg hadm-tagmissing", hidden: "", text: "いま読み込んでいる年表には「タグ」の列がまだないので、タグは付けられません（関連リンクの欄の「公開中のサイトの年表で、保存せずに試す」で試せます）。" });
+  const tryBtn = h("button", { type: "button", class: "btn", text: "公開中のサイトの年表で、保存せずに試す" });
+  tryBtn.addEventListener("click", practiceFromPage);
+  ev.tagMissing = h("div", { class: "hadm-linkmissing", hidden: "" },
+    h("p", { class: "msg", text: "いま読み込んでいる年表には「タグ」の列がまだないので、タグは付けられません。試すときは、下のボタンで「保存せずに試す」に切り替えてください（GitHub には保存されません）。" }),
+    tryBtn);
   ev.tagControls = h("div", { class: "hadm-linkbox" },
     ev.tagList,
     h("div", { class: "admfield" }, h("span", { text: "タグを足す" }),
@@ -354,7 +358,8 @@ function buildTagBox(ev) {
   const addTag = () => {
     const t = ev.tagIn.value.replace(/[#＃]/g, " ").replace(/\s+/g, " ").trim();
     if (!t) { toast("足すタグを書いてください"); ev.tagIn.focus(); return; }
-    if (ev.tags.includes(t)) { toast(`「${t}」は、もう付いています`); ev.tagIn.select(); return; }
+    // 全角・半角のちがいだけのタグ（「ＡＢＣ」と「ABC」）も、同じものとして扱う
+    if (ev.tags.some((x) => nf(x).toLowerCase() === nf(t).toLowerCase())) { toast(`「${t}」は、もう付いています`); ev.tagIn.select(); return; }
     ev.tags.push(t);
     ev.tagIn.value = "";
     renderTags(); validate();
@@ -525,7 +530,8 @@ function openEditor(table, index) {
     for (const x of ev.more.querySelectorAll("input")) x.checked = cats.slice(1).includes(x.value);
     ev.text.value = c("出来事"); ev.note.value = c("補足"); ev.site.value = c("特設サイト"); ev.tower.value = c("タワーレコード");
     ev.video.value = c("動画").split("|").map((x) => x.trim()).filter(Boolean).join("\n");
-    ev.tags = parseHistoryTags(c("タグ")).tags;
+    // 長すぎるタグ（CSV を手で直したときなど）も消さずに残す（エラーが出て「この内容にする」が押せないので、気づいて直せる）
+    { const tg = parseHistoryTags(c("タグ")); ev.tags = [...tg.tags, ...tg.bad]; }
     ev.tagIn.value = "";
     renderTags(); tagSuggestions();
     const hasTagCol = t.header.includes("タグ");
