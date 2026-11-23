@@ -95,6 +95,19 @@ test("parseHistory：関連リンク（記事:id と ラベル=URL）を読み�
   assert.equal(checkHistoryLinks(r.events, [{ id: "na-001", state: "非表示", title: "記事A" }])[0].msg.includes("非表示"), true);
 });
 
+test("parseHistory：タグ（#区切り・「、」区切り）を読み、検索の文字に入れる。長すぎるタグはエラー", async () => {
+  const { parseHistoryTags, formatHistoryTags, historySearchText } = await import("../assets/data.js");
+  const head = HISTORY_HEAD + ",関連リンク,タグ";
+  const r = parseHistory([head,
+    "2015,10,9,,,,ライブ・ツアー,10周年ツアー開催,,,,,,#胎盤ツアー #対バン",
+    `2015,10,10,,,,ライブ・ツアー,長いタグ,,,,,,#${"あ".repeat(41)}`].join("\n"));
+  assert.deepEqual(r.events[0].tags, ["胎盤ツアー", "対バン"]);
+  assert.equal(r.errors.length, 1);
+  assert.match(historySearchText(r.events[0]), /胎盤ツアー/);
+  assert.deepEqual(parseHistoryTags("胎盤、対バン、胎盤").tags, ["胎盤", "対バン"]);
+  assert.equal(formatHistoryTags(["胎盤 ツアー", "#横浜"]), "#胎盤 ツアー # 横浜".replace("# 横浜", "#横浜"));
+});
+
 test("parseHistory：年や出来事がない行はエラーになり、年表に入らない", () => {
   const r = history(",5,1,,,,リリース,年がない,,,,", "2020,5,1,,,,リリース,,,,,", "2020,13,1,,,,リリース,月がおかしい,,,,");
   assert.equal(r.errors.length, 3);
