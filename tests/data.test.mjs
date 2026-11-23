@@ -105,7 +105,11 @@ test("parseHistory：タグ（#区切り・「、」区切り）を読み、検�
   assert.equal(r.errors.length, 1);
   assert.match(historySearchText(r.events[0]), /胎盤ツアー/);
   assert.deepEqual(parseHistoryTags("胎盤、対バン、胎盤").tags, ["胎盤", "対バン"]);
-  assert.equal(formatHistoryTags(["胎盤 ツアー", "#横浜"]), "#胎盤 ツアー # 横浜".replace("# 横浜", "#横浜"));
+  assert.equal(formatHistoryTags(["胎盤 ツアー", "#横浜"]), "#胎盤 ツアー #横浜");
+  assert.deepEqual(parseHistoryTags("#a、#b").tags, ["a", "b"], "# と「、」を混ぜて書いても分ける");
+  const { matchHistory } = await import("../assets/data.js");
+  const t = parseHistory([head, "2015,10,9,,,,ライブ・ツアー,ライブ,,,,,,#1月公演"].join("\n")).events[0];
+  assert.equal(matchHistory(t, "1月公演", (txt, q) => txt.includes(q)), true, "日付の形を含むタグでも見つかる");
 });
 
 test("parseHistory：年や出来事がない行はエラーになり、年表に入らない", () => {

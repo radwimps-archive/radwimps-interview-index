@@ -455,7 +455,8 @@ export function checkHistoryLinks(events, articleItems) {
 export const HISTORY_TAG_MAX = 40;
 export function parseHistoryTags(value) {
   const cell = String(value ?? "");
-  const list = /[#＃]/.test(cell) ? splitList(cell, /[#＃]/) : splitList(cell, /[、,，]/);
+  // 「#a、#b」のように # と「、」を混ぜて書いたときも、タグの後ろの「、」は外す
+  const list = (/[#＃]/.test(cell) ? splitList(cell, /[#＃]/) : splitList(cell, /[、,，]/)).map((t) => t.replace(/[、,，\s]+$/, "")).filter(Boolean);
   const tags = [], bad = [];
   for (const t of list) {
     if ([...t].length > HISTORY_TAG_MAX) bad.push(t);
@@ -658,7 +659,7 @@ const datePartsOf = (m) => (m[2] ? [m[1], m[2], m[3]] : [m[4], m[5], m[6]]);
 const isDate = ([, m, d]) => Number(m) >= 1 && Number(m) <= 12 && (d === undefined || (Number(d) >= 1 && Number(d) <= 31));
 const esc = (n) => `0*${Number(n)}`;
 // 出来事が検索の言葉に合うか。空白で区切った言葉の中の月日（「4月」「4月5日」「2016年4月」「11.23」。「ツアー4月」のように続けて入れても）は、
-//   出来事の日付（期間のときは途中の月も）か、出来事の文・補足の中に書いた日付とぴったり比べる（「1月」が「11月」に合わないように）。
+//   出来事の日付（期間のときは途中の月も）か、出来事の文・補足・タグの中に書いた日付とぴったり比べる（「1月」が「11月」に合わないように）。
 //   それ以外の言葉は historySearchText にゆるく比べる（match には search.js の looseMatchAll を渡す。textOf で探す文字の作り方を変えられる）
 export function matchHistory(e, query, match, textOf = historySearchText) {
   const parts = String(query ?? "").normalize("NFKC").split(/\s+/).filter(Boolean);
@@ -673,7 +674,8 @@ export function matchHistory(e, query, match, textOf = historySearchText) {
       if ((dates ||= historyDateWords(e)).has(word)) continue;
       // 出来事の文・補足に書いた日付（例：補足「1月27日に先行配信」）。数字の前後が別の数字に続かないときだけ
       const re = new RegExp(`(?<!\\d)${m[1] ? `${m[1]}年` : ""}${esc(m[2])}月${m[3] ? `${esc(m[3])}日` : ""}`);
-      if (re.test(body ??= `${e.title || ""}|${e.note || ""}`.normalize("NFKC"))) continue;
+      // タグ（例：「#1月公演」）の中の日付も、ここで見る
+      if (re.test(body ??= [e.title || "", e.note || "", ...(e.mv ? [] : e.tags || [])].join("|").normalize("NFKC"))) continue;
       // 点の形（「4.5」）は、作品名などの一部のこともあるので、出来事の文・補足にそのまま（点も残して）書いてあるかも見る。
       // ゆるい一致は点を消して「45」で比べてしまい、「2.5」が 2025年に合うので使わない
       if (!m[0].includes("月") && new RegExp(`(?<![\\d.])${m[0].replace(/\./g, "\\.")}(?![\\d.])`).test(body)) continue;
