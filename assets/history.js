@@ -6,7 +6,7 @@
 //   どの出来事がどの公演か：data/setlists.csv の公演のうち、出来事の日付（期間）に入るもの。期間の中に別のライブ（フェスなど）があるときは、いちばん公演数の多いツアーだけ。
 
 import "./analytics.js";
-import { parseHistory, parseSetlists, parseSites, parseArticles, linkHistorySites, historyShows, historyLinkItems, historyTagIndex, tagsForNames, quotedNames, tagSearchWords, siteKey, historySearchText, matchHistory, HISTORY_CATEGORIES } from "./data.js";
+import { parseHistory, parseSetlists, parseSites, parseArticles, parseSongs, tagsForArticle, linkHistorySites, historyShows, historyLinkItems, historyTagIndex, tagsForNames, quotedNames, tagSearchWords, siteKey, historySearchText, matchHistory, HISTORY_CATEGORIES } from "./data.js";
 import { attendButton, attendCount, assignKeys, sync as syncAttend, setupAttendClicks } from "./attended.js";
 import { h as el, setupMenu, isAdminDevice, watchScrollFade, watchStuck } from "./ui.js";
 import config from "./config.js";
@@ -458,6 +458,7 @@ function runSearch() {
   if (query.trim()) u.searchParams.set("q", query.trim()); else u.searchParams.delete("q");
   try { history.replaceState(null, "", u.pathname + u.search + u.hash); } catch { /* 変えられない環境 */ }
   if (!ready) return;
+  renderXref();
   renderTabs({ center: false });
   // 合う出来事が変わらないときは、作り直さない（開いている「CD を探す」や、再生中の動画を閉じないように）。
   // 0件のときは、見つからないときの文に今の言葉を出すため、いつも作り直す
@@ -483,6 +484,77 @@ if (hasFeedback) {
   $(".site-footer .footer-links").append(el("a", { href: feedbackUrl({ kind: KIND.error, title: "年表の誤りのお知らせ", page: "RADWIMPSの歩み（年表）" }), target: "_blank", rel: "noopener noreferrer", text: "年表の誤りを知らせる ↗" }));
 }
 if (isAdminDevice()) $("#adminLink").hidden = false;
+
+/* ---------- ほかのページで見つかったもの（運営の希望 11/23） ---------- */
+// 歩みの検索窓に言葉を入れると、年表の上に、楽曲一覧の曲・SET LIST のライブ・記事一覧の記事のうち、その言葉に合うものも並べる。
+// 歩みで付けたタグも効く（data.js の historyTagIndex：出来事の「」の名前と同じ曲名・ツアー名・記事、関連リンクの記事）。
+// 曲と記事のデータは、はじめて言葉を入れたときに読む。各ページの「すべて見る」は、そのページで同じ言葉を検索した状態で開く
+const XREF_MAX = 5;
+let xref = null, xrefLoading = null;
+function loadXref() {
+  if (!xrefLoading) {
+    const get = (f) => fetch(f, { cache: "no-cache" }).then((r) => (r.ok ? r.text() : "")).catch(() => "");
+    xrefLoading = Promise.all([get("data/songs.csv"), get("data/articles.csv")]).then(([songText, articleText]) => {
+      let songs = [], articles = [];
+      try { songs = songText ? parseSongs(songText).songs : []; } catch { /* 曲は出さない */ }
+      try { articles = articleText ? parseArticles(articleText).items.filter((it) => it.state === "公開" && it.url) : []; } catch { /* 記事は出さない */ }
+      xref = { songs, articles };
+      if (!articleById.size) articleById = new Map(articles.map((it) => [it.id, it]));
+      renderXref();
+    });
+  }
+  return xrefLoading;
+}
+// 探す文字（タグは、作り直したときの tagIndex で毎回作る。数百件なので、そのつど作っても軽い）
+function xrefLists() {
+  const tagWords = (names) => tagSearchWords(tagsForNames(tagIndex, names));
+  const seenSong = new Set();
+  const songs = (xref?.songs || []).filter((s) => !seenSong.has(`${s.artist}|${s.title}`) && seenSong.add(`${s.artist}|${s.title}`)).map((s) => {
+    const base = s.title.replace(/\s*\(?\s*feat\..*$/i, "").trim();
+    return { label: s.title, sub: [s.work && s.work !== s.title ? `「${s.work}」` : "", s.y ? `${s.y}年` : ""].filter(Boolean).join(" "),
+      href: `songs.html?q=${encodeURIComponent(base)}`, text: [s.title, s.work, s.album, s.tieup, s.artist, tagWords([s.title, base])].join("|") };
+  });
+  // ライブ：ライブ名ごと（SET LIST と同じまとめ方）。期間でつながる歩みのライブの出来事のタグと、ツアー名と同じ名前のタグも
+  const tours = new Map();
+  for (const l of lives) {
+    const t = tours.get(l.name) || tours.set(l.name, { name: l.name, y: l.y, venues: new Set(), tags: new Set(), songs: new Set() }).get(l.name);
+    if (l.venue) t.venues.add(l.venue);
+    for (const x of [...(l.main || []), ...(l.encore || [])]) if (x.title) t.songs.add(x.title); // 演奏した曲（SET LIST の検索と同じく、曲名でも見つかる）
+  }
+  for (const e of events) for (const l of e.shows || []) for (const x of e.tags || []) tours.get(l.name)?.tags.add(x);
+  const liveList = [...tours.values()].map((t) => ({ label: t.name, sub: `${t.y}年`, href: `setlist.html?q=${encodeURIComponent(t.name)}#live`,
+    text: [t.name, ...t.venues, ...t.songs, tagSearchWords([...t.tags]), tagWords([t.name])].join("|") })).reverse();
+  const articles = (xref?.articles || []).map((it) => ({ label: it.title, sub: [it.media, it.date ? it.date.slice(0, 4) + "年" : ""].filter(Boolean).join(" "), href: it.url, external: true,
+    text: [it.title, it.media, it.tags.join(" "), it.eventName, it.guests.join(" "), tagSearchWords(tagsForArticle(tagIndex, it))].join("|") }));
+  return { songs, lives: liveList, articles };
+}
+function renderXref() {
+  let box = $("#histXref");
+  const q = query.trim();
+  if (!q) { if (box) box.hidden = true; return; }
+  if (!box) { box = el("section", { class: "hist-xref wrap", id: "histXref", "aria-labelledby": "histXrefTitle" }); $("#view").after(box); }
+  box.hidden = false;
+  if (!xref) {
+    box.replaceChildren(el("p", { class: "hist-xref-note", text: "楽曲一覧・SET LIST・記事一覧も探しています…" }));
+    loadXref();
+    return;
+  }
+  const { songs, lives: liveList, articles } = xrefLists();
+  const pick = (list) => list.filter((x) => looseMatchAll(x.text, q));
+  const groups = [
+    ["楽曲一覧の曲", pick(songs), `songs.html?q=${encodeURIComponent(q)}`, "楽曲一覧"],
+    ["RAD LIVE SET LIST のライブ", pick(liveList), `setlist.html?q=${encodeURIComponent(q)}#live`, "RAD LIVE SET LIST"],
+    ["記事一覧の記事", pick(articles), `articles.html?q=${encodeURIComponent(q)}&format=all`, "記事一覧"]
+  ].filter(([, list]) => list.length);
+  if (!groups.length) { box.hidden = true; return; }
+  box.replaceChildren(el("h2", { class: "hist-xref-title", id: "histXrefTitle", text: `ほかのページで「${q}」に合うもの` }),
+    ...groups.map(([title, list, more, page]) => el("div", { class: "hist-xref-group" },
+      el("h3", {}, title, el("small", { text: ` ${list.length} 件` })),
+      el("ul", {}, ...list.slice(0, XREF_MAX).map((x) => el("li", {},
+        el("a", { href: x.href, ...(x.external ? { target: "_blank", rel: "noopener noreferrer", "aria-label": `${x.label}（${x.sub}。新しいタブで開く）` } : {}) },
+          el("span", { class: "hist-xref-label", text: x.label + (x.external ? " ↗" : "") }), x.sub ? el("small", { text: x.sub }) : null)))),
+      el("a", { class: "hist-xref-more", href: more, text: list.length > XREF_MAX ? `${page}で ${list.length} 件すべて見る →` : `${page}で見る →` }))));
+}
 
 // 年表の CSV（と特設サイトの CSV）から、出来事の一覧を作る。年表の管理で直したときも、ここから作り直す
 function build(historyText, sitesText) {
@@ -520,6 +592,7 @@ function setupAdmin() {
         shown = null;
         renderTabs({ center: false });
         renderTimeline();
+        renderXref(); // 直したタグを、ほかのページで見つかったものにも映す
       }
     });
     shown = null;
@@ -558,6 +631,7 @@ function setupAdmin() {
     if (searchBox.value) query = searchBox.value;
     ready = true;
     setCat(location.hash.slice(1));
+    renderXref(); // ?q= で開いたときは、ほかのページで見つかったものも出す
     setupAdmin();
     // 関連リンクに記事があれば、記事データを読んでから、もう一度並べる（タイトルと媒体を出すため）
     if (events.some((e) => e.links?.some((l) => l.type === "article"))) loadArticles().then(addLinkLines);
