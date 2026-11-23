@@ -761,6 +761,11 @@ button.title-link { padding: 0; border: 0; background: none; font: inherit; text
 .hist-edits { display: flex; flex-wrap: wrap; gap: 8px; margin: 8px 0 0; }
 .hist-edit { min-height: 44px; padding: 0 14px; border: 1px dashed currentColor; border-radius: 999px; background: transparent; color: var(--ink-2); font-size: 12px; cursor: pointer; }
 .hist-edit:hover { border-style: solid; }
+/* 記事一覧のカードの「直す」（管理者モードの端末だけ）と、保存していない記事の変更の帯 */
+.card-edit-line { margin: 8px 0 0; }
+.list-pending { position: fixed; left: 50%; bottom: 16px; z-index: 50; transform: translateX(-50%); display: flex; flex-wrap: wrap; align-items: center; justify-content: center; gap: 8px 12px;
+  width: max-content; max-width: calc(100% - 32px); padding: 8px 12px; border-radius: 10px; background: #FFFFFF; color: #0B1230; font-size: 13px; box-shadow: 0 6px 24px rgba(0, 0, 0, .28); }
+.list-pending[hidden] { display: none; }
 .vbtn { display: inline-flex; align-items: center; gap: 6px; min-height: 36px; padding: 0; border: 0; background: none; color: var(--accent); font: inherit; font-weight: 700; cursor: pointer; -webkit-tap-highlight-color: transparent; }
 .vbtn .tri { font-size: 12px; color: var(--accent); }
 .vbtn .vl { text-decoration: underline; text-decoration-color: var(--accent-soft); text-decoration-thickness: 1.5px; text-underline-offset: 4px; }

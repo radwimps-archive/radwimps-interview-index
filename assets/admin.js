@@ -236,16 +236,32 @@ const api = {
     if (A.mode === "github" || A.mode === "practice") openEditor(null);
     else if (A.mode === "connecting") A.wantNew = true;
     else { A.wantNew = true; toast("先に GitHub とつなぐか「保存せずに試す」を押すと、記事を追加する画面が開きます"); }
-  }
+  },
+  // 記事一覧のカードの「直す」から：その記事の編集の画面を開く（運営の希望 11/23）。
+  //   GitHub とつないでいる途中なら、読み込みが終わってから開く。合鍵がなければ「保存せずに試す」にしてから開く
+  editById(id) {
+    if (A.mode === "github" || A.mode === "practice") return openById(id);
+    A.wantEdit = id;
+    if (A.mode === "off") { toast("合鍵が登録されていないので、保存せずに試す形で開きます（GitHub に保存するには、運営管理で合鍵を登録します）"); startPractice(); }
+  },
+  pending: () => summary().total
 };
+function openById(id) {
+  const i = A.rows.findIndex((r) => keyOf(r) === id);
+  if (i < 0) { toast("この記事が、記事の管理のデータに見つかりませんでした。ページを読み込み直してください"); return; }
+  openEditor(i);
+}
 function afterReady() {
   if (A.wantNew && (A.mode === "github" || A.mode === "practice")) { A.wantNew = false; openEditor(null); }
   A.wantNew = false;
+  if (A.wantEdit && (A.mode === "github" || A.mode === "practice")) openById(A.wantEdit);
+  A.wantEdit = null;
 }
 
 function render() {
   const root = A.root;
   if (!root) return;
+  A.opts?.onChange?.(summary().total); // 記事一覧の「保存していない変更」の帯のため
   if (A.mode === "off") return root.replaceChildren(connectView());
   if (A.mode === "connecting") return root.replaceChildren(h("p", { class: "hint", text: "記事データを読み込んでいます…" }));
   root.replaceChildren(statusLine(), toolbar(), listView(), pendingBar());
@@ -449,7 +465,23 @@ function setupSheet() {
   F.cats = checks("cats", CATEGORIES.map((c) => [c.name, c.name]));
   F.members = checks("members", MEMBER_ORDER.map((k) => [k, MEMBERS[k].name]));
   F.guests = h("input", { type: "text", autocomplete: "off", placeholder: "例：藤井道人、n-buna（ヨルシカ）" });
-  F.tags = h("input", { type: "text", autocomplete: "off", placeholder: "例：#汝、星のごとく #映画" });
+  // タグ：歩みの年表の管理と同じく、「タグを足す」と「✕」で付け外しする（中身は F.tags に「#a #b」の形で入れる。運営の希望 11/23）
+  F.tags = h("input", { type: "hidden" });
+  F.tagList = h("ul", { class: "hadm-tags", "aria-label": "付けているタグ" });
+  F.tagIn = h("input", { type: "text", autocomplete: "off", enterkeyhint: "done", list: "admTagList", placeholder: "例：汝、星のごとく", "aria-label": "足すタグ" });
+  F.tagSuggest = h("datalist", { id: "admTagList" });
+  F.tagAdd = h("button", { type: "button", class: "btn", text: "足す" });
+  F.tagAdd.addEventListener("click", () => addTag());
+  F.tagIn.addEventListener("keydown", (e) => { if (e.key === "Enter" && !e.isComposing && e.keyCode !== 229) { e.preventDefault(); addTag(); } });
+  F.tagList.addEventListener("click", (e) => {
+    const b = e.target.closest("[data-trm]");
+    if (!b) return;
+    const i = +b.dataset.trm, list = tagsOf(), t = list[i];
+    list.splice(i, 1);
+    setTags(list);
+    (F.tagList.querySelectorAll("[data-trm]")[Math.min(i, list.length - 1)] || F.tagIn).focus();
+    toast(`タグ「${t}」を外しました`);
+  });
   F.lang = h("select", null, ...Object.keys(LANGS).map((l) => opt(l)));
   F.note = h("textarea", { rows: "2" });
   F.summary = h("textarea", { rows: "3" });
@@ -471,7 +503,10 @@ function setupSheet() {
     h("div", { class: "fgroup" }, h("h3", { text: "カテゴリ（記事が生まれたきっかけ。いくつでも）" }), F.cats),
     h("div", { class: "fgroup" }, h("h3", { text: "登場するメンバー" }), F.members),
     field("対談相手・話し手（「、」で区切る）", F.guests),
-    field("タグ（1つずつ # を付ける）", F.tags),
+    h("div", { class: "fgroup hadm-linkbox" }, h("h3", { text: "タグ" }), F.tagList,
+      h("div", { class: "admfield" }, h("span", { text: "タグを足す" }), h("div", { class: "hadm-urlrow" }, F.tagIn, F.tagAdd),
+        h("small", { text: "作品名・曲名・ライブ名など。記事一覧の検索や「曲・作品から探す」に使われます。Enter でも足せます。" })),
+      F.tagSuggest, F.tags),
     field("言語", F.lang),
     field("説明（「説明を開く」で出る紹介文。本文の書き写しではなく、自分の言葉で）", F.summary),
     field("メモ", F.note, "日付の根拠や、閲覧の条件など。「説明を開く」の中に小さく出ます。"),
@@ -558,7 +593,7 @@ function openEditor(index) {
   F.url.value = d.url; F.title.value = d.title; F.media.value = d.media; F.y.value = d.y; F.m.value = d.m; F.d.value = d.d; F.kind.value = d.kind;
   for (const x of $s("#editForm").querySelectorAll('input[data-g="cats"]')) x.checked = d.cats.includes(x.value);
   for (const x of $s("#editForm").querySelectorAll('input[data-g="members"]')) x.checked = d.members.includes(x.value);
-  F.guests.value = d.guests; F.tags.value = d.tags; F.lang.value = d.lang; F.note.value = d.note; F.id.value = d.id;
+  F.guests.value = d.guests; F.tags.value = d.tags; F.tagIn.value = ""; renderTagChips(); tagSuggestions(); F.lang.value = d.lang; F.note.value = d.note; F.id.value = d.id;
   F.summary.value = d.summary; F.eventDate.value = d.eventDate; F.eventName.value = d.eventName; F.venue.value = d.venue;
   F.eventList.replaceChildren(...[...new Set(A.rows.map((x) => cell(x, "ライブ名")).filter(Boolean))].sort().map((n) => h("option", { value: n })));
   F.id.readOnly = !isNew && !!d.id;
@@ -570,6 +605,30 @@ function openEditor(index) {
   document.documentElement.classList.add("locked");
   $s("#editForm").scrollTop = 0;
   (isNew ? F.url : $s("#editTitle").parentElement.querySelector("[data-edit='cancel']")).focus({ preventScroll: true });
+}
+// タグ：F.tags（「#a #b」）を札として並べる。足す・外すと F.tags を書き換えて、チェックし直す
+const tagsOf = () => String(F.tags.value || "").split(/[#＃]/).map((t) => t.trim()).filter(Boolean);
+function setTags(list) { F.tags.value = list.map((t) => `#${t}`).join(" "); renderTagChips(); validate(); }
+function renderTagChips() {
+  const list = tagsOf();
+  F.tagList.replaceChildren(...(list.length ? list.map((t, i) => h("li", {}, h("span", { text: `#${t}` }),
+    h("button", { type: "button", class: "hadm-tag-x", "data-trm": String(i), "aria-label": `タグ「${t}」を外す`, text: "✕" })))
+    : [h("li", { class: "hadm-empty", text: "まだ付けていません。" })]));
+}
+function addTag() {
+  const t = F.tagIn.value.replace(/[#＃]/g, " ").replace(/\s+/g, " ").trim();
+  if (!t) { toast("足すタグを書いてください"); F.tagIn.focus(); return; }
+  const list = tagsOf();
+  if (list.some((x) => nf(x).toLowerCase() === nf(t).toLowerCase())) { toast(`「${t}」は、もう付いています`); F.tagIn.select(); return; }
+  F.tagIn.value = "";
+  setTags([...list, t]);
+  F.tagIn.focus();
+}
+// 入力の候補：ほかの記事で使っているタグ
+function tagSuggestions() {
+  const set = new Set();
+  for (const r of A.rows) for (const t of String(cell(r, "タグ")).split(/[#＃]/)) if (t.trim()) set.add(t.trim());
+  F.tagSuggest.replaceChildren(...[...set].sort((a, b) => a.localeCompare(b, "ja")).map((x) => h("option", { value: x })));
 }
 function closeEditor() {
   $s("#editSheet").hidden = true;
@@ -612,6 +671,8 @@ function validate() {
   const line = lines[others.length + 1];
   const res = parseArticles(text);
   const errors = res.errors.filter((x) => x.line === line).map((x) => x.msg);
+  // タグを書いたまま「足す」を押していないと、そのタグは残らないので、先に知らせる
+  if (F.tagIn?.value.trim()) errors.push("「タグを足す」に書いた言葉が、まだ足されていません。「足す」を押すか、欄を空にしてください");
   const warnings = res.warnings.filter((x) => x.line === line).map((x) => x.msg);
   F.issues.replaceChildren(...[
     ...errors.map((m) => h("p", { class: "msg err", text: "直してください：" + m })),

@@ -506,6 +506,8 @@ function card(it) {
       + (it.note ? `<p class="${isReference ? "reference-note" : "card-note"}">${linkify(it.note)}</p>` : "")
       + (it.tags.length ? `<ul class="card-tags" aria-label="タグ">${it.tags.map((t) => `<li><button type="button" data-tag="${esc(t)}">#${esc(t)}</button></li>`).join("")}</ul>` : "")
       + report + `</div></details>` : "")
+    // 管理者モードの端末だけ：その場で記事の編集の画面を開く「直す」（歩みの年表の管理と同じ形。運営の希望 11/23）
+    + (S.admin && !FRAMED ? `<p class="card-edit-line"><button type="button" class="hist-edit card-edit" data-act="edit" aria-label="${esc(it.title)}を直す">直す</button></p>` : "")
     + `<div class="card-bottom"><button type="button" class="read-button" data-act="read" aria-pressed="${read}"><span aria-hidden="true">${read ? "✓" : "○"}</span>${read ? "既読" : "既読にする"}</button>`
     + `<a class="source-link" href="${esc(it.url)}" target="_blank" rel="noopener noreferrer" data-open aria-label="${esc(it.media)}で${verb}（新しいタブで開きます）"><span class="source-name">${esc(it.media)}</span>${LANG_BADGE[it.lang] ? `<span class="lang-tag">${LANG_BADGE[it.lang]}</span>` : ""}<span class="arrow" aria-hidden="true">↗</span></a></div>`
     + `</article>`;
@@ -829,6 +831,7 @@ $("#grid").addEventListener("click", (e) => {
   if (act && act.dataset.act === "later") { const on = !S.marks.lt[id]; setMark("lt", id, on); toast(on ? "あとで読むに保存しました" : "あとで読むから外しました"); return; }
   if (act && act.dataset.act === "fav") { const on = !S.marks.fv[id]; setMark("fv", id, on); toast(on ? "お気に入りに追加しました" : "お気に入りから外しました"); return; }
   if (act && act.dataset.act === "read") { setMark("rd", id, !S.marks.rd[id]); return; }
+  if (act && act.dataset.act === "edit") { loadAdmin().then((ed) => ed?.editById(id)); return; }
   if (tag) { F.q = tag.dataset.tag; apply(); scrollToList(); return; }
   // 記事を開いたら、既読にする
   if (e.target.closest("[data-open]") && !S.marks.rd[id]) setTimeout(() => setMark("rd", id, true), 0);
@@ -1069,7 +1072,32 @@ const REPO = repoUrl();
 // そのときは運営管理を動かしません（見えない枠の上から、保存のボタンを押させる手口を防ぐため）。
 const FRAMED = (() => { try { return window.self !== window.top; } catch { return true; } })();
 
-let adminEditor = null, adminLoading = false, adminOpenNew = false;
+let adminEditor = null, adminLoading = null, adminOpenNew = false;
+// 記事の管理（assets/admin.js）を読み込む。運営管理を開いたときと、記事のカードの「直す」を押したときだけ
+function loadAdmin() {
+  if (adminEditor) return Promise.resolve(adminEditor);
+  if (!adminLoading) adminLoading = import("./admin.js").then((m) => {
+    adminEditor = m.mountAdmin($("#adminEditor"), { repo: REPO, toast, onSaved: (text) => { ingest(text); applyHistTags(); render(); }, onChange: listPendingBar });
+    return adminEditor;
+  }).catch(() => {
+    $("#adminEditor").replaceChildren(h("p", { class: "msg err", text: "記事の管理を読み込めませんでした。ページを開き直してください。" }));
+    toast("記事の管理を読み込めませんでした。ページを開き直してください");
+    adminLoading = null;
+    return null;
+  });
+  return adminLoading;
+}
+// 記事一覧で「直す」から直したとき：保存していない変更があれば、画面の下に帯を出す（保存は運営管理の「GitHub に保存」で）
+function listPendingBar(n) {
+  let bar = $("#listPending");
+  if (!n || S.page === "admin") { if (bar) bar.hidden = true; return; }
+  if (!bar) {
+    bar = h("div", { class: "list-pending", id: "listPending", role: "region", "aria-label": "保存していない記事の変更" });
+    document.body.append(bar);
+  }
+  bar.replaceChildren(h("span", { text: `保存していない記事の変更 ${n} 件` }), h("a", { class: "btn primary", href: "#admin", text: "運営管理で保存する →" }));
+  bar.hidden = false;
+}
 function renderAdmin() {
   if (FRAMED) {
     $("#adminOnView").hidden = true;
@@ -1084,15 +1112,7 @@ function renderAdmin() {
   const wantNew = adminOpenNew;
   adminOpenNew = false;
   if (wantNew) history.replaceState(null, "", location.pathname + location.search + "#admin");
-  if (adminEditor) { if (wantNew) adminEditor.openNew(); }
-  else if (!adminLoading) {
-    adminLoading = true;
-    import("./admin.js").then((m) => {
-      adminEditor = m.mountAdmin($("#adminEditor"), { repo: REPO, toast, onSaved: (text) => { ingest(text); applyHistTags(); render(); } });
-      if (wantNew) adminEditor.openNew();
-    }).catch(() => { $("#adminEditor").replaceChildren(h("p", { class: "msg err", text: "記事の管理を読み込めませんでした。ページを開き直してください。" })); })
-      .finally(() => { adminLoading = false; });
-  }
+  loadAdmin().then((ed) => { if (wantNew) ed?.openNew(); });
   const stats = $("#admStats"), issuesBox = $("#admIssues"), links = $("#admLinks");
   if (!S.parsed) { stats.replaceChildren(h("li", { text: "記事データを読み込んでいます…" })); return; }
   const all = S.parsed.items;
@@ -1182,6 +1202,7 @@ function toast(msg) {
 function onHash() {
   const r = readHash();
   S.page = r.page;
+  listPendingBar(adminEditor ? adminEditor.pending() : 0); // 運営管理では帯を出さない（運営管理の画面に、保存のボタンがあるため）
   if (r.openNew) adminOpenNew = true;
   if (r.clear) history.replaceState(null, "", location.pathname + location.search);
   render();
