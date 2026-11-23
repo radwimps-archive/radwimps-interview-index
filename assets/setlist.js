@@ -485,7 +485,10 @@ function renderRanking() {
 
 // push：利用者が曲を選んだ・タブを押したときは履歴に積む（ブラウザの「戻る」で前の状態へ）。それ以外は書き換えるだけ
 function saveUrl(push = false) {
-  const q = song && songs.has(song) ? `?song=${encodeURIComponent(songs.get(song).title)}` : "";
+  const p = new URLSearchParams();
+  if (song && songs.has(song)) p.set("song", songs.get(song).title);
+  if (view === "live" && queries.live.trim()) p.set("q", queries.live.trim()); // 「ライブ」の検索の言葉（再読み込み・共有でも残る）
+  const q = p.toString() ? `?${p}` : "";
   const url = location.pathname + q + `#${view}`;
   const state = { liveCats: [...catState.live] }; // 「戻る」で「ライブ」で選んだ区分も戻せるように
   if (push && url !== location.pathname + location.search + location.hash) history.pushState(state, "", url);
@@ -500,7 +503,7 @@ let searchTimer = 0;
 searchBox.addEventListener("input", () => {
   queries[view] = searchBox.value;
   clearTimeout(searchTimer);
-  searchTimer = setTimeout(() => { if (lives.length) rerenderView(); }, 150);
+  searchTimer = setTimeout(() => { if (lives.length) { rerenderView(); if (view === "live") saveUrl(); } }, 150);
 });
 searchBox.addEventListener("keydown", (e) => { if (e.key === "Enter" && !e.isComposing && e.keyCode !== 229) searchBox.blur(); }); // 日本語の変換を確定する Enter では閉じない
 
