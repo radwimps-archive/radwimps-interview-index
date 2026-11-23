@@ -608,11 +608,28 @@ export function parseSites(text) {
 // events の各出来事に sites（つながった特設サイトの一覧）を付け、足した出来事も入れて、古い順に並べ直したものを返す
 // 歩みの出来事に特設サイトをつなぎ、見出しのリンクと同じ特設サイトが「公開終了」なら、見出しのリンク先も保存版にする
 // （保存版がなければリンクなし）。「RADWIMPSの歩み」と「RAD LIVE SET LIST」で同じものを使う
+//   見出しのリンクが「非表示」の特設サイトと同じなら、見出しのリンクも出さない（例：開くと支払いの画面に移るサイト）
 export function linkHistorySites(events, sites) {
+  const hidden = new Set(sites.filter((s) => s.state === "非表示").map((s) => siteKey(s.url)));
   return attachSites(events, sites).map((e) => {
+    if (e.site && hidden.has(siteKey(e.site))) return { ...e, site: "", siteClosed: false };
     const same = e.site && e.sites.find((s) => s.closed && siteKey(s.url) === siteKey(e.site));
     return { ...e, site: same ? same.archive : e.site, siteClosed: !!same };
   });
+}
+// 出来事の関連リンク（「関連リンク」の列）を、画面に出すリンクの一覧にする：[{ href, kind, title, media }]
+//   kind：記事・動画・ラジオ（記事一覧の記事）か ""（ほかのページ）。記事は byId（id → 公開している記事）にあるものだけ
+//   「RADWIMPSの歩み」と「RAD LIVE SET LIST」で同じものを使う
+export function historyLinkItems(e, byId) {
+  const out = [];
+  for (const l of e.links || []) {
+    if (l.type === "url") out.push({ href: l.url, kind: "", title: l.label, media: "" });
+    else if (l.type === "article") {
+      const it = byId.get(l.id);
+      if (it) out.push({ href: it.url, kind: it.format === "video" ? "動画" : it.format === "radio" ? "ラジオ" : "記事", title: it.title, media: it.media, id: it.id });
+    }
+  }
+  return out;
 }
 // ライブ・ツアーの出来事に入る公演（data/setlists.csv）。出来事の日付から終わりの日付まで（日がなければその月の中）の公演。
 // 期間の中にフェスなど別のライブがあるときは、公演がいちばん多いツアー（同じなら早いほう）だけ。特設サイトの一覧から足した行は除く。

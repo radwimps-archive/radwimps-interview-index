@@ -127,6 +127,14 @@ test("historyShows・historySiteLinks：歩みのライブの出来事に入る�
   const links = historySiteLinks(linked[0]);
   assert.equal(links[0].label, "公式ページ");
   assert.ok(links.some((x) => x.label.includes("保存版") && x.href.startsWith("https://web.archive.org/")), "公開終了の特設サイトは保存版へ");
+  // 見出しのリンクが「非表示」の特設サイトと同じなら、見出しのリンクも出さない
+  const hiddenLinked = linkHistorySites(ev, [{ state: "非表示", y: 2017, m: 2, d: 25, name: "x", kind: "ライブ・ツアー", url: "https://radwimps.jp/live/9128/" }]);
+  assert.equal(hiddenLinked[0].site, "");
+  // 関連リンク：記事は公開している記事だけ、ほかのページはそのまま
+  const { historyLinkItems } = await import("../assets/data.js");
+  const items = historyLinkItems({ links: [{ type: "article", id: "a1" }, { type: "article", id: "nai" }, { type: "url", label: "公式", url: "https://radwimps.jp/" }] },
+    new Map([["a1", { id: "a1", url: "https://example.com/a1", title: "記事A", media: "媒体", format: "video" }]]));
+  assert.deepEqual(items.map((x) => [x.kind, x.title]), [["動画", "記事A"], ["", "公式"]]);
 });
 
 test("parseHistory：年や出来事がない行はエラーになり、年表に入らない", () => {

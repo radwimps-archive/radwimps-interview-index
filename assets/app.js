@@ -12,7 +12,7 @@ import { norm } from "./text.js";
 import { analyticsOn, DASHBOARD_URL } from "./analytics.js";
 import config from "./config.js";
 import {
-  parseArticles, parseReleases, KIND_ORDER, MEMBERS, MEMBER_ORDER, CATEGORIES, SUPPORT_MEMBERS, WORKS, QUICK_WORKS,
+  parseArticles, parseReleases, parseHistory, KIND_ORDER, MEMBERS, MEMBER_ORDER, CATEGORIES, SUPPORT_MEMBERS, WORKS, QUICK_WORKS,
   VIDEO_KIND, RADIO_KIND, LIVE_KIND, INTERVIEW_KIND, OTHERS_KIND, LANG_BADGE, youtubeId, formatOf
 } from "./data.js";
 import { h, isAdminDevice, setAdminDevice, setupMenu, downloadFile, watchScrollFade, watchStuck } from "./ui.js";
@@ -169,10 +169,22 @@ function ingest(text) {
 
 async function loadData() {
   try {
-    const [aRes, rRes] = await Promise.all([
+    // 年表（data/history.csv）：「RADWIMPSの歩み」の関連リンクでつないだ記事に、その出来事へのリンクを出すため。8 秒で届かなければあきらめる
+    const [aRes, rRes, hText] = await Promise.all([
       fetch("data/articles.csv", { cache: "no-cache" }),
-      fetch("data/releases.csv", { cache: "no-cache" }).catch(() => null)
+      fetch("data/releases.csv", { cache: "no-cache" }).catch(() => null),
+      fetch("data/history.csv", { cache: "no-cache", signal: AbortSignal.timeout ? AbortSignal.timeout(8000) : undefined }).then((r) => (r.ok ? r.text() : "")).catch(() => "")
     ]);
+    if (hText) {
+      try {
+        S.histByArticle = new Map();
+        for (const e of parseHistory(hText).events) for (const l of e.links || []) {
+          if (l.type !== "article") continue;
+          const list = S.histByArticle.get(l.id) || S.histByArticle.set(l.id, []).get(l.id);
+          if (!list.some((x) => x.title === e.title)) list.push({ title: e.title, y: e.y });
+        }
+      } catch (err) { console.warn("年表を読めませんでした", err); }
+    }
     if (!aRes.ok) throw new Error("articles.csv: HTTP " + aRes.status);
     ingest(await aRes.text());
     if (rRes && rRes.ok) S.releases = parseReleases(await rRes.text()).byYear;
@@ -446,6 +458,8 @@ function card(it) {
     + `<h3 class="card-title"><a href="${esc(it.url)}" target="_blank" rel="noopener noreferrer" data-open>${esc(it.title)}<span class="sr">（新しいタブで開きます）</span></a></h3>`
     + whoLine(it) + `</div></div>`
     + (it.eventDate ? `<p class="event-meta">公演 ${esc(dotDate(it.eventDate))}${it.venue ? " · " + esc(it.venue) : ""}</p>` : "")
+    // 「RADWIMPSの歩み」の関連リンクでこの記事をつないだ出来事（押すと、歩みでその出来事を検索した状態で開く）
+    + (S.histByArticle?.get(it.id)?.length ? `<p class="card-history">歩み：${S.histByArticle.get(it.id).slice(0, 3).map((x) => `<a href="history.html?q=${encodeURIComponent(x.title)}">${esc(x.y)}年 ${esc(x.title)}</a>`).join("、")}</p>` : "")
     + (hasMore ? `<details class="card-description"><summary><span class="description-toggle"><span class="when-closed">説明を開く</span><span class="when-open">説明を閉じる</span><span class="chev" aria-hidden="true">⌄</span></span></summary><div class="card-description-body">`
       + (it.summary ? `<p class="card-summary">${esc(it.summary)}</p>` : "")
       + (it.note ? `<p class="${isReference ? "reference-note" : "card-note"}">${linkify(it.note)}</p>` : "")
