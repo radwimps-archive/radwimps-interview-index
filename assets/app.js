@@ -200,17 +200,9 @@ async function loadData() {
         }
         S.histByArticle = map;
         addHistoryLines();
-        // タグの共通化：歩みのタグでも記事が見つかるように、検索の文字に足す（関連リンクでつないだ記事と、
-        // 出来事の「」の名前が記事のタグ・ライブ名・タイトルに入っている記事）。検索中なら、探し直す
-        const idx = historyTagIndex(hEvents);
-        let changed = false;
-        for (const it of S.items) {
-          const tags = tagsForArticle(idx, it);
-          if (!tags.length) continue;
-          it._h += " " + norm(tagSearchWords(tags));
-          changed = true;
-        }
-        if (changed && F.q) render();
+        S.histTagIndex = historyTagIndex(hEvents);
+        // 検索中なら探し直す（検索窓に入力している最中は、打った文字を戻さないよう、次の入力に任せる）
+        if (applyHistTags() && F.q && document.activeElement !== $("#q")) render();
       } catch (err) { console.warn("年表を読めませんでした", err); }
     });
   } catch (e) {
@@ -318,7 +310,7 @@ function passes(it, ts) {
   if (F.media && it.media !== F.media) return false;
   if (F.lang && it.lang !== F.lang) return false;
   if (F.kind && it.kind !== F.kind) return false;
-  for (const t of ts) if (!it._h.includes(t)) return false;
+  for (const t of ts) if (!it._h.includes(t) && !(it._ht && it._ht.includes(t))) return false;
   return true;
 }
 
@@ -456,6 +448,19 @@ function whoLine(it) {
   if (it.kind === LIVE_KIND && it.guests.length) return `<p class="mention-context"><span>共演</span>${names(it.guests)}</p>`;
   if (it.kind === RADIO_KIND && it.guests.length) return `<p class="mention-context"><span>出演</span>${names([...it.members.filter((k) => k !== "band").map((k) => MEMBERS[k].name), ...it.guests])}</p>`;
   return "";
+}
+// タグの共通化：歩みのタグでも記事が見つかるように、記事ごとの「歩みのタグ」の検索の文字（it._ht）を作る
+//   （関連リンクでつないだ記事と、出来事の「」の名前が記事のタグ・ライブ名・タイトルに入っている記事）。
+//   人の絞り込み（personMatch は it._h を見る）には効かせず、検索窓の言葉にだけ使う。戻り値：足した記事があれば true
+function applyHistTags() {
+  if (!S.histTagIndex) return false;
+  let changed = false;
+  for (const it of S.items) {
+    const tags = tagsForArticle(S.histTagIndex, it);
+    it._ht = tags.length ? norm(tagSearchWords(tags)) : "";
+    if (tags.length) changed = true;
+  }
+  return changed;
 }
 // 「RADWIMPSの歩み」の関連リンクでこの記事をつないだ出来事（押すと、歩みでその出来事を検索した状態で開く）
 function historyLine(it) {
@@ -1083,7 +1088,7 @@ function renderAdmin() {
   else if (!adminLoading) {
     adminLoading = true;
     import("./admin.js").then((m) => {
-      adminEditor = m.mountAdmin($("#adminEditor"), { repo: REPO, toast, onSaved: (text) => { ingest(text); render(); } });
+      adminEditor = m.mountAdmin($("#adminEditor"), { repo: REPO, toast, onSaved: (text) => { ingest(text); applyHistTags(); render(); } });
       if (wantNew) adminEditor.openNew();
     }).catch(() => { $("#adminEditor").replaceChildren(h("p", { class: "msg err", text: "記事の管理を読み込めませんでした。ページを開き直してください。" })); })
       .finally(() => { adminLoading = false; });

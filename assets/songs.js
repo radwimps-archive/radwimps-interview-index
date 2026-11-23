@@ -124,14 +124,15 @@ function load(songText, articleText, historyText) {
   const find = articleText ? articleFinder(parseArticles(articleText).items) : () => [];
   const hEvents = historyText ? parseHistory(historyText).events : [];
   const videos = videoMap(hEvents);
-  // タグの共通化：曲名・作品名・アルバム名と同じ名前（歩みの出来事の「」の中）に付けたタグでも、曲が見つかる
+  // タグの共通化：曲名と同じ名前（歩みの出来事の「」の中）に付けたタグでも、曲が見つかる
+  //   （作品名・アルバム名では結びつけない：映画やアルバムに付けた人の名前のタグが、劇伴などの全曲に広がらないように）
   const tagIndex = historyTagIndex(hEvents);
   return parsed.songs.map((s) => {
     const base = baseTitle(s.title);
     const sortKey = kanaKey(s.yomi || base);
     const list = find(base, s.artist);
     return { ...s, base, sortKey, row: rowOf(sortKey), articles: list.length, articleList: list, video: videos.get(norm(base)) || null,
-      _h: norm([s.title, s.work, s.album, s.tieup, s.note, kindLabel(s.kind), s.artist, tagSearchWords(tagsForNames(tagIndex, [s.title, base, s.work, s.album].filter(Boolean)))].join(" ")) };
+      _h: norm([s.title, s.work, s.album, s.tieup, s.note, kindLabel(s.kind), s.artist, tagSearchWords(tagsForNames(tagIndex, [s.title, base].filter(Boolean)))].join(" ")) };
   });
 }
 

@@ -668,7 +668,7 @@ export function historySiteLinks(e) {
 //   ・関連リンクでつないだ記事
 // に結びつけ、そのタグでも検索で見つかるようにする（タグは画面には出さない）。
 // 名前は、全角半角・大文字小文字・空白・かぎかっこ・中黒のちがいを気にせずに比べる。1文字の名前は使わない
-const tagKey = (s) => nfkc(s).toLowerCase().replace(/[\s"“”「」『』・･]/g, "");
+const tagKey = (s) => nfkc(s).toLowerCase().replace(/[〜～~]/g, "~").replace(/[\s"“”「」『』・･]/g, "");
 export function quotedNames(title) {
   return [...String(title || "").matchAll(/[「『]([^」』]+)[」』]/g)].map((m) => m[1].trim()).filter(Boolean);
 }
