@@ -639,6 +639,9 @@ async function loadCatalog() {
     if (lives.length) $("#span").textContent = `${lives[0].y} — ${lives[lives.length - 1].y}`;
     renderRanking();
     const q = new URLSearchParams(location.search).get("song");
+    // ?q= で、「ライブ」を検索した状態で開ける（「RADWIMPSの歩み」の検索から来たときなど）
+    const q0 = new URLSearchParams(location.search).get("q");
+    if (q0) queries.live = q0.slice(0, 100);
     song = q ? findSong(q) || "" : "";
     songMissing = q && !song ? q : "";
     renderLives();
