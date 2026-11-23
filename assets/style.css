@@ -703,13 +703,17 @@ button.title-link { padding: 0; border: 0; background: none; font: inherit; text
 .hist-link-kind { flex: none; display: inline-block; padding: 0 6px; white-space: nowrap; border: 1px solid currentColor; border-radius: 3px; font-size: 12px; line-height: 1.5; text-decoration: none; }
 /* 年表の管理（管理者モードの端末だけ。assets/admin-history.js） */
 .hist-admin { padding-top: 16px; }
-/* 歩みの検索で、ほかのページ（楽曲一覧・SET LIST・記事一覧）で見つかったもの */
-.hist-xref { margin-top: 12px; margin-bottom: 4px; }
-.hist-xref:not([hidden]) { display: grid; gap: 14px; padding: 14px 16px; border-radius: 8px; background: var(--card); color: var(--ink); }
-.hist-xref-title { margin: 0; font-size: 14px; font-weight: 700; color: var(--ink); }
-.hist-xref-note { margin: 0; font-size: 13px; color: var(--ink-2); }
+/* 歩みの検索で、ほかのページ（楽曲一覧・SET LIST・記事一覧）で見つかったもの。たたんだ見出しを押すと開く。
+   白い面は、スマホでも左右に 16px のすき間をあける（.wrap の外側の余白の内側に面を置く） */
+.hist-xref { box-sizing: border-box; width: auto; max-width: min(100% - 32px, 1120px); margin: 12px auto 4px; padding: 0; border-radius: 8px; background: var(--card); color: var(--ink); }
+.hist-xref-title { display: flex; flex-wrap: wrap; align-items: center; gap: 2px 6px; min-height: 44px; padding: 8px 16px; font-size: 14px; font-weight: 700; color: var(--ink); cursor: pointer; }
+.hist-xref-title small { font-size: 12px; font-weight: 400; color: var(--ink-2); }
+.hist-xref > summary { position: relative; padding-right: 44px; list-style: none; }
+.hist-xref > summary::-webkit-details-marker { display: none; }
+.hist-xref > summary::after { content: "＋"; position: absolute; right: 16px; top: 50%; transform: translateY(-50%); color: var(--ink-2); font-size: 16px; font-weight: 400; }
+.hist-xref[open] > summary::after { content: "－"; }
+.hist-xref-body { display: grid; gap: 14px; padding: 0 16px 12px; }
 .hist-xref-group h3 { margin: 0 0 4px; font-size: 13px; font-weight: 700; color: var(--ink); }
-.hist-xref-group h3 small { font-size: 12px; font-weight: 400; color: var(--ink-2); }
 .hist-xref-group ul { margin: 0; padding: 0; list-style: none; }
 .hist-xref-group li a { display: flex; flex-direction: column; justify-content: center; min-height: 44px; padding: 4px 0; border-bottom: 1px solid var(--rule); color: var(--ink); text-decoration: none; }
 .hist-xref-label { font-size: 14px; line-height: 1.5; text-decoration: underline; text-underline-offset: 3px; overflow-wrap: anywhere; }
