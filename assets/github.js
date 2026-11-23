@@ -5,6 +5,13 @@
 //   ・合鍵はこの端末のブラウザにだけ保存し、GitHub（api.github.com）以外には送りません。
 //   ・合鍵の保存場所（STORE_TOKEN・STORE_REPO）は、記事の管理と年表の管理で同じです（一度登録すれば、どちらでも使えます）。
 
+import config from "./config.js";
+
+// 保存先のブランチ：正式版のプレビュー（github.io 以外のアドレス）では config.js の previewSaveBranch（正式版のブランチ）。
+// github.io のサイト（ベータ版）や、previewSaveBranch が空欄のときは ""（リポジトリのいつものブランチ＝main）。
+// 年表の管理（admin-history.js）と記事の管理（admin.js）で同じものを使う（運営の決定 11/22・記事は 11/23）
+export const saveBranch = () => (/\.github\.io$/i.test(location.hostname) ? "" : String(config.previewSaveBranch || "").trim());
+
 export const STORE_TOKEN = "radwimps-interview-index:gh-token";
 export const STORE_REPO = "radwimps-interview-index:gh-repo";
 const API = "https://api.github.com";

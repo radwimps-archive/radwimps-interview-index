@@ -11,13 +11,8 @@
 import { parseCSV, toCSVLine, parseHistory, parseSites, parseSetlists, historyShows, quotedNames, SETLIST_CONFIDENCE, SETLIST_CATEGORIES, parseHistoryLinks, formatHistoryLinks, checkHistoryLinks, HISTORY_LINK_LABEL_MAX, parseHistoryTags, formatHistoryTags, HISTORY_TAG_MAX, HISTORY_CATEGORIES, SITE_KINDS } from "./data.js";
 import { Table } from "./csv-table.js"; // 読み込んだ CSV と、まだ保存していない変更
 import { h, downloadFile } from "./ui.js";
-import { STORE_TOKEN, STORE_REPO, lsGet, lsSet, repoName, GhError, GitHub } from "./github.js";
-import config from "./config.js";
-
-// 保存先のブランチ：正式版のプレビュー（github.io 以外のアドレス）では config.js の previewSaveBranch（正式版のブランチ）。
-// github.io のサイトや、previewSaveBranch が空欄のときは、リポジトリのいつものブランチ（main）
-const onPages = () => /\.github\.io$/i.test(location.hostname);
-const saveBranch = () => (onPages() ? "" : String(config.previewSaveBranch || "").trim());
+import { STORE_TOKEN, STORE_REPO, lsGet, lsSet, repoName, GhError, GitHub, saveBranch } from "./github.js";
+// 保存先のブランチ（saveBranch）は github.js にある（記事の管理と同じ決まり）
 
 const nf = (s) => String(s ?? "").normalize("NFKC").trim();
 const oneLine = (s) => String(s ?? "").replace(/\s*\n\s*/g, " ").trim();

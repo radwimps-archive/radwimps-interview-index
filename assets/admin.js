@@ -8,7 +8,7 @@
 
 import { parseCSV, parseArticles, toCSVLine, ARTICLE_HEADER, KIND_ORDER, MEMBERS, MEMBER_ORDER, LANGS, STATES, CATEGORIES, idFromUrl, youtubeId, VIDEO_KIND, INTERVIEW_KIND } from "./data.js";
 import { h, downloadFile } from "./ui.js";
-import { STORE_TOKEN, STORE_REPO, lsGet, lsSet, repoName, GhError, GitHub } from "./github.js"; // GitHub とのやりとり（年表の管理と同じもの）
+import { STORE_TOKEN, STORE_REPO, lsGet, lsSet, repoName, GhError, GitHub, saveBranch } from "./github.js"; // GitHub とのやりとり（年表の管理と同じもの）
 
 const FILE = "data/articles.csv";
 const PAGE = 40; // 一覧に一度に出す件数
@@ -135,7 +135,9 @@ async function connect(token, repo) {
   render();
   try {
     A.gh = new GitHub(token, repo);
-    await A.gh.init(); // リポジトリの確認・保存先のブランチ・記録に出す名前（github.js）
+    // リポジトリの確認・保存先のブランチ・記録に出す名前（github.js）。
+    // 正式版のプレビューでは、正式版のブランチ（design/blue-theme）から読み、そこに保存する（年表の管理と同じ。運営の決定 11/23）
+    await A.gh.init({ branch: saveBranch() });
     A.branch = A.gh.branch;
     const { text, sha } = await fetchFile();
     loadWithCarry(text);
@@ -186,7 +188,8 @@ async function save() {
     A.baseRows = clone(A.rows);
     A.ops = [];
     A.opts.onSaved(serialize());
-    toast(merged ? "GitHub 側の新しい変更に重ねて保存しました。1〜2分でサイトに反映されます" : "GitHub に保存しました。1〜2分でサイトに反映されます");
+    const where = A.gh.branch !== A.gh.defaultBranch ? `正式版のブランチ（${A.gh.branch}）に保存しました。チェックが通ると、数分でこのプレビューに反映されます（ベータ版のサイトには入りません）` : "保存しました。1〜2分でサイトに反映されます";
+    toast(merged ? `GitHub 側の新しい変更に重ねて${where}` : `GitHub ${A.gh.branch !== A.gh.defaultBranch ? "の" : "に"}${where}`);
   } catch (e) {
     if (e.keyProblem) { // 合鍵の期限切れなど：登録し直せば、続きから保存できる
       dropKey(e.message);
@@ -317,7 +320,8 @@ function statusLine() {
       render();
       toast(A.carry ? "この端末から合鍵を消しました。保存していない変更は、つなぎ直すまで残っています" : "この端末から合鍵を消しました");
     });
-    box.append(h("p", null, h("span", { class: "dot ok", "aria-hidden": "true" }), `GitHub につながっています（${A.repo}・${A.branch}）`), off);
+    box.append(h("p", null, h("span", { class: "dot ok", "aria-hidden": "true" }), `GitHub につながっています（${A.repo}・${A.branch}）`
+      + (A.gh && A.gh.branch !== A.gh.defaultBranch ? "。保存すると正式版のブランチに入り、数分でこのプレビューに反映されます（ベータ版のサイトには入りません）" : "")), off);
   } else {
     const back = h("button", { type: "button", class: "linkbtn", text: "GitHub とつなぐ" });
     back.addEventListener("click", () => {
