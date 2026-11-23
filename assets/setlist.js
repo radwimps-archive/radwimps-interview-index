@@ -112,9 +112,10 @@ function loadHistory() {
     try { attachHistory(historyText, sitesText); } catch (e) { console.warn("歩みの年表をつなげませんでした", e); return; }
     for (const t of tours) t.hayN = null; // 検索の文字に、タグを入れ直す
     patchHistLines();
-    // 検索中なら、タグでも見つかるように探し直す
-    if (queries.live.trim()) renderLives();
-    if (queries.mine.trim()) renderMine();
+    // 検索中なら、タグでも見つかるように探し直す（カードの中のボタンを操作している最中は、位置が飛ばないよう、次に文字を打ったときに任せる）
+    const busy = document.activeElement?.closest?.("#lives, #mine");
+    if (!busy && queries.live.trim()) renderLives();
+    if (!busy && queries.mine.trim()) renderMine();
     if (tours.some((t) => (t.hist || []).some((e) => (e.links || []).some((l) => l.type === "article")))) {
       const text = await opt("data/articles.csv");
       if (!text) return;
