@@ -137,6 +137,22 @@ test("historyShows・historySiteLinks：歩みのライブの出来事に入る�
   assert.deepEqual(items.map((x) => [x.kind, x.title]), [["動画", "記事A"], ["", "公式"]]);
 });
 
+test("タグの共通化：出来事の「」の名前と、関連リンクの記事にタグを結びつける", async () => {
+  const { historyTagIndex, tagsForNames, tagsForArticle, tagSearchWords } = await import("../assets/data.js");
+  const head = HISTORY_HEAD + ",関連リンク,タグ";
+  const ev = parseHistory([head,
+    "2017,10,18,,,,リリース,映像作品「Human Bloom Tour 2017」リリース,,,,,記事:a1,#HBT",
+    "2025,3,31,,,,映画・タイアップ,『あんぱん』放送開始,,,,,,#朝ドラ"].join("\n")).events;
+  const idx = historyTagIndex(ev);
+  assert.deepEqual(tagsForNames(idx, ["Human Bloom Tour 2017"]), ["HBT"], "ツアー名と同じ名前（大文字小文字・空白のちがいは気にしない）");
+  assert.deepEqual(tagsForNames(idx, ["humanbloom tour2017"]), ["HBT"]);
+  assert.deepEqual(tagsForNames(idx, ["Human Bloom"]), [], "名前の一部だけでは結びつけない");
+  assert.deepEqual(tagsForArticle(idx, { id: "a1", tags: [], title: "x" }), ["HBT"], "関連リンクでつないだ記事");
+  assert.deepEqual(tagsForArticle(idx, { id: "b", tags: ["あんぱん"], title: "y" }), ["朝ドラ"], "記事のタグが名前と同じ");
+  assert.deepEqual(tagsForArticle(idx, { id: "c", tags: [], title: "全国ツアー『Human Bloom Tour 2017』開幕" }), ["HBT"], "タイトルの『』の名前");
+  assert.equal(tagSearchWords(["HBT"]), "HBT #HBT");
+});
+
 test("parseHistory：年や出来事がない行はエラーになり、年表に入らない", () => {
   const r = history(",5,1,,,,リリース,年がない,,,,", "2020,5,1,,,,リリース,,,,,", "2020,13,1,,,,リリース,月がおかしい,,,,");
   assert.equal(r.errors.length, 3);

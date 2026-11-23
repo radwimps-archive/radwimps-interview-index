@@ -8,7 +8,7 @@
 //   ・年表（data/history.csv）…「動画」の列にある、その曲の MV を YouTube で開く
 
 import "./analytics.js";
-import { parseSongs, parseArticles, parseHistory, SONG_KINDS } from "./data.js";
+import { parseSongs, parseArticles, parseHistory, historyTagIndex, tagsForNames, tagSearchWords, SONG_KINDS } from "./data.js";
 import { h as el, setupMenu, isAdminDevice } from "./ui.js";
 import { feedbackUrl, hasFeedback, setupBeta, KIND } from "./feedback.js";
 import config from "./config.js";
@@ -122,13 +122,16 @@ function load(songText, articleText, historyText) {
   const parsed = parseSongs(songText);
   if (parsed.errors.length) console.warn("楽曲のデータに、直すところがあります", parsed.errors);
   const find = articleText ? articleFinder(parseArticles(articleText).items) : () => [];
-  const videos = historyText ? videoMap(parseHistory(historyText).events) : new Map();
+  const hEvents = historyText ? parseHistory(historyText).events : [];
+  const videos = videoMap(hEvents);
+  // タグの共通化：曲名・作品名・アルバム名と同じ名前（歩みの出来事の「」の中）に付けたタグでも、曲が見つかる
+  const tagIndex = historyTagIndex(hEvents);
   return parsed.songs.map((s) => {
     const base = baseTitle(s.title);
     const sortKey = kanaKey(s.yomi || base);
     const list = find(base, s.artist);
     return { ...s, base, sortKey, row: rowOf(sortKey), articles: list.length, articleList: list, video: videos.get(norm(base)) || null,
-      _h: norm([s.title, s.work, s.album, s.tieup, s.note, kindLabel(s.kind), s.artist].join(" ")) };
+      _h: norm([s.title, s.work, s.album, s.tieup, s.note, kindLabel(s.kind), s.artist, tagSearchWords(tagsForNames(tagIndex, [s.title, base, s.work, s.album].filter(Boolean)))].join(" ")) };
   });
 }
 

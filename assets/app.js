@@ -12,7 +12,7 @@ import { norm } from "./text.js";
 import { analyticsOn, DASHBOARD_URL } from "./analytics.js";
 import config from "./config.js";
 import {
-  parseArticles, parseReleases, parseHistory, KIND_ORDER, MEMBERS, MEMBER_ORDER, CATEGORIES, SUPPORT_MEMBERS, WORKS, QUICK_WORKS,
+  parseArticles, parseReleases, parseHistory, historyTagIndex, tagsForArticle, tagSearchWords, KIND_ORDER, MEMBERS, MEMBER_ORDER, CATEGORIES, SUPPORT_MEMBERS, WORKS, QUICK_WORKS,
   VIDEO_KIND, RADIO_KIND, LIVE_KIND, INTERVIEW_KIND, OTHERS_KIND, LANG_BADGE, youtubeId, formatOf
 } from "./data.js";
 import { h, isAdminDevice, setAdminDevice, setupMenu, downloadFile, watchScrollFade, watchStuck } from "./ui.js";
@@ -177,19 +177,6 @@ async function loadData() {
       fetch("data/articles.csv", { cache: "no-cache" }),
       fetch("data/releases.csv", { cache: "no-cache" }).catch(() => null)
     ]);
-    hLoad.then((hText) => {
-      if (!hText) return;
-      try {
-        const map = new Map();
-        for (const e of parseHistory(hText).events) for (const l of e.links || []) {
-          if (l.type !== "article") continue;
-          const list = map.get(l.id) || map.set(l.id, []).get(l.id);
-          if (!list.some((x) => x.title === e.title && x.y === e.y)) list.push({ title: e.title, y: e.y });
-        }
-        S.histByArticle = map;
-        addHistoryLines();
-      } catch (err) { console.warn("年表を読めませんでした", err); }
-    });
     if (!aRes.ok) throw new Error("articles.csv: HTTP " + aRes.status);
     ingest(await aRes.text());
     if (rRes && rRes.ok) S.releases = parseReleases(await rRes.text()).byYear;
@@ -200,6 +187,32 @@ async function loadData() {
     S.loaded = true;
     $("#loading").hidden = true;
     render();
+    // 年表は、記事を出したあとで足す（記事より先に届いても、記事を読み込んでからにする）
+    hLoad.then((hText) => {
+      if (!hText) return;
+      try {
+        const map = new Map();
+        const hEvents = parseHistory(hText).events;
+        for (const e of hEvents) for (const l of e.links || []) {
+          if (l.type !== "article") continue;
+          const list = map.get(l.id) || map.set(l.id, []).get(l.id);
+          if (!list.some((x) => x.title === e.title && x.y === e.y)) list.push({ title: e.title, y: e.y });
+        }
+        S.histByArticle = map;
+        addHistoryLines();
+        // タグの共通化：歩みのタグでも記事が見つかるように、検索の文字に足す（関連リンクでつないだ記事と、
+        // 出来事の「」の名前が記事のタグ・ライブ名・タイトルに入っている記事）。検索中なら、探し直す
+        const idx = historyTagIndex(hEvents);
+        let changed = false;
+        for (const it of S.items) {
+          const tags = tagsForArticle(idx, it);
+          if (!tags.length) continue;
+          it._h += " " + norm(tagSearchWords(tags));
+          changed = true;
+        }
+        if (changed && F.q) render();
+      } catch (err) { console.warn("年表を読めませんでした", err); }
+    });
   } catch (e) {
     console.error(e);
     $("#loading").textContent = "記事データを読み込めませんでした。時間をおいて、ページを開き直してください。";

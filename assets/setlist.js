@@ -14,7 +14,7 @@
 //   その出来事の特設サイト・公式ページ、関連リンク（記事一覧の記事・ほかのページ）、動画（ライブ映像など）を出し、出来事に付けたタグでも検索で見つかるようにする。
 //   セトリを先に出し、年表・特設サイトの一覧（と、関連リンクに記事があれば記事データ）が届いたら足す。読めなくても、このページはそのまま使える
 
-import { parseCSV, parseSetlists, parseHistory, parseSites, parseArticles, linkHistorySites, historyShows, historySiteLinks, historyLinkItems, siteKey, songKey, SETLIST_CONFIDENCE, SETLIST_CATEGORIES } from "./data.js";
+import { parseCSV, parseSetlists, parseHistory, parseSites, parseArticles, linkHistorySites, historyShows, historySiteLinks, historyLinkItems, historyTagIndex, tagsForNames, tagSearchWords, siteKey, songKey, SETLIST_CONFIDENCE, SETLIST_CATEGORIES } from "./data.js";
 import { h as el, setupMenu, isAdminDevice, watchScrollFade, watchStuck } from "./ui.js";
 import { feedbackUrl, hasFeedback, setupBeta, KIND } from "./feedback.js";
 import { looseMatch, looseMatchAll, fold } from "./search.js";
@@ -61,6 +61,7 @@ function attachHistory(historyText, sitesText) {
   if (!historyText) return;
   const sites = sitesText ? parseSites(sitesText).sites : [];
   const events = linkHistorySites(parseHistory(historyText).events, sites);
+  tagIndex = historyTagIndex(events);
   for (const e of events) {
     for (const l of historyShows(e, lives)) {
       const t = l.tour;
@@ -68,6 +69,8 @@ function attachHistory(historyText, sitesText) {
     }
   }
 }
+// タグの共通化：ツアー名と同じ名前（「」の中）の出来事に付けたタグでも、ツアーが見つかる（data.js の historyTagIndex）
+let tagIndex = null;
 // 関連リンクの記事（data/articles.csv の公開している記事。id → 記事）。関連リンクに記事があるときだけ読む
 let articleById = new Map();
 // ツアーを開いたところに出す、歩みの出来事のリンク（新しいタブで開く）：
@@ -243,7 +246,7 @@ function hitTour(t, query) {
   if (!parts.length) return true;
   // 歩みの出来事に付けたタグ（「#」付きでも探せる）も、ライブ名と同じくゆるく比べる
   const names = t.hayN || (t.hayN = [t.name, ...t.lives.flatMap((l) => [l.venue, dateLabel(l)]),
-    ...(t.hist || []).flatMap((e) => (e.tags || []).flatMap((x) => [x, `#${x}`]))].join(" "));
+    ...(t.hist || []).flatMap((e) => (e.tags || []).flatMap((x) => [x, `#${x}`])), tagSearchWords(tagsForNames(tagIndex, [t.name]))].join(" "));
   const inner = t.hayS || (t.hayS = fold(t.lives.flatMap((l) => [...songsOf(l).map((s) => s.title), ...l.guests, ...l.main.map((s) => s.part || "")]).join(" ")));
   const one = (p) => looseMatch(names, p) || (fold(p) !== "" && inner.includes(fold(p)));
   const whole = fold(query);

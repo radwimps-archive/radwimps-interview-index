@@ -662,6 +662,43 @@ export function historySiteLinks(e) {
   return out;
 }
 
+/* ---------- タグの共通化（運営の希望 11/23） ---------- */
+// 歩みの出来事に付けたタグを、ほかのページでも同じように使う：
+//   ・出来事の「」『』の中の名前（作品名・ライブ名）と同じ名前のもの（SET LIST のツアー・楽曲一覧の曲・記事・歩みのほかの出来事）
+//   ・関連リンクでつないだ記事
+// に結びつけ、そのタグでも検索で見つかるようにする（タグは画面には出さない）。
+// 名前は、全角半角・大文字小文字・空白・かぎかっこ・中黒のちがいを気にせずに比べる。1文字の名前は使わない
+const tagKey = (s) => nfkc(s).toLowerCase().replace(/[\s"“”「」『』・･]/g, "");
+export function quotedNames(title) {
+  return [...String(title || "").matchAll(/[「『]([^」』]+)[」』]/g)].map((m) => m[1].trim()).filter(Boolean);
+}
+export function historyTagIndex(events) {
+  const byName = new Map(), byArticle = new Map();
+  const add = (map, k, tags) => { const set = map.get(k) || map.set(k, new Set()).get(k); for (const t of tags) set.add(t); };
+  for (const e of events || []) {
+    if (!e.tags?.length) continue;
+    for (const n of quotedNames(e.title)) { const k = tagKey(n); if ([...k].length >= 2) add(byName, k, e.tags); }
+    for (const l of e.links || []) if (l.type === "article") add(byArticle, l.id, e.tags);
+  }
+  return { byName, byArticle };
+}
+// 名前（ツアー名・曲名・作品名など）に結びつくタグ
+export function tagsForNames(index, names) {
+  const out = new Set();
+  if (!index) return [];
+  for (const n of names || []) for (const t of index.byName.get(tagKey(n)) || []) out.add(t);
+  return [...out];
+}
+// 記事に結びつくタグ：関連リンクでつないだ記事と、名前が記事のタグ・ライブ名・タイトルの「」『』に入っている記事
+export function tagsForArticle(index, it) {
+  if (!index) return [];
+  const out = new Set(index.byArticle.get(it.id) || []);
+  for (const t of tagsForNames(index, [...(it.tags || []), it.eventName, ...quotedNames(it.title)].filter(Boolean))) out.add(t);
+  return [...out];
+}
+// 検索の文字に足す形（「#」を付けて探しても見つかるように）
+export const tagSearchWords = (tags) => (tags || []).flatMap((t) => [t, `#${t}`]).join(" ");
+
 export function attachSites(events, sites) {
   const loose = (t) => nfkc(t).toLowerCase().replace(/[\s"“”「」『』]/g, "");
   const out = events.map((e) => ({ ...e, sites: [] }));
