@@ -6,7 +6,7 @@
 //   どの出来事がどの公演か：data/setlists.csv の公演のうち、出来事の日付（期間）に入るもの。期間の中に別のライブ（フェスなど）があるときは、いちばん公演数の多いツアーだけ。
 
 import "./analytics.js";
-import { parseHistory, parseSetlists, parseSites, parseArticles, linkHistorySites, historyShows, siteKey, historySearchText, matchHistory, HISTORY_CATEGORIES } from "./data.js";
+import { parseHistory, parseSetlists, parseSites, parseArticles, linkHistorySites, historyShows, historyLinkItems, siteKey, historySearchText, matchHistory, HISTORY_CATEGORIES } from "./data.js";
 import { attendButton, attendCount, assignKeys, sync as syncAttend, setupAttendClicks } from "./attended.js";
 import { h as el, setupMenu, isAdminDevice, watchScrollFade, watchStuck } from "./ui.js";
 import config from "./config.js";
@@ -258,16 +258,11 @@ function siteLine(e) {
 //   記事は、記事データにあって「公開」のものだけ出す（記事データを読み終える前や、見つからない記事は出さない）
 function linkLine(e) {
   if (e.mv || !e.links?.length) return null;
-  const items = [];
-  for (const l of e.links) {
-    if (l.type === "url") items.push(el("a", { href: l.url, target: "_blank", rel: "noopener noreferrer", "aria-label": `${l.label}（新しいタブで開く）` }, `${l.label} ↗`));
-    else {
-      const it = articleById.get(l.id);
-      const kind = it && (it.format === "video" ? "動画" : it.format === "radio" ? "ラジオ" : "記事");
-      if (it) items.push(el("a", { href: it.url, target: "_blank", rel: "noopener noreferrer", "aria-label": `${kind}「${it.title}」（${it.media}）を新しいタブで開く` },
-        el("span", { class: "hist-link-kind", text: kind }), `${it.title} ↗`));
-    }
-  }
+  // リンクの一覧は data.js の historyLinkItems（SET LIST と同じ）
+  const items = historyLinkItems(e, articleById).map((x) => x.kind
+    ? el("a", { href: x.href, target: "_blank", rel: "noopener noreferrer", "aria-label": `${x.kind}「${x.title}」（${x.media}）を新しいタブで開く` },
+      el("span", { class: "hist-link-kind", text: x.kind }), `${x.title} ↗`)
+    : el("a", { href: x.href, target: "_blank", rel: "noopener noreferrer", "aria-label": `${x.title}（新しいタブで開く）` }, `${x.title} ↗`));
   if (!items.length) return null;
   const p = el("p", { class: "hist-sites hist-links" });
   items.forEach((a, i) => { if (i) p.append(el("span", { class: "sep", "aria-hidden": "true", text: "·" })); p.append(a); });

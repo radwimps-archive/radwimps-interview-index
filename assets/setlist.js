@@ -11,9 +11,10 @@
 //   ライブ未演奏：楽曲一覧にあって、どの公演のセトリにも出てこない曲（#unplayed。songs.csv がないときはタブごと出しません）
 // 「RADWIMPSの歩み」とのつながり（運営の希望 11/23。歩みの年表の管理で直したものが、ここにも出る）：
 //   年表（data/history.csv）と特設サイトの一覧（data/sites.csv）も読み、ライブ・ツアーの出来事に入る公演（data.js の historyShows。歩みと同じ決まり）のツアーに、
-//   その出来事の特設サイト・公式ページのリンクを出し、出来事に付けたタグでも検索で見つかるようにする。読めなくても、このページはそのまま使える
+//   その出来事の特設サイト・公式ページ、関連リンク（記事一覧の記事・ほかのページ）、動画（ライブ映像など）を出し、出来事に付けたタグでも検索で見つかるようにする。
+//   セトリを先に出し、年表・特設サイトの一覧（と、関連リンクに記事があれば記事データ）が届いたら足す。読めなくても、このページはそのまま使える
 
-import { parseCSV, parseSetlists, parseHistory, parseSites, linkHistorySites, historyShows, historySiteLinks, songKey, SETLIST_CONFIDENCE, SETLIST_CATEGORIES } from "./data.js";
+import { parseCSV, parseSetlists, parseHistory, parseSites, parseArticles, linkHistorySites, historyShows, historySiteLinks, historyLinkItems, siteKey, songKey, SETLIST_CONFIDENCE, SETLIST_CATEGORIES } from "./data.js";
 import { h as el, setupMenu, isAdminDevice, watchScrollFade, watchStuck } from "./ui.js";
 import { feedbackUrl, hasFeedback, setupBeta, KIND } from "./feedback.js";
 import { looseMatch, looseMatchAll, fold } from "./search.js";
@@ -67,17 +68,60 @@ function attachHistory(historyText, sitesText) {
     }
   }
 }
-// ツアーを開いたところに出す、歩みの出来事の特設サイト・公式ページのリンク（新しいタブで開く）
-function siteLine(t) {
+// 関連リンクの記事（data/articles.csv の公開している記事。id → 記事）。関連リンクに記事があるときだけ読む
+let articleById = new Map();
+// ツアーを開いたところに出す、歩みの出来事のリンク（新しいタブで開く）：
+//   1行目：特設サイト・公式ページ　2行目：関連リンク（記事・ほかのページ）と動画（ライブ映像など）
+function histLines(t) {
+  const ev = t.hist || [];
+  if (!ev.length) return null;
+  const row = (cls, items) => {
+    if (!items.length) return null;
+    const p = el("p", { class: `hist-sites ${cls}` });
+    items.forEach((a, i) => { if (i) p.append(el("span", { class: "sep", "aria-hidden": "true", text: "·" })); p.append(a); });
+    return p;
+  };
   const seen = new Set();
-  const links = (t.hist || []).flatMap(historySiteLinks).filter((x) => !seen.has(x.href) && seen.add(x.href));
-  if (!links.length) return null;
-  const p = el("p", { class: "hist-sites sl-sites" });
-  links.forEach((x, i) => {
-    if (i) p.append(el("span", { class: "sep", "aria-hidden": "true", text: "·" }));
-    p.append(el("a", { href: x.href, target: "_blank", rel: "noopener noreferrer", "aria-label": `${x.name || t.name}の${x.label}を新しいタブで開く` }, `${x.label} ↗`));
+  const once = (href) => { const k = siteKey(href) || href; if (seen.has(k)) return false; seen.add(k); return true; };
+  const sites = ev.flatMap(historySiteLinks).filter((x) => once(x.href)).map((x) =>
+    el("a", { href: x.href, target: "_blank", rel: "noopener noreferrer", "aria-label": `${x.name || t.name}の${x.label}を新しいタブで開く` }, `${x.label} ↗`));
+  const rel = ev.flatMap((e) => historyLinkItems(e, articleById)).filter((x) => once(x.href)).map((x) => x.kind
+    ? el("a", { href: x.href, target: "_blank", rel: "noopener noreferrer", "aria-label": `${x.kind}「${x.title}」（${x.media}）を新しいタブで開く` },
+      el("span", { class: "hist-link-kind", text: x.kind }), `${x.title} ↗`)
+    : el("a", { href: x.href, target: "_blank", rel: "noopener noreferrer", "aria-label": `${x.title}（新しいタブで開く）` }, `${x.title} ↗`));
+  const vids = ev.flatMap((e) => e.videos || []).filter((v) => once(`https://www.youtube.com/watch?v=${v.id}`)).map((v) =>
+    el("a", { href: `https://www.youtube.com/watch?v=${v.id}`, target: "_blank", rel: "noopener noreferrer", "aria-label": `${v.label}を YouTube で見る（新しいタブで開く）` }, `▶ ${v.label}`));
+  const lines = [row("sl-sites", sites), row("hist-links sl-rel", [...rel, ...vids])].filter(Boolean);
+  return lines.length ? el("div", { class: "sl-hist" }, ...lines) : null;
+}
+// 年表などがあとから届いたとき：表示中のツアーに、歩みのリンクの行を足し直す（開いている公演や位置はそのまま）
+function patchHistLines() {
+  for (const t of tours) {
+    const card = document.getElementById(t.id);
+    if (!card) continue;
+    card.querySelector(":scope > .sl-hist")?.remove();
+    const lines = histLines(t);
+    if (lines) card.querySelector(":scope > summary").after(lines);
+  }
+}
+// 年表・特設サイトの一覧を読んでツアーにつなぎ、関連リンクに記事があれば記事データも読む（8 秒で届かなければあきらめる）
+function loadHistory() {
+  const opt = (f) => fetch(f, { cache: "no-cache", signal: AbortSignal.timeout ? AbortSignal.timeout(8000) : undefined })
+    .then((r) => (r.ok ? r.text() : "")).catch(() => "");
+  Promise.all([opt("data/history.csv"), opt("data/sites.csv")]).then(async ([historyText, sitesText]) => {
+    try { attachHistory(historyText, sitesText); } catch (e) { console.warn("歩みの年表をつなげませんでした", e); return; }
+    for (const t of tours) t.hayN = null; // 検索の文字に、タグを入れ直す
+    patchHistLines();
+    // 検索中なら、タグでも見つかるように探し直す
+    if (queries.live.trim()) renderLives();
+    if (queries.mine.trim()) renderMine();
+    if (tours.some((t) => (t.hist || []).some((e) => (e.links || []).some((l) => l.type === "article")))) {
+      const text = await opt("data/articles.csv");
+      if (!text) return;
+      try { articleById = new Map(parseArticles(text).items.filter((it) => it.state === "公開" && it.url).map((it) => [it.id, it])); } catch { return; }
+      patchHistLines();
+    }
   });
-  return p;
 }
 
 function groupTours() {
@@ -178,8 +222,8 @@ function tourCard(t, open, openIds, played) {
         one ? (one.venue || "") : played ? "" : `${n}公演`,
         el("span", { class: "sl-count", text: one ? (hasSongs(one) ? `${songsOf(one).length}曲` : "セトリ未確認") : played ? `演奏 ${n}／${t.lives.length} 公演` : `セトリあり ${withSongs}／${n}` }),
         one ? null : attendCount(ls))));
-  const sitesP = siteLine(t);
-  if (sitesP) card.append(sitesP);
+  const hist = histLines(t);
+  if (hist) card.append(hist);
   if (one) { const b = setlistBody(one); b.id = liveId(one); card.append(b); }
   else card.append(el("div", { class: "sl-shows" }, ...ls.map((l) => showRow(l, !!openIds?.has(liveId(l))))));
   return card;
@@ -580,16 +624,13 @@ async function loadCatalog() {
 // 読み込み
 (async () => {
   try {
-    // 歩みの年表と特設サイトの一覧は、セトリと同時に読む（読めなくても、このページはそのまま使える）
-    const opt = (f) => fetch(f, { cache: "no-cache" }).then((r) => (r.ok ? r.text() : "")).catch(() => "");
-    const [res, historyText, sitesText] = await Promise.all([fetch("data/setlists.csv", { cache: "no-cache" }), opt("data/history.csv"), opt("data/sites.csv")]);
+    const res = await fetch("data/setlists.csv", { cache: "no-cache" });
     if (!res.ok) throw new Error();
     const { lives: list, errors } = parseSetlists(await res.text());
     if (errors.length) console.warn("セットリストのデータに、直すところがあります", errors);
     lives = list;
     assignKeys(lives);
     groupTours();
-    try { attachHistory(historyText, sitesText); } catch (e) { console.warn("歩みの年表をつなげませんでした", e); }
     indexSongs();
     if (lives.length) $("#span").textContent = `${lives[0].y} — ${lives[lives.length - 1].y}`;
     renderRanking();
@@ -599,6 +640,7 @@ async function loadCatalog() {
     renderLives();
     renderMine();
     loadCatalog();
+    loadHistory(); // 歩みの年表などは、セトリを出したあとで読んで足す
     setView(song && !location.hash ? "live" : location.hash.slice(1));
   } catch (e) {
     console.error(e);
