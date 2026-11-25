@@ -400,11 +400,18 @@ const HISTORY_COLUMNS = {
 const HISTORY_REQUIRED = ["年", "カテゴリ", "出来事"];
 
 // 「動画」の列（「ラベル=動画の ID か URL」を「 | 」で区切って並べる。ラベルを省くと「MV」）を読みます。
+// 「ラベル=URL か ID」の1本を、[全体, ラベル, URL か ID] に分ける（読めなければ null）。
+// URL の中の「=」（?v=…、?si=… など）や、ラベルの中の「=」で切らないよう、うしろが URL か11文字の ID になるところで分ける。
+// ラベルは https:// で始まらないもの（ラベルなしの watch?v=… を、「https://www.youtube.com/watch?v」というラベルと読まないため）
+export function splitVideo(part) {
+  return String(part ?? "").trim().match(/^(?:((?!https:\/\/).*?)\s*=\s*)?(https:\/\/\S+|[A-Za-z0-9_-]{11})$/);
+}
+
 // 戻り値：{ videos: [{ label, id }], bad: 読めなかった部分の一覧 }
 export function parseVideos(value) {
   const videos = [], bad = [];
   for (const part of String(value ?? "").split("|").map((x) => x.trim()).filter(Boolean)) {
-    const m = part.match(/^(?:(.*?)\s*=\s*)?(https:\/\/\S+|[A-Za-z0-9_-]{11})$/);
+    const m = splitVideo(part);
     const id = m ? youtubeId(m[2], { allowId: true }) : null;
     if (id) videos.push({ label: (m[1] || "").trim() || "MV", id });
     else bad.push(part);
