@@ -358,7 +358,7 @@ main > .hist-note { color: var(--on-blue-2); }
 }
 /* 白い部品の中は、元の紺の色に戻す（style.css で白い面を持つ部品） */
 :is(.archive, .paper-sheet, .page) :where(.entry-tabs button, .entry-panel, .search-box, .article-card, .empty, .filter-field select, .panel-label input,
-  .person-chip, .chip, .secondary, .btn, .active-filters button, .admbar.on, .counts li, .admstats li, .statcard, .stattip, .admconnect, .panel, .addform input, .addform textarea, .addform select, .admfield input,
+  .person-chip, .chip, .secondary, .btn, .active-filters button, .admbar.on, .counts li, .admstats li, .statcard, .stattip, .admconnect, .panel, .addform input, .addform textarea, .addform select, .admfield input, .hadm-videorow input, .hadm-videorow select,
   .conf-part, .sl-live, .sl-clear, .sl-chip, .transfer-url, .person-card, .sns, .sl-drop-btn, .sl-drop-menu, .att-chip, .sl-search-box, .sl-song-clear,
   .hist-shop, .hadm-card, .hist-xref, .page-guide details, .search-go, .room-item, select, textarea, input:not([type="checkbox"]):not([type="radio"])) {
   --ink: #0B1230;

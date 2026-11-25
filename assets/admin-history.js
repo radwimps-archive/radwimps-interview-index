@@ -298,7 +298,7 @@ function buildSheet() {
   ev.note = h("textarea", { rows: "2" });
   ev.site = h("input", { type: "url", inputmode: "url", autocomplete: "off", spellcheck: "false", placeholder: "https://" });
   ev.tower = h("input", { type: "text", autocomplete: "off", placeholder: "例：RADWIMPS 人間開花" });
-  ev.video = h("textarea", { rows: "3", spellcheck: "false", placeholder: "例：MV「光」=https://www.youtube.com/watch?v=…" });
+  ev.video = buildVideoBox();
   ev.box = h("div", { class: "hadm-fields" },
     h("div", { class: "admfield" }, h("span", { text: "日付（年は必須。わかる所まで）" }), ev.start),
     h("div", { class: "admfield" }, h("span", { text: "終わりの日付（ツアーなど、期間のある出来事のとき）" }), ev.end),
@@ -308,7 +308,7 @@ function buildSheet() {
     field("補足", ev.note, "出来事の下に小さく出ます。"),
     field("特設サイト・公式ページの URL", ev.site, "https:// で始まる URL。作品名・ライブ名を押すと開きます。"),
     field("CD を探す（タワーレコードの列）", ev.tower, "検索する言葉（例：RADWIMPS 人間開花）か、tower.jp の商品ページの URL。書くと、作品名を押したときに「CD を探す」が開きます。"),
-    field("動画（1行に1つ）", ev.video, "「ラベル=YouTube の URL か ID」の形。ラベルを「MV」で始めると、MV のタブにも並びます（例：MV「光」=…、予告編=…）。"),
+    ev.video,
     buildTagBox(ev),
     buildLinkBox(ev),
     buildSetlistBox(ev));
@@ -594,6 +594,76 @@ async function ensureArticles() {
   }
   return articleList;
 }
+// ---------- 動画の欄 ----------
+// 1本ずつ「種類」「曲名・題」「YouTube の URL」を入れる。保存するときに、CSV の「動画」の列の形（ラベル=URL を「 | 」で区切る）にする。
+//   種類が MV・ライブ映像・スタジオライブ・リリックビデオ・予告編なら、ラベルは「種類」か「種類「曲名」」（例：ライブ映像「トアルハルノヒ」）。
+//   「その他」は、曲名・題の欄に書いた文字がそのままラベルになる（ほかのアーティストの演奏など。例：BUMP OF CHICKEN「embrace」）。
+// ラベルが「MV」で始まると歩みの MV のタブに、MV・リリックビデオ・ライブ映像・スタジオライブは楽曲一覧の「MV・ライブ映像」にも使われる（RADWIMPS の曲として）。
+const VIDEO_KINDS = ["MV", "ライブ映像", "スタジオライブ", "リリックビデオ", "予告編"];
+const VIDEO_OTHER = "その他";
+function buildVideoBox() {
+  const list = h("ul", { class: "hadm-videos", "aria-label": "動画の一覧" });
+  const add = h("button", { type: "button", class: "btn", "data-vadd": "", text: "動画を足す" });
+  const box = h("div", { class: "fgroup hadm-videobox" },
+    h("h3", { text: "動画（出来事の下に「▶ 種類」で並びます）" }),
+    h("p", { class: "hadm-note", text: "種類を選び、YouTube の URL を貼ります。曲名・題は空でもかまいません。「MV」は歩みの MV のタブにも並び、MV・ライブ映像・スタジオライブ・リリックビデオは楽曲一覧でもその曲の動画として使います。ほかのアーティストの演奏などは「その他」を選び、曲名・題の欄に出したい文字（例：BUMP OF CHICKEN「embrace」）を書いてください。" }),
+    list, add);
+  box.addEventListener("click", (e) => {
+    const rm = e.target.closest("[data-vrm]");
+    if (e.target.closest("[data-vadd]")) {
+      const row = videoRow({ kind: "MV", title: "", url: "" });
+      list.append(row); row.querySelector("select").focus(); validate();
+    } else if (rm) {
+      const li = rm.closest("li"), next = li.nextElementSibling || li.previousElementSibling;
+      li.remove();
+      (next ? next.querySelector("select") : add).focus();
+      validate();
+      toast("動画を外しました（まだ保存していません。下の「この内容にする」を押すと年表に映ります）");
+    }
+  });
+  box.addEventListener("change", (e) => { if (e.target.matches("select[data-vkind]")) videoHint(e.target.closest("li")); });
+  box.list = list;
+  return box;
+}
+function videoRow(v) {
+  const n = videoRow.n = (videoRow.n || 0) + 1;
+  const kind = h("select", { "data-vkind": "", "aria-label": `動画${n}の種類` }, ...[...VIDEO_KINDS, VIDEO_OTHER].map((k) => opt(k)));
+  kind.value = v.kind;
+  const title = h("input", { type: "text", autocomplete: "off", "data-vtitle": "", value: v.title, "aria-label": `動画${n}の曲名・題` });
+  const url = h("input", { type: "url", inputmode: "url", autocomplete: "off", spellcheck: "false", "data-vurl": "", value: v.url, placeholder: "https://www.youtube.com/watch?v=…", "aria-label": `動画${n}の YouTube の URL` });
+  const li = h("li", {}, h("div", { class: "hadm-videorow" }, kind, title, url,
+    h("button", { type: "button", class: "btn", "data-vrm": "", "aria-label": `動画${n}を外す`, text: "✕" })));
+  videoHint(li);
+  return li;
+}
+// 「その他」のときは、曲名・題の欄が、そのまま出来事の下に出る文字になる
+function videoHint(li) {
+  const other = li.querySelector("[data-vkind]").value === VIDEO_OTHER;
+  li.querySelector("[data-vtitle]").placeholder = other ? "出す文字（必須。例：BUMP OF CHICKEN「embrace」）" : "曲名（例：トアルハルノヒ。空でも可）";
+}
+function setVideos(text) {
+  const rows = String(text || "").split("|").map((x) => x.trim()).filter(Boolean).map((part) => {
+    const m = part.match(/^(?:(.*?)\s*=\s*)?(\S+)$/);
+    if (!m) return { kind: VIDEO_OTHER, title: "", url: part };
+    const label = (m[1] || "").trim(), url = m[2];
+    if (!label) return { kind: "MV", title: "", url }; // ラベルがないものは、これまでどおり MV として読む
+    const k = label.match(/^(MV|ライブ映像|スタジオライブ|リリックビデオ|予告編)\s*(?:「(.*)」)?$/);
+    return k ? { kind: k[1], title: k[2] || "", url } : { kind: VIDEO_OTHER, title: label, url };
+  });
+  F.ev.video.list.replaceChildren(...rows.map(videoRow));
+}
+// 曲名・題に、CSV の区切りに使う「|」「=」があると読めなくなるので、空白に変える。「」は種類のあとに付けるので外す
+function videosText() {
+  return [...F.ev.video.list.children].map((li) => {
+    const kind = li.querySelector("[data-vkind]").value;
+    const title = oneLine(li.querySelector("[data-vtitle]").value).replace(/[|=]/g, " ").replace(/\s+/g, " ").trim();
+    const url = li.querySelector("[data-vurl]").value.trim().replace(/\|/g, "");
+    if (!url && !title) return "";
+    const label = kind === VIDEO_OTHER ? title : title ? `${kind}「${title.replace(/^「(.*)」$/, "$1")}」` : kind;
+    return `${label || "（出す文字がありません）"}=${url || "（URL がありません）"}`;
+  }).filter(Boolean).join(" | ");
+}
+
 function buildLinkBox(ev) {
   ev.links = [];
   ev.linkList = h("ul", { class: "hadm-links", "aria-label": "つないでいるリンク" });
@@ -712,7 +782,7 @@ function openEditor(table, index) {
     ev.cat.value = HISTORY_CATEGORIES.some((x) => x.name === cats[0]) ? cats[0] : HISTORY_CATEGORIES[0].name;
     for (const x of ev.more.querySelectorAll("input")) x.checked = cats.slice(1).includes(x.value);
     ev.text.value = c("出来事"); ev.note.value = c("補足"); ev.site.value = c("特設サイト"); ev.tower.value = c("タワーレコード");
-    ev.video.value = c("動画").split("|").map((x) => x.trim()).filter(Boolean).join("\n");
+    setVideos(c("動画"));
     // 長すぎるタグ（CSV を手で直したときなど）も消さずに残す（エラーが出て「この内容にする」が押せないので、気づいて直せる）
     { const tg = parseHistoryTags(c("タグ")); ev.tags = [...tg.tags, ...tg.bad]; }
     ev.tagIn.value = "";
@@ -796,7 +866,7 @@ function formToCells() {
     const cats = [ev.cat.value, ...[...ev.more.querySelectorAll("input:checked")].map((x) => x.value).filter((n) => n !== ev.cat.value)];
     map = { "年": y, "月": m, "日": d, "終了年": ey, "終了月": em, "終了日": ed, "カテゴリ": cats.join("、"), "出来事": oneLine(ev.text.value),
       "補足": ev.note.value.trim(), "特設サイト": ev.site.value.trim(), "タワーレコード": ev.tower.value.trim(),
-      "動画": ev.video.value.split("\n").map((x) => x.trim()).filter(Boolean).join(" | "), "関連リンク": formatHistoryLinks(ev.links), "タグ": formatHistoryTags(ev.tags) };
+      "動画": videosText(), "関連リンク": formatHistoryLinks(ev.links), "タグ": formatHistoryTags(ev.tags) };
   } else {
     const st = F.st, sel = st.state.querySelector("input:checked");
     const [y, m, d] = getDate("t");
@@ -823,6 +893,13 @@ function validate() {
     const ev = res.events.find((x) => x.line === line);
     if (ev && articleAll) warnings.push(...checkHistoryLinks([ev], articleAll).map((x) => x.msg));
     // URL を書いたまま「足す」を押していないと、そのリンクは残らないので、先に知らせる
+    [...F.ev.video.list.children].forEach((li, i) => {
+      const other = li.querySelector("[data-vkind]").value === VIDEO_OTHER;
+      const title = li.querySelector("[data-vtitle]").value.trim(), url = li.querySelector("[data-vurl]").value.trim();
+      if (!title && !url) return; // 空の行は保存しない
+      if (!url) errors.push(`動画の ${i + 1} 本目に、YouTube の URL を貼ってください（要らない行は ✕ で外せます）`);
+      if (other && !title) errors.push(`動画の ${i + 1} 本目は「その他」なので、曲名・題の欄に、出来事の下に出す文字を書いてください`);
+    });
     if (F.ev.tagIn.value.trim()) errors.push("「タグを足す」に書いた言葉が、まだ足されていません。「足す」を押すか、欄を空にしてください");
     if (F.ev.urlUrl.value.trim() || F.ev.urlLabel.value.trim()) errors.push("「ほかのページの URL を足す」に書いた内容が、まだ足されていません。「足す」を押すか、欄を空にしてください");
   }

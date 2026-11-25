@@ -445,7 +445,7 @@ dialog.modal::backdrop { background: rgba(23, 32, 24, .5); -webkit-backdrop-filt
 .admcarry .msg { flex: 1 1 16em; min-height: 0; color: var(--ink); }
 .admfield { display: grid; gap: 4px; min-width: 0; font-size: 12px; color: var(--muted); }
 .admfield small { font-size: 12px; color: var(--muted); line-height: 1.6; }
-.admfield input, .admfield select, .admfield textarea, .admq {
+.admfield input, .admfield select, .admfield textarea, .admq, .hadm-videorow input, .hadm-videorow select {
   width: 100%; min-width: 0; min-height: 44px; padding: 9px 12px; border: 1px solid #CFD2C5; border-radius: 3px;
   background: var(--white); color: var(--ink); font-size: 16px; line-height: 1.5;
 }
@@ -748,6 +748,12 @@ button.title-link { padding: 0; border: 0; background: none; font: inherit; text
 .hadm-urlrow { display: flex; flex-wrap: wrap; gap: 6px; }
 .hadm-urlrow input { flex: 1 1 10em; min-width: 0; }
 .hadm-urlrow .btn { flex: none; }
+.hadm-videos { display: grid; gap: 8px; margin: 0 0 8px; padding: 0; list-style: none; }
+.hadm-videorow { display: flex; flex-wrap: wrap; gap: 6px; padding: 8px; border-radius: 5px; background: var(--sunk); }
+.hadm-videorow select { flex: 0 1 11em; min-width: 0; }
+.hadm-videorow input[data-vtitle] { flex: 1 1 12em; min-width: 0; }
+.hadm-videorow input[data-vurl] { flex: 2 1 16em; min-width: 0; }
+.hadm-videorow .btn { flex: none; min-width: 44px; }
 /* タグの欄：付けているタグを札のように並べ、右の「✕」で外す（押せる範囲は 44px） */
 .hadm-tags { display: flex; flex-wrap: wrap; gap: 6px; margin: 0; padding: 0; list-style: none; }
 .hadm-tags li { display: inline-flex; align-items: center; gap: 2px; min-height: 44px; padding: 0 0 0 12px; border-radius: 999px; background: var(--sunk); font-size: 13px; color: var(--ink); }
