@@ -6,11 +6,12 @@
 //   ・記事（data/articles.csv）…その曲にふれた記事の数を出し、押すと記事一覧を ?work=曲名 で開く。
 //     曲名を押して開く欄には、その曲の記事を新しい順に5件（並び順と数は利用者が選べる）、♡（お気に入り）と「あとで読む」のボタン付きで出す（押すと「あなたの棚」に入る。assets/room-articles.js）
 //   ・年表（data/history.csv）…「動画」の列にある、その曲の MV を YouTube で開く
+// 管理者モードの端末では、上に「楽曲の管理」（「＋ 曲を追加」）を出し、曲の下に「直す」を出します（assets/admin-songs.js。歩みの年表の管理と同じ作り）
 
 import "./analytics.js";
 import { parseSongs, parseArticles, parseHistory, historyTagIndex, tagsForNames, tagSearchWords, SONG_KINDS } from "./data.js";
 import { h as el, setupMenu, isAdminDevice } from "./ui.js";
-import { feedbackUrl, hasFeedback, setupBeta, KIND } from "./feedback.js";
+import { feedbackUrl, hasFeedback, setupBeta, KIND, repoUrl } from "./feedback.js";
 import config from "./config.js";
 import { pickArticles } from "./shelf-data.js";
 import { norm, STRIP } from "./text.js"; // 文字のそろえ方は、記事一覧・あなたの棚と同じもの（assets/text.js）
@@ -69,6 +70,9 @@ const FILTERS = [{ slug: "all", name: "すべて" }, ...SONG_KINDS.filter((k) =>
 // 曲の札に出す名前（「配信」は「配信シングル」と出す）
 const kindLabel = (k) => (k === "配信" ? "配信シングル" : k);
 let songs = [], current = "all", query = "", order = "date";
+// 楽曲の管理（管理者モードの端末だけ。assets/admin-songs.js）。曲の下に「直す」を出し、直した内容で一覧を作り直す
+let adminApi = null;
+let sourceText = "", articleSrc = "", historySrc = ""; // ページを開いたときに読んだ CSV（「保存せずに試す」と、作り直しに使う）
 
 // 50音順：「読み」の列（なければ曲名）を、ひらがなにそろえて並べます。英語や数字で始まる曲は、最後の「英数字」にまとめます
 const ROWS = [["あ", "ぁ", "お"], ["か", "か", "ご"], ["さ", "さ", "ぞ"], ["た", "た", "ど"], ["な", "な", "の"], ["は", "は", "ぽ"],
@@ -198,7 +202,9 @@ function songItem(s, inRelease) {
     title = el("h3", { class: "song-title" }, el("button", { type: "button", class: "song-title-btn", "aria-expanded": "false", "aria-controls": panel.id, title: hint }, s.title));
   }
   const art = s.articles ? el("a", { class: "song-btn song-articles", href: more, text: `記事 ${s.articles}件` }) : null;
-  return el("li", { class: "song-item" }, el("div", { class: "song-head" }, title, art), panel, meta, linkBox, ...subs);
+  // 管理者モードで楽曲の管理を読み込んだときだけ、「直す」を出す（歩みの出来事の「直す」と同じ見た目）
+  const edit = adminApi ? el("p", { class: "hist-edits" }, el("button", { type: "button", class: "hist-edit", "data-songedit": String(s.line), "aria-label": `「${s.title}」を直す`, text: "直す" })) : null;
+  return el("li", { class: "song-item" }, el("div", { class: "song-head" }, title, art), panel, meta, linkBox, ...subs, edit);
 }
 // RADWIMPS 以外の名義（illion）の曲につける札
 function artistTag(s) {
@@ -336,6 +342,8 @@ function setFolded(shut, btn) {
 $("#songFold").addEventListener("click", (e) => { const b = e.target.closest("[data-fold]"); if (b) setFolded(b.dataset.fold === "shut"); });
 // 曲名を押すと、購入リンクを開く・閉じる
 $("#songs").addEventListener("click", (e) => {
+  const ed = e.target.closest("[data-songedit]");
+  if (ed) { if (adminApi) adminApi.editSong(+ed.dataset.songedit); return; }
   const fb = e.target.closest(".song-fold-btn");
   if (fb) { setFolded(fb.getAttribute("aria-expanded") === "true", fb); return; }
   const b = e.target.closest(".song-title-btn, .song-work-btn");
@@ -373,17 +381,51 @@ if (isAdminDevice()) document.getElementById("adminLink").hidden = false;
 // アフィリエイト（広告）のリンクがあるときは、ページの上下にそのことを出す（ステマ規制・提携の条件）
 if (BUY.some((m) => m.aff)) { $("#prTop").hidden = false; $("#prNote").hidden = false; }
 
+// 楽曲の管理：管理者モードの端末でだけ読み込む（ほかのページの中に埋め込まれているときは動かさない。歩みの年表の管理と同じ）
+function adminNote(text) {
+  const box = $("#songAdmin");
+  box.replaceChildren(el("div", { class: "hadm-card" },
+    el("div", { class: "hadm-head" }, el("h2", { id: "songAdminTitle", text: "楽曲の管理" })),
+    el("p", { class: "hadm-msg err", role: "alert", text })));
+  box.hidden = false;
+}
+function setupAdmin() {
+  if (!isAdminDevice()) return;
+  const framed = (() => { try { return window.self !== window.top; } catch { return true; } })();
+  if (framed) { adminNote("このページは、ほかのページの中に埋め込まれて開かれているので、楽曲の管理は出しません。楽曲一覧を、ブラウザのタブで直接開いてください。"); return; }
+  import("./admin-songs.js").then((m) => {
+    adminApi = m.mountSongsAdmin($("#songAdmin"), {
+      repo: repoUrl(),
+      sourceText: () => sourceText,
+      // 直した内容で一覧を作り直す（絞り込み・検索の言葉・並び順・スクロールの位置はそのまま）
+      rebuild(songText) {
+        try { songs = load(songText, articleSrc, historySrc); } catch (e) { console.error(e); return; }
+        $("#songCount").textContent = `${kinds(songs)}`;
+        if (!FILTERS.some((f) => f.slug === current && works(songs.filter((s) => match(s, f.slug, ""))))) current = "all";
+        renderFilters();
+        render();
+      }
+    });
+    render(); // 「直す」のボタンを出す
+  }).catch((err) => {
+    console.error(err);
+    adminNote(`楽曲の管理を読み込めませんでした（${String((err && err.message) || err).slice(0, 200)}）。ページを読み込み直しても出ないときは、この文をそのまま作業担当に伝えてください。`);
+  });
+}
+
 (async () => {
   try {
     const get = (f) => fetch(f, { cache: "no-cache" }).then((r) => (r.ok ? r.text() : "")).catch(() => "");
     const [songText, articleText, historyText] = await Promise.all([get("data/songs.csv"), get("data/articles.csv"), get("data/history.csv")]);
     if (!songText) throw new Error("songs.csv を読めませんでした");
+    sourceText = songText; articleSrc = articleText; historySrc = historyText;
     songs = load(songText, articleText, historyText);
     $("#songCount").textContent = `${kinds(songs)}`;
     const p = new URLSearchParams(location.search);
     if (p.get("q")) { query = p.get("q").slice(0, 100); $("#songQ").value = query; }
     renderFilters();
     setOrder(p.get("sort"));
+    setupAdmin();
   } catch (e) {
     console.error(e);
     $("#songs").replaceChildren(el("p", { class: "hist-loading", text: "曲の一覧を読み込めませんでした。時間をおいて、もう一度開いてください。" }));
