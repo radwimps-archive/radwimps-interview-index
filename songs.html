@@ -60,6 +60,8 @@
 
   <!-- ここから下は、ほかの部屋と同じ「紙」の面（.paper-sheet）にのせます（正式版の配色では、地は透明で夜空が見えます） -->
   <div class="paper-sheet">
+  <!-- 楽曲の管理：管理者モードの端末だけに出ます（中身は assets/admin-songs.js。曲を足す・直す・消して GitHub に保存できます。歩みの「年表の管理」と同じ作り） -->
+  <section class="hist-admin wrap" id="songAdmin" aria-labelledby="songAdminTitle" hidden></section>
   <!-- 検索と並び順（スクロールしても上に残ります。スクロールすると少し小さくなります） -->
   <div class="song-sentinel" id="songSentinel" aria-hidden="true"></div>
   <div class="song-bar" id="songBar">
