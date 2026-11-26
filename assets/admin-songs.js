@@ -17,6 +17,21 @@ const oneLine = (s) => String(s ?? "").replace(/\s*\n\s*/g, " ").trim();
 
 // 曲は「年」「月」「日」の順に並んでいる（同じ日の曲は、作品の曲順のまま）。新しい曲は、同じ日付の曲の最後に入る
 const T = new Table({ file: "data/songs.csv", what: "楽曲一覧（data/songs.csv）", label: "曲", parse: parseSongs, newestFirst: false });
+// songs.csv は日付の順に一本で並んでいない（おもな曲のあとに、カップリング・サウンドトラック、最後に illion の曲がまとまっている）。
+// 一覧は「日付が同じなら CSV の順」で並べるので、新しい曲（日付を直した曲）は次の順で場所を決める：
+//   1. 同じ名義・同じ日付・同じ「初めて出た作品」の行があれば、そのいちばん最後のうしろ（作品の曲順の最後）
+//   2. なければ、同じ名義の行の中で、日付が自分以前のいちばん最後の行のうしろ（なければ、同じ名義の最初の行の前）
+//   3. 同じ名義の行がなければ、ファイルの最後
+const artistKey = (r) => { const a = nf(T.cell(r, "名義")).toLowerCase(); return a === "radwimps" ? "" : a; };
+T.insertSorted = (rows, cells) => {
+  const k = T.dateKey(cells), a = artistKey(cells), w = nf(T.cell(cells, "初めて出た作品"));
+  const idx = rows.map((r, i) => [r, i]).filter(([r]) => artistKey(r) === a);
+  const sameWork = idx.filter(([r]) => T.dateKey(r) === k && nf(T.cell(r, "初めて出た作品")) === w).pop();
+  if (sameWork) { rows.splice(sameWork[1] + 1, 0, cells); return; }
+  if (!idx.length) { rows.push(cells); return; }
+  const before = idx.filter(([r]) => T.dateKey(r) <= k).pop();
+  rows.splice(before ? before[1] + 1 : idx[0][1], 0, cells);
+};
 
 /* ---------- 状態 ---------- */
 
@@ -292,6 +307,9 @@ function closeEditor() {
   const sel = A.returnTo;
   requestAnimationFrame(() => {
     const b = sel && document.querySelector(sel);
+    // 戻り先のボタンが、閉じた作品の曲の一覧の中にあるとき（一覧を作り直すと、開いていた作品がまた閉じることがある）は、その作品を開いてから戻る
+    const ol = b && b.closest(".song-items[hidden]");
+    if (ol) { const fb = document.querySelector(`.song-fold-btn[aria-controls="${ol.id}"]`); if (fb) fb.click(); }
     if (b) { b.focus({ preventScroll: true }); b.scrollIntoView({ block: "nearest" }); }
     else if (A.root) { A.root.tabIndex = -1; A.root.focus({ preventScroll: true }); }
   });
@@ -329,12 +347,9 @@ function validate() {
   const line = parseCSV(text).lines[others.length + 1];
   const res = T.parse(text);
   const errors = res.errors.filter((x) => x.line === line).map((x) => x.msg);
-  // 同じ曲名の注意は、もとの行のほうに付くことがあるので、この曲名に合うものも拾う（例：「○○は 12 行目にもあります」）
-  const warnings = res.warnings.filter((x) => x.line === line).map((x) => x.msg);
-  const title = oneLine(F.name.value);
-  if (title && !warnings.some((m) => m.includes(`曲名「${title}」`)) && res.warnings.some((x) => x.msg.startsWith(`曲名「${title}」は `) && x.msg.endsWith(`${line} 行目にもあります`))) {
-    warnings.push(`曲名「${title}」は、ほかの行にもあります（シングルとアルバムの両方に入っている曲なら、そのままでかまいません）`);
-  }
+  // 同じ曲名の注意は、チェック用に並べ替えた CSV の行番号で出るので（本当の行番号とずれる）、番号を出さない文にする
+  const warnings = res.warnings.filter((x) => x.line === line).map((x) => (/^曲名「.*」は \d+ 行目にもあります$/.test(x.msg)
+    ? x.msg.replace(/は \d+ 行目にもあります$/, "は、ほかの行にもあります（シングルとアルバムの両方に入っている曲なら、そのままでかまいません）") : x.msg));
   F.issues.replaceChildren(...[
     ...errors.map((m) => h("p", { class: "msg err", text: "直してください：" + m })),
     ...warnings.map((m) => h("p", { class: "msg", text: "注意：" + m })),
