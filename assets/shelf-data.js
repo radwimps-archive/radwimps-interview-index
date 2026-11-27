@@ -4,7 +4,7 @@
 // 分け方は、記事一覧の「人から探す」「曲・作品から探す」と同じ決まりです（記事に付いたメンバー・対談相手・タグ・タイトル・説明で決まる）。
 
 import { MEMBERS, MEMBER_ORDER, WORKS, LIVE_KIND } from "./data.js";
-import { norm } from "./text.js";
+import { norm, hasName } from "./text.js";
 export { norm };
 
 // 曲・作品の記事か（記事一覧の workMatch と同じ）：タグにその名前がある、タイトルや説明に「」『』付きで出てくる、または長めの名前がそのまま出てくる
@@ -15,7 +15,7 @@ export function workMatch(it, name) {
   if (it.tags.some((t) => norm(t) === n)) return true;
   const quoted = new RegExp(`[「『“"]${reEsc(name)}[」』”"]`);
   if (quoted.test(it.title) || quoted.test(it.summary)) return true;
-  return [...n].length >= 4 && norm([it.title, it.summary, it.tags.join(" "), it.eventName].join(" ")).includes(n);
+  return [...n].length >= 4 && hasName(norm([it.title, it.summary, it.tags.join(" "), it.eventName].join(" ")), n);
 }
 
 // 曲・作品のまとまりに入れるときの優先の順（同じグループの中は、記事一覧の「曲・作品から探す」の並び順）

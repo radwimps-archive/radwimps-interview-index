@@ -493,7 +493,7 @@ function setupSheet() {
   F.note = h("textarea", { rows: "2" });
   F.summary = h("textarea", { rows: "3" });
   F.eventDate = h("input", { type: "text", inputmode: "numeric", autocomplete: "off", placeholder: "例：2025-12-27" });
-  F.eventName = h("input", { type: "text", autocomplete: "off", list: "eventList", placeholder: "例：20th ANNIVERSARY LIVE TOUR" });
+  F.eventName = h("input", { type: "text", autocomplete: "off", list: "eventList", placeholder: "例：RADWIMPS 20th ANNIVERSARY LIVE TOUR（SET LIST の名前と同じに）" });
   F.eventList = h("datalist", { id: "eventList" });
   F.venue = h("input", { type: "text", autocomplete: "off", placeholder: "例：有明アリーナ" });
   F.id = h("input", { type: "text", autocomplete: "off", spellcheck: "false" });
