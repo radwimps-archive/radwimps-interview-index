@@ -14,7 +14,7 @@ import { h as el, setupMenu, isAdminDevice } from "./ui.js";
 import { feedbackUrl, hasFeedback, setupBeta, KIND, repoUrl } from "./feedback.js";
 import config from "./config.js";
 import { pickArticles } from "./shelf-data.js";
-import { norm, STRIP } from "./text.js"; // 文字のそろえ方は、記事一覧・あなたの棚と同じもの（assets/text.js）
+import { norm, STRIP, hasName } from "./text.js"; // 文字のそろえ方は、記事一覧・あなたの棚と同じもの（assets/text.js）
 import { roomArticles, setupRoomArticles } from "./room-articles.js";
 
 const $ = (s) => document.querySelector(s);
@@ -101,7 +101,7 @@ function articleFinder(items) {
     const n = norm(name), a = artist ? norm(artist) : "";
     if (!n) return [];
     const quoted = new RegExp(`[「『“"]${reEsc(name)}[」』”"]`);
-    return list.filter((x) => (!a || x.w.includes(a)) && (x.tags.has(n) || quoted.test(x.it.title) || quoted.test(x.it.summary) || ([...n].length >= 4 && x.w.includes(n)))).map((x) => x.it);
+    return list.filter((x) => (!a || x.w.includes(a)) && (x.tags.has(n) || quoted.test(x.it.title) || quoted.test(x.it.summary) || ([...n].length >= 4 && hasName(x.w, n)))).map((x) => x.it);
   };
 }
 

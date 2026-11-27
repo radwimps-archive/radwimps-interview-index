@@ -8,7 +8,7 @@
 // 記事を増やしたり直したりするときは、このファイルではなく data/articles.csv を編集します。
 // 絞り込みの状態は URL（例：?person=野田洋次郎&format=all）に入るので、そのままブックマークや共有ができます。
 
-import { norm } from "./text.js";
+import { norm, hasName } from "./text.js";
 import { analyticsOn, DASHBOARD_URL } from "./analytics.js";
 import config from "./config.js";
 import {
@@ -289,7 +289,7 @@ function workMatch(it, name) {
   if (it._tags.has(n)) return true;
   const quoted = new RegExp(`[「『“"]${reEsc(name)}[」』”"]`);
   if (quoted.test(it.title) || quoted.test(it.summary)) return true;
-  return [...n].length >= 4 && it._w.includes(n);
+  return [...n].length >= 4 && hasName(it._w, n);
 }
 
 const terms = () => F.q.split(/[\s　]+/).map(norm).filter(Boolean);
