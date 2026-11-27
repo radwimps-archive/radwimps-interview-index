@@ -132,7 +132,7 @@
 - **メール**：**Buttondown に決定（11/27、運営）**。ユーザー名 `archives`、名前「Archives RADWIMPS」。
   - 登録欄は、11/30 から出す案内ページ（closing/notice-page の closing.html）に置く。送り先は `https://buttondown.com/api/emails/embed-subscribe/archives`、欄の名前は `email`（config.js の newsletter）。CSP の form-action に buttondown.com を足してある。
   - 運営が 11/27 に buttondown.com/archives から試しの登録をして、確認メールで登録できることを確かめた。サイトの登録欄からの流れは、11/30 の公開のあとに確かめる。
-  - 無料は100人まで。無料だと確認メールが英語になる恐れ（有料 $9/月 で直せる）。
+  - 無料は100人まで。確認メールは無料のままで日本語で届いた（11/27 に運営が確認）ので、有料にする必要はない。
   - 登録した人の一覧は Buttondown の左の「Subscribers」、お知らせは「Emails」から送る。
   - 正式版にも登録欄を置くかは、まだ決めていない。
 
